@@ -1,0 +1,130 @@
+'use client'
+
+import { EmbeddedBrowser } from '@/components/buy4me/embedded-browser'
+import { Buy4MeHeader } from '@/components/buy4me/header'
+import { OrderHistory } from '@/components/buy4me/order-history'
+import { OrderSummary } from '@/components/buy4me/order-summary'
+import { Buy4MeProfile } from '@/components/buy4me/profile'
+import { RequestList } from '@/components/buy4me/request-list'
+import { Buy4MeShell } from '@/components/buy4me/shell'
+import { Card } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useAuth } from '@/hooks/use-auth'
+import { CreditCard, History, List, ShoppingBag, User } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+
+export default function Buy4MePage() {
+  const { user } = useAuth()
+  const router = useRouter()
+  const [activeTab, setActiveTab] = useState('browse')
+  const [mounted, setMounted] = useState(false)
+
+  // Handle mounting state
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Handle authentication redirect
+//   useEffect(() => {
+//     if (mounted && !user) {
+//       router.push('/')
+//     }
+//   }, [mounted, user, router])
+
+//   if (!mounted || !user) {
+//     return null
+//   }
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value)
+  }
+
+  return (
+    <Buy4MeShell>
+      <Buy4MeHeader
+        heading="Buy4Me Dashboard"
+        text="Manage your international shopping requests and orders"
+      />
+      
+      <div className="grid gap-6">
+        {/* Quick Stats */}
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card className="p-4">
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+              <div className="text-sm font-medium">Active Requests</div>
+            </div>
+            <div className="mt-2 text-2xl font-bold">3</div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+              <div className="text-sm font-medium">Pending Payments</div>
+            </div>
+            <div className="mt-2 text-2xl font-bold">2</div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-2">
+              <List className="h-4 w-4 text-muted-foreground" />
+              <div className="text-sm font-medium">Orders in Transit</div>
+            </div>
+            <div className="mt-2 text-2xl font-bold">1</div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-2">
+              <History className="h-4 w-4 text-muted-foreground" />
+              <div className="text-sm font-medium">Completed Orders</div>
+            </div>
+            <div className="mt-2 text-2xl font-bold">12</div>
+          </Card>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="browse" className="flex items-center gap-2">
+              <ShoppingBag className="h-4 w-4" />
+              Browse & Select
+            </TabsTrigger>
+            <TabsTrigger value="requests" className="flex items-center gap-2">
+              <List className="h-4 w-4" />
+              My Requests
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              Order Summary
+            </TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center gap-2">
+              <History className="h-4 w-4" />
+              Order History
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Profile
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="browse" className="space-y-4">
+            <EmbeddedBrowser />
+          </TabsContent>
+
+          <TabsContent value="requests" className="space-y-4">
+            <RequestList onCheckout={() => handleTabChange('orders')} />
+          </TabsContent>
+
+          <TabsContent value="orders" className="space-y-4">
+            <OrderSummary />
+          </TabsContent>
+
+          <TabsContent value="history" className="space-y-4">
+            <OrderHistory />
+          </TabsContent>
+
+          <TabsContent value="profile" className="space-y-4">
+            <Buy4MeProfile />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </Buy4MeShell>
+  )
+}
