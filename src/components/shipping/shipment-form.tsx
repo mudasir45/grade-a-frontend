@@ -20,13 +20,16 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import useShippingData from '@/hooks/use-shipping-data'
 import { useToast } from '@/hooks/use-toast'
 import { ShippingAPI } from '@/lib/api/shipping'
-import { countries } from '@/lib/shipping-data'
+import { packageTypes } from '@/lib/shipping-data'
 import type { ShipmentRequest, ShippingRate } from '@/lib/types/shipping'
 import { motion } from 'framer-motion'
 import { ArrowRight, Package } from 'lucide-react'
 import { useEffect, useState } from 'react'
+
+
 
 export function ShipmentForm() {
   const { toast } = useToast()
@@ -34,9 +37,18 @@ export function ShipmentForm() {
   const [step, setStep] = useState(1)
   const [shippingRate, setShippingRate] = useState<ShippingRate | null>(null)
   const [calculating, setCalculating] = useState(false)
+  const {
+    departureCountries,
+    destinationCountries,
+    serviceTypes,
+    shippingZones,
+    isLoading,
+    error,
+    refetch
+  } = useShippingData();
 
   const [formData, setFormData] = useState<ShipmentRequest>({
-    sender_name: '',
+    sender_name: '',    
     sender_email: '',
     sender_phone: '',
     sender_address: '',
@@ -64,6 +76,7 @@ export function ShipmentForm() {
       if (
         formData.sender_country &&
         formData.recipient_country &&
+        formData.service_type &&
         formData.weight > 0 &&
         formData.length > 0 &&
         formData.width > 0 &&
@@ -84,6 +97,7 @@ export function ShipmentForm() {
             declared_value: formData.declared_value,
             insurance_required: formData.insurance_required
           })
+          console.log(rate)
           setShippingRate(rate)
         } catch (error) {
           toast({
@@ -98,6 +112,7 @@ export function ShipmentForm() {
     }
 
     calculateShippingRate()
+    console.log(formData)
   }, [
     formData.sender_country,
     formData.recipient_country,
@@ -115,7 +130,7 @@ export function ShipmentForm() {
     setLoading(true)
 
     try {
-      const shipment = await ShippingAPI.createShipment(formData)
+      const shipment = await ShippingAPI.createShipment(formData as ShipmentRequest)
       
       toast({
         title: 'Shipment Created',
@@ -157,6 +172,9 @@ export function ShipmentForm() {
       setLoading(false)
     }
   }
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -216,10 +234,10 @@ export function ShipmentForm() {
                       <SelectValue placeholder="Select country" />
                     </SelectTrigger>
                     <SelectContent>
-                      {countries.map((country) => (
-                        <SelectItem key={country.code} value={country.code}>
+                      {departureCountries.map((country) => (
+                        <SelectItem key={country.code} value={country.id}>
                           <span className="flex items-center gap-2">
-                            <span>{country.flag}</span>
+                            {/* <span>{country.flag}</span> */}
                             <span>{country.name}</span>
                           </span>
                         </SelectItem>
@@ -306,10 +324,10 @@ export function ShipmentForm() {
                       <SelectValue placeholder="Select country" />
                     </SelectTrigger>
                     <SelectContent>
-                      {countries.map((country) => (
-                        <SelectItem key={country.code} value={country.code}>
+                      {destinationCountries.map((country) => (
+                        <SelectItem key={country.code} value={country.id}>
                           <span className="flex items-center gap-2">
-                            <span>{country.flag}</span>
+                            {/* <span>{country.flag}</span> */}
                             <span>{country.name}</span>
                           </span>
                         </SelectItem>
@@ -368,10 +386,11 @@ export function ShipmentForm() {
                       <SelectValue placeholder="Select package type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="document">Document</SelectItem>
-                      <SelectItem value="parcel">Parcel</SelectItem>
-                      <SelectItem value="box">Box</SelectItem>
-                      <SelectItem value="pallet">Pallet</SelectItem>
+                      {packageTypes.map((type) => (
+                        <SelectItem key={type.id} value={type.id}>
+                          {type.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -451,9 +470,11 @@ export function ShipmentForm() {
                       <SelectValue placeholder="Select service type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="economy">Economy (7-10 days)</SelectItem>
-                      <SelectItem value="standard">Standard (3-5 days)</SelectItem>
-                      <SelectItem value="express">Express (1-2 days)</SelectItem>
+                      {serviceTypes.map((type) => (
+                        <SelectItem key={type.id} value={type.id}>
+                          {type.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -490,39 +511,45 @@ export function ShipmentForm() {
                   <CardContent className="space-y-2">
                     <div className="flex justify-between">
                       <span>Base Rate:</span>
-                      <span>${shippingRate.baseRate.toFixed(2)}</span>
+                      <span>${shippingRate.rate_details.base_rate}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Weight Charge:</span>
-                      <span>${shippingRate.weightCharge.toFixed(2)}</span>
+                      <span>${shippingRate.rate_details.weight_charge}</span>
                     </div>
-                    {shippingRate.dimensionalCharge > 0 && (
+                    {/* {shippingRate.cost_breakdown.additional_charges.length > 0 && (
                       <div className="flex justify-between">
                         <span>Dimensional Charge:</span>
-                        <span>${shippingRate.dimensionalCharge.toFixed(2)}</span>
+                        <span>${shippingRate.cost_breakdown.additional_charges[0].amount}</span>
                       </div>
-                    )}
-                    <div className="flex justify-between">
+                    )} */}
+                    {/* <div className="flex justify-between">
                       <span>Zone Charge:</span>
-                      <span>${shippingRate.zoneCharge.toFixed(2)}</span>
-                    </div>
+                      <span>${shippingRate.cost_breakdown.additional_charges[1].amount}</span>
+                    </div> */}
                     <div className="flex justify-between">
                       <span>Service Charge:</span>
-                      <span>${shippingRate.serviceCharge.toFixed(2)}</span>
+                      <span>${shippingRate.cost_breakdown.service_price}</span>
                     </div>
-                    {shippingRate.insuranceCharge > 0 && (
+                    {/* {shippingRate.cost_breakdown.additional_charges.length > 0 && (
                       <div className="flex justify-between">
                         <span>Insurance:</span>
-                        <span>${shippingRate.insuranceCharge.toFixed(2)}</span>
+                        <span>${shippingRate.cost_breakdown.additional_charges[2].amount}</span>
                       </div>
-                    )}
-                    <div className="flex justify-between">
+                    )} */}
+                    { shippingRate.cost_breakdown.additional_charges.map(charge => (
+                      <div className="flex justify-between">
+                        <span>{charge.name}:</span>
+                        <span>${charge.amount}</span>
+                      </div>
+                    ))}
+                    {/* <div className="flex justify-between">
                       <span>Fuel Surcharge:</span>
-                      <span>${shippingRate.fuelSurcharge.toFixed(2)}</span>
-                    </div>
+                      <span>${shippingRate.cost_breakdown.additional_charges[0].amount}</span>
+                    </div> */}
                     <div className="border-t pt-2 flex justify-between font-bold">
                       <span>Total:</span>
-                      <span>${shippingRate.total.toFixed(2)} {shippingRate.currency}</span>
+                      <span>${shippingRate.cost_breakdown.total_cost}</span>
                     </div>
                   </CardContent>
                 </Card>

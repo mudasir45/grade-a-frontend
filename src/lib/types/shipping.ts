@@ -29,15 +29,71 @@ export interface Shipment {
   updated_at: string
 }
 
+
+export interface ShipmentRequest {
+    sender_name: string
+    sender_email: string
+    sender_phone: string
+    sender_address: string
+    sender_country: string
+    recipient_name: string
+    recipient_email: string
+    recipient_phone: string
+    recipient_address: string
+    recipient_country: string
+    package_type: string
+    weight: number
+    length: number
+    width: number
+    height: number
+    description: string
+    declared_value: number
+    service_type: string;
+    insurance_required: boolean
+    signature_required: boolean
+    notes?: string
+    payment_method?: string
+    payment_details?: {
+      card?: {
+        number: string
+        expiry_month: string
+        expiry_year: string
+        cvv: string
+        holder_name: string
+      }
+      bank_transfer?: {
+        account_name: string
+        account_number: string
+        bank_code: string
+      }
+      wallet?: {
+        wallet_type: string
+        token: string
+      }
+    }
+  }
+
+export interface ShipmentRequest{
+    sender_name: string
+    sender_email: string
+    sender_phone: string
+    sender_address: string
+    sender_country: string
+    recipient_name: string
+    recipient_email: string
+    recipient_phone: string
+    recipient_address: string
+    recipient_country: string
+    package_type: string
+    
+}
+
 export type ShipmentStatus = 
-  | 'PENDING'
-  | 'CONFIRMED'
-  | 'PICKED_UP'
-  | 'IN_TRANSIT'
-  | 'OUT_FOR_DELIVERY'
-  | 'DELIVERED'
-  | 'EXCEPTION'
-  | 'CANCELLED'
+  | 'PENDING'    // Initial state when created
+  | 'PROCESSING' // Being processed at facility
+  | 'IN_TRANSIT' // In transit to destination
+  | 'DELIVERED'  // Successfully delivered
+  | 'CANCELLED'  // Cancelled by user/admin
 
 export interface TrackingUpdate {
   timestamp: string
@@ -46,17 +102,19 @@ export interface TrackingUpdate {
   description: string
 }
 
-export interface ShippingRate {
-  base_rate: number
-  weight_charge: number
-  dimensional_charge: number
-  zone_charge: number
-  service_charge: number
-  insurance_charge: number
-  fuel_surcharge: number
-  total: number
-  currency: string
-}
+
+
+// export interface ShippingRate {
+//   base_rate: number
+//   weight_charge: number
+//   dimensional_charge: number
+//   zone_charge: number
+//   service_charge: number
+//   insurance_charge: number
+//   fuel_surcharge: number
+//   total: number
+//   currency: string
+// }
 
 export interface SupportTicket {
   id: string
@@ -67,3 +125,111 @@ export interface SupportTicket {
   created_at: string
   updated_at: string
 } 
+
+
+
+interface Route {
+    origin: Location;
+    destination: Location;
+    zone: Zone;
+}
+
+interface Location {
+    id: string;
+    name: string;
+    code: string;
+}
+
+interface Zone {
+    id: string;
+    name: string;
+}
+
+interface Service {
+    id: string;
+    name: string;
+    delivery_time: string;
+    price: number;
+}
+
+interface Dimensions {
+    length: number;
+    width: number;
+    height: number;
+    volume: number;
+}
+
+interface WeightCalculation {
+    dimensions: Dimensions;
+    actual_weight: number;
+}
+
+interface RateDetails {
+    base_rate: number;
+    per_kg_rate: number;
+    weight_charge: number;
+}
+
+interface AdditionalCharge {
+    name: string;
+    type: string;
+    value: number;
+    amount: number;
+    description: string;
+}
+
+interface CostBreakdown {
+    base_cost: number;
+    service_price: number;
+    additional_charges: AdditionalCharge[];
+    total_additional: number;
+    total_cost: number;
+}
+
+export interface ShippingRate {
+    route: Route;
+    service: Service;
+    weight_calculation: WeightCalculation;
+    rate_details: RateDetails;
+    cost_breakdown: CostBreakdown;
+}
+
+export interface ShipmentResponse {
+  id: string
+  tracking_number: string
+  status: ShipmentStatus
+  current_location: string
+  estimated_delivery?: string
+  sender: Address
+  recipient: Address
+  package: {
+    type: string
+    weight: number
+    dimensions: Dimensions
+    description: string
+    declared_value: number
+  }
+  service: {
+    type: string
+    insurance_required: boolean
+    signature_required: boolean
+  }
+  costs: {
+    base_rate: number
+    per_kg_rate: number
+    weight_charge: number
+    service_charge: number
+    total_additional_charges: number
+    total_cost: number
+  }
+  payment: {
+    id: string
+    status: PaymentStatus
+    amount: number
+    currency: string
+    method: string
+  }
+  tracking_history: TrackingUpdate[]
+  created_at: string
+  updated_at: string
+}

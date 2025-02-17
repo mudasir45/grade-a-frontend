@@ -15,7 +15,7 @@ export function useShipping() {
   const createShipment = async (shipmentData: Partial<Shipment>) => {
     if (!user) throw new Error('User not authenticated')
     setLoading(true)
-
+// 'pending' | 'processing' | 'in_transit' | 'delivered' | 'cancelled'
     try {
       const cost = calculateShippingCost(
         shipmentData.packageDetails?.weight || 0,
