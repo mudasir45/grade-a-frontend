@@ -12,6 +12,38 @@ interface PaginatedResponse<T> {
   results: T[]
 }
 
+interface TrackingResponse {
+  tracking_number: string
+  status: string
+  current_location: string
+  estimated_delivery: string | null
+  shipment_details: {
+    origin: {
+      name: string
+      country: string
+    }
+    destination: {
+      name: string
+      country: string
+    }
+    service: string
+    package: {
+      weight: number
+      dimensions: {
+        length: number
+        width: number
+        height: number
+      }
+    }
+  }
+  tracking_history: {
+    status: string
+    location: string
+    timestamp: string
+    description: string
+  }[]
+}
+
 export class ShippingAPI {
   private static getHeaders() {
     const token = localStorage.getItem('auth_token')
@@ -83,20 +115,24 @@ export class ShippingAPI {
     }
   }
 
-  static async trackShipment(trackingNumber: string) {
+  static async trackShipment(trackingNumber: string): Promise<TrackingResponse> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/shipping/track/${trackingNumber}/`,
+        `${API_BASE_URL}/shipments/track/${trackingNumber}/`,
         { headers: this.getHeaders() }
       )
 
       if (!response.ok) {
-        throw new Error('Failed to track shipment')
+        const error = await response.json()
+        throw new Error(error.detail || 'Failed to track shipment')
       }
 
       return response.json()
     } catch (error) {
-      throw error instanceof Error ? error : new Error('Failed to track shipment')
+      console.error('Tracking error:', error)
+      throw error instanceof Error 
+        ? error 
+        : new Error('Failed to track shipment')
     }
   }
 

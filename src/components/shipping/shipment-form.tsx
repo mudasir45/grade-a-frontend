@@ -27,11 +27,10 @@ import { CURRENCY } from '@/lib/config'
 import { packageTypes } from '@/lib/shipping-data'
 import type { ShipmentRequest, ShippingRate } from '@/lib/types/shipping'
 import { motion } from 'framer-motion'
-import { ArrowRight, Package } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { ArrowRight, Loader2, Package } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { PaymentForm } from '../buy4me/payment-form'
-
-
+import { ShippingSuccess } from './shipping-success'
 
 export function ShipmentForm() {
   const { toast } = useToast()
@@ -40,15 +39,19 @@ export function ShipmentForm() {
   const [shippingRate, setShippingRate] = useState<ShippingRate | null>(null)
   const [calculating, setCalculating] = useState(false)
   const [showPayment, setShowPayment] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
   const {
     departureCountries,
     destinationCountries,
     serviceTypes,
     shippingZones,
     isLoading,
-    error,
+    error: dataError,
     refetch
   } = useShippingData();
+
+  // Set default service type from the first available service
+  const defaultServiceType = serviceTypes[0]?.id || 'economy'
 
   const [formData, setFormData] = useState<ShipmentRequest>({
     sender_name: '',    
@@ -68,168 +71,273 @@ export function ShipmentForm() {
     height: 0,
     description: '',
     declared_value: 0,
-    service_type: 'standard',
+    service_type: defaultServiceType,
     insurance_required: false,
     signature_required: false
   })
 
+  const defaultFormData = {
+    sender_name: '',    
+    sender_email: '',
+    sender_phone: '',
+    sender_address: '',
+    sender_country: '',
+    recipient_name: '',
+    recipient_email: '',
+    recipient_phone: '',
+    recipient_address: '',
+    recipient_country: '',
+    package_type: '',
+    weight: 0,
+    length: 0,
+    width: 0,
+    height: 0,
+    description: '',
+    declared_value: 0,
+    service_type: defaultServiceType,
+    insurance_required: false,
+    signature_required: false
+  }
+
+  const [successData, setSuccessData] = useState<{
+    tracking_number: string
+    total_cost: number
+    service_type: string
+    // sender_name: string
+    // recipient_name: string
+    sender_country: string
+    recipient_country: string
+  } | null>(null)
+
+  // Required fields for rate calculation
+  const requiredFields = [
+    'sender_country',
+    'recipient_country',
+    'weight',
+    'length',
+    'width',
+    'height'
+  ] as const
+
+  // Check if all required fields are filled and service type is selected
+  const canCalculateRate = useCallback(() => {
+    // First check if basic dimensions and locations are filled
+    const hasRequiredFields = requiredFields.every(field => {
+      const value = formData[field]
+      if (typeof value === 'number') {
+        return value > 0
+      }
+      return Boolean(value)
+    })
+
+    // Then check if service type is selected
+    return hasRequiredFields && Boolean(formData.service_type)
+  }, [formData])
+
+  // Show guidance message when fields are filled but service type isn't
+  const showServiceTypePrompt = useCallback(() => {
+    const hasRequiredFields = requiredFields.every(field => {
+      const value = formData[field]
+      if (typeof value === 'number') {
+        return value > 0
+      }
+      return Boolean(value)
+    })
+
+    return hasRequiredFields && !formData.service_type
+  }, [formData])
+
   // Calculate shipping rate when relevant fields change
   useEffect(() => {
     const calculateShippingRate = async () => {
-      if (
-        formData.sender_country &&
-        formData.recipient_country &&
-        formData.service_type &&
-        formData.weight > 0 &&
-        formData.length > 0 &&
-        formData.width > 0 &&
-        formData.height > 0
-      ) {
-        setCalculating(true)
-        try {
-          const rate = await ShippingAPI.calculateRate({
-            origin_country: formData.sender_country,
-            destination_country: formData.recipient_country,
-            weight: formData.weight,
-            length: formData.length,
-            width: formData.width,
-            height: formData.height,
-            service_type: formData.service_type,
-            declared_value: formData.declared_value,
-            insurance_required: formData.insurance_required
-          })
-          console.log(rate)
-          setShippingRate(rate)
-        } catch (error) {
-          toast({
-            title: 'Error',
-            description: error instanceof Error ? error.message : 'Failed to calculate shipping rate',
-            variant: 'destructive'
-          })
-        } finally {
-          setCalculating(false)
+      // Check if we have all required fields
+      const hasRequiredFields = requiredFields.every(field => {
+        const value = formData[field]
+        if (typeof value === 'number') {
+          return value > 0
         }
+        return Boolean(value)
+      })
+
+      // If we don't have all required fields, don't do anything
+      if (!hasRequiredFields) return
+
+      // If we don't have service type, show guidance
+      if (!formData.service_type) {
+        toast({
+          title: 'Service Type Required',
+          description: 'Please select a service type to see shipping rates.',
+        })
+        return
+      }
+
+      setCalculating(true)
+      setShippingRate(null)
+
+      try {
+        const rate = await ShippingAPI.calculateRate({
+          origin_country: formData.sender_country,
+          destination_country: formData.recipient_country,
+          weight: formData.weight,
+          length: formData.length,
+          width: formData.width,
+          height: formData.height,
+          service_type: formData.service_type,
+          declared_value: formData.declared_value || 0,
+          insurance_required: formData.insurance_required || false
+        })
+
+        setShippingRate(rate)
+      } catch (error) {
+        console.error('Rate calculation error:', error)
+        toast({
+          title: 'Rate Calculation Failed',
+          description: error instanceof Error 
+            ? error.message 
+            : 'Failed to calculate shipping rate. Please try again.',
+          variant: 'destructive'
+        })
+      } finally {
+        setCalculating(false)
       }
     }
 
-    calculateShippingRate()
-    console.log(formData)
-  }, [
-    formData.sender_country,
-    formData.recipient_country,
-    formData.weight,
-    formData.length,
-    formData.width,
-    formData.height,
-    formData.service_type,
-    formData.declared_value,
-    formData.insurance_required
-  ])
+    // Debounce the calculation to prevent too many API calls
+    const timeoutId = setTimeout(calculateShippingRate, 500)
+    return () => clearTimeout(timeoutId)
+  }, [...requiredFields.map(field => formData[field]), formData.service_type])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+  // Validate required fields before proceeding to payment
+  const validateRequiredFields = () => {
+    const requiredFormFields = [
+      'sender_name',
+      'sender_email',
+      'sender_phone',
+      'sender_address',
+      'sender_country',
+      'recipient_name',
+      'recipient_email',
+      'recipient_phone',
+      'recipient_address',
+      'recipient_country',
+      'package_type',
+      'weight',
+      'length',
+      'width',
+      'height',
+      'service_type'
+    ]
 
-    // try {
-    //   const shipment = await ShippingAPI.createShipment(formData as ShipmentRequest)
-      
-    //   toast({
-    //     title: 'Shipment Created',
-    //     description: `Tracking number: ${shipment.tracking_number}`,
-    //   })
-      
-    //   // Reset form
-    //   setFormData({
-    //     sender_name: '',
-    //     sender_email: '',
-    //     sender_phone: '',
-    //     sender_address: '',
-    //     sender_country: '',
-    //     recipient_name: '',
-    //     recipient_email: '',
-    //     recipient_phone: '',
-    //     recipient_address: '',
-    //     recipient_country: '',
-    //     package_type: '',
-    //     weight: 0,
-    //     length: 0,
-    //     width: 0,
-    //     height: 0,
-    //     description: '',
-    //     declared_value: 0,
-    //     service_type: 'standard',
-    //     insurance_required: false,
-    //     signature_required: false
-    //   })
-    //   setStep(1)
-    //   setShippingRate(null)
-    // } catch (error) {
-    //   toast({
-    //     title: 'Error',
-    //     description: error instanceof Error ? error.message : 'Failed to create shipment',
-    //     variant: 'destructive',
-    //   })
-    // } finally {
-    //   setLoading(false)
-    // }
-  }
+    const missingFields = requiredFormFields
+      .filter(key => {
+        const value = formData[key as keyof ShipmentRequest]
+        if (typeof value === 'number') {
+          return value <= 0
+        }
+        return !value
+      })
+      .map(key => key.replace(/_/g, ' '))
 
-  const handlePaymentSuccess = async (transactionId: string) => {
-    try {
-        setLoading(true)
-        const shipment = await ShippingAPI.createShipment(formData as ShipmentRequest)
-        
-        toast({
-          title: 'Shipment Created',
-          description: `Tracking number: ${shipment.tracking_number}`,
-        })
-        
-        // Reset form
-        setFormData({
-          sender_name: '',
-          sender_email: '',
-          sender_phone: '',
-          sender_address: '',
-          sender_country: '',
-          recipient_name: '',
-          recipient_email: '',
-          recipient_phone: '',
-          recipient_address: '',
-          recipient_country: '',
-          package_type: '',
-          weight: 0,
-          length: 0,
-          width: 0,
-          height: 0,
-          description: '',
-          declared_value: 0,
-          service_type: 'standard',
-          insurance_required: false,
-          signature_required: false
-        })
-        setStep(1)
-        setShippingRate(null)
-      } catch (error) {
-        toast({
-          title: 'Error',
-          description: error instanceof Error ? error.message : 'Failed to create shipment',
-          variant: 'destructive',
-        })
-      } finally {
-        setLoading(false)
-      }
+    if (missingFields.length > 0) {
+      toast({
+        title: 'Missing Information',
+        description: `Please fill in: ${missingFields.join(', ')}`,
+        variant: 'destructive',
+      })
+      return false
+    }
+
+    return true
   }
 
   const handleProceedToPayment = () => {
     if (!shippingRate) {
       toast({
         title: 'No Shipping Rate',
-        description: 'Please calculate a shipping rate before proceeding.',
+        description: 'Please wait for the shipping rate calculation to complete.',
         variant: 'destructive',
       })
       return
     }
+
+    if (!validateRequiredFields()) {
+      return
+    }
+
     setShowPayment(true)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!shippingRate) {
+      toast({
+        title: 'Missing Shipping Rate',
+        description: 'Please wait for the shipping rate calculation to complete.',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    handleProceedToPayment()
+  }
+
+  const handlePaymentSuccess = async (transactionId: string) => {
+    setLoading(true)
+
+    try {
+      const shipment = await ShippingAPI.createShipment({
+        ...formData,
+        // payment_intent_id: transactionId
+      })
+
+      // Show success component with correct data
+      setShowSuccess(true)
+      setSuccessData({
+        tracking_number: shipment.tracking_number,
+        total_cost: shippingRate?.cost_breakdown.total_cost || 0, // Use the calculated shipping rate
+        service_type: serviceTypes.find(s => s.id === formData.service_type)?.name || formData.service_type,
+        sender_country: departureCountries.find(c => c.code === formData.sender_country)?.name || formData.sender_country,
+        recipient_country: destinationCountries.find(c => c.code === formData.recipient_country)?.name || formData.recipient_country
+      })
+
+      // Reset form
+      setFormData(defaultFormData)
+      setStep(1)
+      setShippingRate(null)
+      setShowPayment(false)
+    } catch (error) {
+      console.error('Shipment creation error:', error)
+      toast({
+        title: 'Error',
+        description: error instanceof Error 
+          ? error.message 
+          : 'Failed to create shipment. Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
+  if (dataError) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-red-500">Error loading shipping data: {dataError.message}</p>
+        <Button onClick={() => window.location.reload()} className="mt-4">
+          Retry
+        </Button>
+      </div>
+    )
   }
 
   if (showPayment) {
@@ -237,14 +345,16 @@ export function ShipmentForm() {
       <PaymentForm
         amount={shippingRate?.cost_breakdown.total_cost ?? 0}
         currency={CURRENCY.code}
-        requestId={formData.id ? formData.id : 'TRX_1234567890'}
+        requestId={formData.id ?? crypto.randomUUID()}
         onSuccess={handlePaymentSuccess}
         onCancel={() => setShowPayment(false)}
       />
     )
   }
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
+
+  if (showSuccess && successData) {
+    return <ShippingSuccess shipment={successData} />
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -535,6 +645,7 @@ export function ShipmentForm() {
                   <Select
                     value={formData.service_type}
                     onValueChange={(value) => setFormData({ ...formData, service_type: value })}
+                    defaultValue={serviceTypes[0]?.id}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select service type" />
@@ -558,7 +669,9 @@ export function ShipmentForm() {
                         setFormData({ ...formData, insurance_required: checked as boolean })
                       }
                     />
-                    <Label htmlFor="insurance_required">Add Insurance</Label>
+                    <Label htmlFor="insurance_required" className="text-sm text-muted-foreground">
+                      Add Insurance (Optional)
+                    </Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
@@ -568,7 +681,9 @@ export function ShipmentForm() {
                         setFormData({ ...formData, signature_required: checked as boolean })
                       }
                     />
-                    <Label htmlFor="signature_required">Require Signature</Label>
+                    <Label htmlFor="signature_required" className="text-sm text-muted-foreground">
+                      Require Signature (Optional)
+                    </Label>
                   </div>
                 </div>
               </div>

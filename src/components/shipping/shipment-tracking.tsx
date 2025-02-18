@@ -11,37 +11,37 @@ import {
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { ShippingAPI } from '@/lib/api/shipping'
-import type { TrackingUpdate } from '@/lib/types/shipping'
-import { motion } from 'framer-motion'
-import { MapPin, Package, Search, Truck } from 'lucide-react'
+import { formatDate } from '@/lib/utils'
+import { Package, Search } from 'lucide-react'
 import { useState } from 'react'
-
-interface TrackingResult {
-  tracking_number: string
-  status: string
-  estimated_delivery: string
-  current_location: string
-  updates: TrackingUpdate[]
-}
 
 export function ShipmentTracking() {
   const { toast } = useToast()
   const [trackingNumber, setTrackingNumber] = useState('')
   const [loading, setLoading] = useState(false)
-  const [trackingResult, setTrackingResult] = useState<TrackingResult | null>(null)
+  const [trackingData, setTrackingData] = useState<any>(null)
 
   const handleTrack = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!trackingNumber.trim()) {
+      toast({
+        title: 'Missing Tracking Number',
+        description: 'Please enter a tracking number',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setLoading(true)
 
     try {
-      const result = await ShippingAPI.trackShipment(trackingNumber)
-      setTrackingResult(result)
+      const data = await ShippingAPI.trackShipment(trackingNumber)
+      setTrackingData(data)
     } catch (error) {
       toast({
-        title: 'Error',
+        title: 'Tracking Failed',
         description: error instanceof Error ? error.message : 'Failed to track shipment',
-        variant: 'destructive'
+        variant: 'destructive',
       })
     } finally {
       setLoading(false)
@@ -49,99 +49,112 @@ export function ShipmentTracking() {
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Track Your Shipment</CardTitle>
-          <CardDescription>
-            Enter your tracking number to get real-time updates
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleTrack} className="flex gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Enter tracking number"
-                value={trackingNumber}
-                onChange={(e) => setTrackingNumber(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Button type="submit" disabled={loading || !trackingNumber}>
-              {loading ? 'Tracking...' : 'Track Package'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+    <div className="max-w-3xl mx-auto space-y-6">
+      <form onSubmit={handleTrack} className="flex gap-4">
+        <Input
+          placeholder="Enter tracking number"
+          value={trackingNumber}
+          onChange={(e) => setTrackingNumber(e.target.value)}
+          className="flex-1"
+        />
+        <Button type="submit" disabled={loading}>
+          {loading ? (
+            'Tracking...'
+          ) : (
+            <>
+              Track
+              <Search className="ml-2 h-4 w-4" />
+            </>
+          )}
+        </Button>
+      </form>
 
-      {trackingResult && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-6"
-        >
-          {/* Status Overview */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="grid gap-6 md:grid-cols-3">
-                <div className="flex items-center gap-4">
-                  <Package className="h-8 w-8 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Status</p>
-                    <p className="text-2xl font-bold">{trackingResult.status}</p>
-                  </div>
+      {trackingData && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Tracking Details
+            </CardTitle>
+            <CardDescription>
+              Tracking Number: {trackingData.tracking_number}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Current Status */}
+            <div className="rounded-lg bg-muted p-4">
+              <h3 className="font-semibold mb-2">Current Status</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <p className="font-medium">{trackingData.status}</p>
                 </div>
-                <div className="flex items-center gap-4">
-                  <Truck className="h-8 w-8 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Estimated Delivery</p>
-                    <p className="text-2xl font-bold">
-                      {new Date(trackingResult.estimated_delivery).toLocaleDateString()}
-                    </p>
-                  </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Location</p>
+                  <p className="font-medium">{trackingData.current_location}</p>
                 </div>
-                <div className="flex items-center gap-4">
-                  <MapPin className="h-8 w-8 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Current Location</p>
-                    <p className="text-2xl font-bold">{trackingResult.current_location}</p>
+                {trackingData.estimated_delivery && (
+                  <div className="col-span-2">
+                    <p className="text-sm text-muted-foreground">Estimated Delivery</p>
+                    <p className="font-medium">{formatDate(trackingData.estimated_delivery)}</p>
                   </div>
+                )}
+              </div>
+            </div>
+
+            {/* Shipment Details */}
+            <div className="rounded-lg bg-muted p-4">
+              <h3 className="font-semibold mb-2">Shipment Details</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">From</p>
+                  <p className="font-medium">{trackingData.shipment_details.origin.name}</p>
+                  <p className="text-sm">{trackingData.shipment_details.origin.country}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">To</p>
+                  <p className="font-medium">{trackingData.shipment_details.destination.name}</p>
+                  <p className="text-sm">{trackingData.shipment_details.destination.country}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Service</p>
+                  <p className="font-medium capitalize">{trackingData.shipment_details.service}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Package</p>
+                  <p className="font-medium">
+                    {trackingData.shipment_details.package.weight}kg, 
+                    {trackingData.shipment_details.package.dimensions.length}x
+                    {trackingData.shipment_details.package.dimensions.width}x
+                    {trackingData.shipment_details.package.dimensions.height}cm
+                  </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* Tracking Timeline */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Tracking Updates</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="relative space-y-6">
-                <div className="absolute left-4 top-0 h-full w-0.5 bg-gray-200" />
-                {trackingResult.updates.map((update: TrackingUpdate, index: number) => (
-                  <motion.div
+            {/* Tracking History */}
+            <div>
+              <h3 className="font-semibold mb-4">Tracking History</h3>
+              <div className="space-y-4">
+                {trackingData.tracking_history.map((event: any, index: number) => (
+                  <div
                     key={index}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="relative pl-10"
+                    className="relative pl-6 pb-4 border-l-2 border-muted-foreground last:border-l-0"
                   >
-                    <div className="absolute left-2 top-2 h-4 w-4 rounded-full bg-primary" />
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(update.date).toLocaleString()}
-                      </p>
-                      <p className="font-medium">{update.status}</p>
-                      <p className="text-sm text-muted-foreground">{update.location}</p>
+                    <div className="absolute -left-[9px] top-0 h-4 w-4 rounded-full bg-background border-2 border-muted-foreground" />
+                    <p className="font-medium">{event.status}</p>
+                    <p className="text-sm text-muted-foreground">{event.description}</p>
+                    <div className="flex gap-2 text-sm text-muted-foreground mt-1">
+                      <span>{event.location}</span>
+                      <span>•</span>
+                      <span>{formatDate(event.timestamp)}</span>
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   )
