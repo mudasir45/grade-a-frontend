@@ -1,0 +1,3282 @@
+openapi: 3.0.3
+info:
+  title: Grade-A Express API
+  version: 1.0.0
+  description: API for logistics and Buy4Me services
+paths:
+  /api/accounts/signup/:
+    post:
+      operationId: accounts_signup_create
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserCreate'
+          description: ''
+  /api/accounts/users/:
+    get:
+      operationId: accounts_users_list
+      description: Get a list of all users
+      summary: List users
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: user_type
+        schema:
+          type: string
+        description: Filter users by type (WALK_IN, BUY4ME, ADMIN, SUPER_ADMIN)
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserList'
+          description: ''
+    post:
+      operationId: accounts_users_create
+      description: Create a new user account
+      summary: Create user
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/accounts/users/{id}/:
+    get:
+      operationId: accounts_users_retrieve
+      description: ViewSet for viewing and editing user instances.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this User.
+        required: true
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: accounts_users_update
+      description: ViewSet for viewing and editing user instances.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this User.
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: accounts_users_partial_update
+      description: ViewSet for viewing and editing user instances.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this User.
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    delete:
+      operationId: accounts_users_destroy
+      description: ViewSet for viewing and editing user instances.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this User.
+        required: true
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '204':
+          description: No response body
+  /api/accounts/users/me/:
+    get:
+      operationId: accounts_users_me_retrieve
+      description: Returns the authenticated user's information
+      summary: Get current user
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/buy4me/requests/:
+    get:
+      operationId: buy4me_requests_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - buy4me
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBuy4MeRequestList'
+          description: ''
+    post:
+      operationId: buy4me_requests_create
+      tags:
+      - buy4me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Buy4MeRequestCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Buy4MeRequestCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Buy4MeRequestCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Buy4MeRequestCreate'
+          description: ''
+  /api/buy4me/requests/{id}/:
+    get:
+      operationId: buy4me_requests_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - buy4me
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Buy4MeRequest'
+          description: ''
+    put:
+      operationId: buy4me_requests_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - buy4me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Buy4MeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Buy4MeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Buy4MeRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Buy4MeRequest'
+          description: ''
+    patch:
+      operationId: buy4me_requests_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - buy4me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBuy4MeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBuy4MeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBuy4MeRequest'
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Buy4MeRequest'
+          description: ''
+    delete:
+      operationId: buy4me_requests_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - buy4me
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '204':
+          description: No response body
+  /api/buy4me/requests/{id}/update_status/:
+    patch:
+      operationId: buy4me_requests_update_status_partial_update
+      description: Update the status of a Buy4Me request
+      summary: Update request status
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - buy4me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBuy4MeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBuy4MeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBuy4MeRequest'
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Buy4MeRequest'
+          description: ''
+  /api/buy4me/requests/{request_pk}/items/:
+    get:
+      operationId: buy4me_requests_items_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: path
+        name: request_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - buy4me
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBuy4MeItemList'
+          description: ''
+    post:
+      operationId: buy4me_requests_items_create
+      parameters:
+      - in: path
+        name: request_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - buy4me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Buy4MeItem'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Buy4MeItem'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Buy4MeItem'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Buy4MeItem'
+          description: ''
+  /api/buy4me/requests/{request_pk}/items/{id}/:
+    get:
+      operationId: buy4me_requests_items_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: request_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - buy4me
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Buy4MeItem'
+          description: ''
+    put:
+      operationId: buy4me_requests_items_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: request_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - buy4me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Buy4MeItem'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Buy4MeItem'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Buy4MeItem'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Buy4MeItem'
+          description: ''
+    patch:
+      operationId: buy4me_requests_items_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: request_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - buy4me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBuy4MeItem'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBuy4MeItem'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBuy4MeItem'
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Buy4MeItem'
+          description: ''
+    delete:
+      operationId: buy4me_requests_items_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: request_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - buy4me
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '204':
+          description: No response body
+  /api/payments/invoices/:
+    get:
+      operationId: payments_invoices_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - payments
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedInvoiceList'
+          description: ''
+    post:
+      operationId: payments_invoices_create
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Invoice'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Invoice'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Invoice'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+          description: ''
+  /api/payments/invoices/{id}/:
+    get:
+      operationId: payments_invoices_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - payments
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+          description: ''
+    put:
+      operationId: payments_invoices_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Invoice'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Invoice'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Invoice'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+          description: ''
+    patch:
+      operationId: payments_invoices_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedInvoice'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedInvoice'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedInvoice'
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+          description: ''
+    delete:
+      operationId: payments_invoices_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - payments
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '204':
+          description: No response body
+  /api/payments/invoices/{id}/pdf/:
+    get:
+      operationId: payments_invoices_pdf_retrieve
+      description: Generate PDF version of the invoice
+      summary: Generate PDF
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - payments
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+          description: ''
+  /api/payments/payments/:
+    get:
+      operationId: payments_payments_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - payments
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPaymentList'
+          description: ''
+    post:
+      operationId: payments_payments_create
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Payment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Payment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Payment'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+  /api/payments/payments/{id}/:
+    get:
+      operationId: payments_payments_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - payments
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+    put:
+      operationId: payments_payments_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Payment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Payment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Payment'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+    patch:
+      operationId: payments_payments_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPayment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPayment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPayment'
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+    delete:
+      operationId: payments_payments_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - payments
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '204':
+          description: No response body
+  /api/payments/payments/{id}/verify/:
+    post:
+      operationId: payments_payments_verify_create
+      description: Verify payment status with payment gateway
+      summary: Verify payment
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Payment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Payment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Payment'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+  /api/payments/payments/initiate/:
+    post:
+      operationId: payments_payments_initiate_create
+      summary: Initiate payment
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentInitiate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaymentInitiate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaymentInitiate'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+  /api/payments/refunds/:
+    get:
+      operationId: payments_refunds_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - payments
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRefundList'
+          description: ''
+    post:
+      operationId: payments_refunds_create
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Refund'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Refund'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Refund'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Refund'
+          description: ''
+  /api/payments/refunds/{id}/:
+    get:
+      operationId: payments_refunds_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        description: A unique value identifying this refund.
+        required: true
+      tags:
+      - payments
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Refund'
+          description: ''
+    put:
+      operationId: payments_refunds_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        description: A unique value identifying this refund.
+        required: true
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Refund'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Refund'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Refund'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Refund'
+          description: ''
+    patch:
+      operationId: payments_refunds_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        description: A unique value identifying this refund.
+        required: true
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedRefund'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedRefund'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedRefund'
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Refund'
+          description: ''
+    delete:
+      operationId: payments_refunds_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        description: A unique value identifying this refund.
+        required: true
+      tags:
+      - payments
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '204':
+          description: No response body
+  /api/payments/refunds/{id}/process/:
+    post:
+      operationId: payments_refunds_process_create
+      description: Process the refund through payment gateway
+      summary: Process refund
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        description: A unique value identifying this refund.
+        required: true
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Refund'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Refund'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Refund'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Refund'
+          description: ''
+  /api/shipments/:
+    get:
+      operationId: shipments_retrieve
+      description: Get a list of all shipments for the authenticated user
+      summary: List user's shipments
+      tags:
+      - shipments
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: shipments_create
+      description: Create a new shipment request
+      summary: Create shipment
+      tags:
+      - shipments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShipmentCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShipmentCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShipmentCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          description: No response body
+  /api/shipments/{id}/:
+    get:
+      operationId: shipments_retrieve_2
+      description: Get detailed information about a specific shipment
+      summary: Get shipment details
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - shipments
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          description: No response body
+    patch:
+      operationId: shipments_partial_update
+      description: Update a shipment request (only certain fields)
+      summary: Update shipment
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - shipments
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          description: No response body
+  /api/shipments/track/{tracking_number}/:
+    get:
+      operationId: shipments_track_retrieve
+      description: Get tracking information for a shipment using tracking number
+      summary: Track shipment
+      parameters:
+      - in: path
+        name: tracking_number
+        schema:
+          type: string
+        description: Shipment tracking number
+        required: true
+      tags:
+      - shipments
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/shipping-rates/calculate/:
+    get:
+      operationId: shipping_rates_calculate_retrieve
+      tags:
+      - shipping-rates
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: shipping_rates_calculate_create
+      description: Calculate shipping rate with detailed breakdown
+      summary: Calculate shipping rate
+      tags:
+      - shipping-rates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShippingCalculator'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShippingCalculator'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShippingCalculator'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          description: No response body
+  /api/shipping-rates/calculate/{id}/:
+    get:
+      operationId: shipping_rates_calculate_retrieve_2
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - shipping-rates
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          description: No response body
+    put:
+      operationId: shipping_rates_calculate_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - shipping-rates
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          description: No response body
+    patch:
+      operationId: shipping_rates_calculate_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - shipping-rates
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          description: No response body
+    delete:
+      operationId: shipping_rates_calculate_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - shipping-rates
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '204':
+          description: No response body
+  /api/shipping-rates/calculate/calculate/:
+    post:
+      operationId: shipping_rates_calculate_calculate_create
+      summary: Calculate shipping rate
+      tags:
+      - shipping-rates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShippingCalculator'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShippingCalculator'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShippingCalculator'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          description: No response body
+  /api/shipping-rates/countries/:
+    get:
+      operationId: shipping_rates_countries_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - shipping-rates
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCountryList'
+          description: ''
+    post:
+      operationId: shipping_rates_countries_create
+      tags:
+      - shipping-rates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Country'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Country'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Country'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Country'
+          description: ''
+  /api/shipping-rates/countries/{id}/:
+    get:
+      operationId: shipping_rates_countries_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        description: A unique value identifying this country.
+        required: true
+      tags:
+      - shipping-rates
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Country'
+          description: ''
+    put:
+      operationId: shipping_rates_countries_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        description: A unique value identifying this country.
+        required: true
+      tags:
+      - shipping-rates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Country'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Country'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Country'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Country'
+          description: ''
+    patch:
+      operationId: shipping_rates_countries_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        description: A unique value identifying this country.
+        required: true
+      tags:
+      - shipping-rates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCountry'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCountry'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCountry'
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Country'
+          description: ''
+    delete:
+      operationId: shipping_rates_countries_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        description: A unique value identifying this country.
+        required: true
+      tags:
+      - shipping-rates
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/shipping-rates/service-types/:
+    get:
+      operationId: shipping_rates_service_types_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - shipping-rates
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedServiceTypeList'
+          description: ''
+    post:
+      operationId: shipping_rates_service_types_create
+      tags:
+      - shipping-rates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceType'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ServiceType'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ServiceType'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceType'
+          description: ''
+  /api/shipping-rates/service-types/{id}/:
+    get:
+      operationId: shipping_rates_service_types_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        description: A unique value identifying this service type.
+        required: true
+      tags:
+      - shipping-rates
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceType'
+          description: ''
+    put:
+      operationId: shipping_rates_service_types_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        description: A unique value identifying this service type.
+        required: true
+      tags:
+      - shipping-rates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceType'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ServiceType'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ServiceType'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceType'
+          description: ''
+    patch:
+      operationId: shipping_rates_service_types_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        description: A unique value identifying this service type.
+        required: true
+      tags:
+      - shipping-rates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedServiceType'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedServiceType'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedServiceType'
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceType'
+          description: ''
+    delete:
+      operationId: shipping_rates_service_types_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        description: A unique value identifying this service type.
+        required: true
+      tags:
+      - shipping-rates
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/shipping-rates/shipping-zones/:
+    get:
+      operationId: shipping_rates_shipping_zones_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - shipping-rates
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedShippingZoneList'
+          description: ''
+    post:
+      operationId: shipping_rates_shipping_zones_create
+      tags:
+      - shipping-rates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShippingZone'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShippingZone'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShippingZone'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShippingZone'
+          description: ''
+  /api/shipping-rates/shipping-zones/{id}/:
+    get:
+      operationId: shipping_rates_shipping_zones_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        description: A unique value identifying this shipping zone.
+        required: true
+      tags:
+      - shipping-rates
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShippingZone'
+          description: ''
+    put:
+      operationId: shipping_rates_shipping_zones_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        description: A unique value identifying this shipping zone.
+        required: true
+      tags:
+      - shipping-rates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShippingZone'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShippingZone'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShippingZone'
+        required: true
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShippingZone'
+          description: ''
+    patch:
+      operationId: shipping_rates_shipping_zones_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        description: A unique value identifying this shipping zone.
+        required: true
+      tags:
+      - shipping-rates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedShippingZone'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedShippingZone'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedShippingZone'
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShippingZone'
+          description: ''
+    delete:
+      operationId: shipping_rates_shipping_zones_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        description: A unique value identifying this shipping zone.
+        required: true
+      tags:
+      - shipping-rates
+      security:
+      - jwtAuth: []
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/token/:
+    post:
+      operationId: token_create
+      description: |-
+        Takes a set of user credentials and returns an access and refresh JSON web
+        token pair to prove the authentication of those credentials.
+      tags:
+      - token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+        required: true
+      security:
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenObtainPair'
+          description: ''
+  /api/token/refresh/:
+    post:
+      operationId: token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+        required: true
+      security:
+      - Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+components:
+  schemas:
+    Buy4MeItem:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        product_name:
+          type: string
+          maxLength: 255
+        product_url:
+          type: string
+          format: uri
+          maxLength: 200
+        quantity:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        color:
+          type: string
+          maxLength: 50
+        size:
+          type: string
+          maxLength: 50
+        unit_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        currency:
+          type: string
+          maxLength: 3
+        notes:
+          type: string
+        total_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - product_name
+      - product_url
+      - total_price
+      - unit_price
+    Buy4MeRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        user:
+          type: string
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/Buy4MeRequestStatusEnum'
+        total_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        shipping_address:
+          type: string
+        notes:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Buy4MeItem'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - items
+      - shipping_address
+      - total_cost
+      - updated_at
+      - user
+    Buy4MeRequestCreate:
+      type: object
+      properties:
+        shipping_address:
+          type: string
+        notes:
+          type: string
+        id:
+          type: string
+          readOnly: true
+      required:
+      - id
+      - shipping_address
+    Buy4MeRequestStatusEnum:
+      enum:
+      - DRAFT
+      - SUBMITTED
+      - ORDER_PLACED
+      - IN_TRANSIT
+      - WAREHOUSE_ARRIVED
+      - SHIPPED_TO_CUSTOMER
+      - COMPLETED
+      - CANCELLED
+      type: string
+      description: |-
+        * `DRAFT` - Draft
+        * `SUBMITTED` - Submitted
+        * `ORDER_PLACED` - Order Placed
+        * `IN_TRANSIT` - In Transit
+        * `WAREHOUSE_ARRIVED` - Warehouse Arrived
+        * `SHIPPED_TO_CUSTOMER` - Shipped to Customer
+        * `COMPLETED` - Completed
+        * `CANCELLED` - Cancelled
+    Country:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        code:
+          type: string
+          maxLength: 2
+        country_type:
+          allOf:
+          - $ref: '#/components/schemas/CountryTypeEnum'
+          default: DESTINATION
+        is_active:
+          type: boolean
+      required:
+      - code
+      - id
+      - name
+    CountryTypeEnum:
+      enum:
+      - DEPARTURE
+      - DESTINATION
+      type: string
+      description: |-
+        * `DEPARTURE` - Departure
+        * `DESTINATION` - Destination
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        user:
+          type: integer
+          readOnly: true
+        shipment:
+          type: string
+          nullable: true
+        buy4me_request:
+          type: string
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/InvoiceStatusEnum'
+          readOnly: true
+        status_display:
+          type: string
+          readOnly: true
+        due_date:
+          type: string
+          format: date
+        subtotal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        tax:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - due_date
+      - id
+      - status
+      - status_display
+      - subtotal
+      - total
+      - user
+    InvoiceStatusEnum:
+      enum:
+      - DRAFT
+      - PENDING
+      - PAID
+      - OVERDUE
+      - CANCELLED
+      - REFUNDED
+      type: string
+      description: |-
+        * `DRAFT` - Draft
+        * `PENDING` - Pending
+        * `PAID` - Paid
+        * `OVERDUE` - Overdue
+        * `CANCELLED` - Cancelled
+        * `REFUNDED` - Refunded
+    PaginatedBuy4MeItemList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Buy4MeItem'
+    PaginatedBuy4MeRequestList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Buy4MeRequest'
+    PaginatedCountryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Country'
+    PaginatedInvoiceList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Invoice'
+    PaginatedPaymentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Payment'
+    PaginatedRefundList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Refund'
+    PaginatedServiceTypeList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceType'
+    PaginatedShippingZoneList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShippingZone'
+    PaginatedUserList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+    PatchedBuy4MeItem:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        product_name:
+          type: string
+          maxLength: 255
+        product_url:
+          type: string
+          format: uri
+          maxLength: 200
+        quantity:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        color:
+          type: string
+          maxLength: 50
+        size:
+          type: string
+          maxLength: 50
+        unit_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        currency:
+          type: string
+          maxLength: 3
+        notes:
+          type: string
+        total_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedBuy4MeRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        user:
+          type: string
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/Buy4MeRequestStatusEnum'
+        total_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        shipping_address:
+          type: string
+        notes:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Buy4MeItem'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedCountry:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        code:
+          type: string
+          maxLength: 2
+        country_type:
+          allOf:
+          - $ref: '#/components/schemas/CountryTypeEnum'
+          default: DESTINATION
+        is_active:
+          type: boolean
+    PatchedInvoice:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        user:
+          type: integer
+          readOnly: true
+        shipment:
+          type: string
+          nullable: true
+        buy4me_request:
+          type: string
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/InvoiceStatusEnum'
+          readOnly: true
+        status_display:
+          type: string
+          readOnly: true
+        due_date:
+          type: string
+          format: date
+        subtotal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        tax:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedPayment:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        invoice:
+          type: string
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        payment_method:
+          $ref: '#/components/schemas/PaymentMethodEnum'
+        payment_method_display:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/PaymentStatusEnum'
+          readOnly: true
+        status_display:
+          type: string
+          readOnly: true
+        transaction_id:
+          type: string
+          readOnly: true
+          description: Payment gateway transaction ID
+        payment_details:
+          readOnly: true
+          description: Additional payment details from gateway
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedRefund:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        payment:
+          type: string
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        reason:
+          type: string
+        status:
+          allOf:
+          - $ref: '#/components/schemas/RefundStatusEnum'
+          readOnly: true
+        status_display:
+          type: string
+          readOnly: true
+        refund_transaction_id:
+          type: string
+          readOnly: true
+          description: Payment gateway refund transaction ID
+        processed_by:
+          type: integer
+          readOnly: true
+        processed_by_name:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedServiceType:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        delivery_time:
+          type: string
+          maxLength: 50
+        is_active:
+          type: boolean
+    PatchedShippingZone:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        countries:
+          type: array
+          items:
+            $ref: '#/components/schemas/Country'
+          readOnly: true
+        description:
+          type: string
+        is_active:
+          type: boolean
+    PatchedUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        phone_number:
+          type: string
+          maxLength: 15
+        address:
+          type: string
+        user_type:
+          $ref: '#/components/schemas/UserTypeEnum'
+        is_verified:
+          type: boolean
+          readOnly: true
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        invoice:
+          type: string
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        payment_method:
+          $ref: '#/components/schemas/PaymentMethodEnum'
+        payment_method_display:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/PaymentStatusEnum'
+          readOnly: true
+        status_display:
+          type: string
+          readOnly: true
+        transaction_id:
+          type: string
+          readOnly: true
+          description: Payment gateway transaction ID
+        payment_details:
+          readOnly: true
+          description: Additional payment details from gateway
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - created_at
+      - id
+      - invoice
+      - payment_details
+      - payment_method
+      - payment_method_display
+      - status
+      - status_display
+      - transaction_id
+    PaymentInitiate:
+      type: object
+      properties:
+        invoice_id:
+          type: string
+        payment_method:
+          $ref: '#/components/schemas/PaymentMethodEnum'
+        return_url:
+          type: string
+          format: uri
+          description: URL to redirect after payment completion
+      required:
+      - invoice_id
+      - payment_method
+    PaymentMethodEnum:
+      enum:
+      - STRIPE
+      - PAYPAL
+      - BANK_TRANSFER
+      - CASH
+      type: string
+      description: |-
+        * `STRIPE` - Stripe
+        * `PAYPAL` - PayPal
+        * `BANK_TRANSFER` - Bank Transfer
+        * `CASH` - Cash
+    PaymentStatusEnum:
+      enum:
+      - PENDING
+      - COMPLETED
+      - FAILED
+      - REFUNDED
+      type: string
+      description: |-
+        * `PENDING` - Pending
+        * `COMPLETED` - Completed
+        * `FAILED` - Failed
+        * `REFUNDED` - Refunded
+    Refund:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        payment:
+          type: string
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        reason:
+          type: string
+        status:
+          allOf:
+          - $ref: '#/components/schemas/RefundStatusEnum'
+          readOnly: true
+        status_display:
+          type: string
+          readOnly: true
+        refund_transaction_id:
+          type: string
+          readOnly: true
+          description: Payment gateway refund transaction ID
+        processed_by:
+          type: integer
+          readOnly: true
+        processed_by_name:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - created_at
+      - id
+      - payment
+      - processed_by
+      - processed_by_name
+      - reason
+      - refund_transaction_id
+      - status
+      - status_display
+    RefundStatusEnum:
+      enum:
+      - PENDING
+      - APPROVED
+      - COMPLETED
+      - REJECTED
+      type: string
+      description: |-
+        * `PENDING` - Pending
+        * `APPROVED` - Approved
+        * `COMPLETED` - Completed
+        * `REJECTED` - Rejected
+    ServiceType:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        delivery_time:
+          type: string
+          maxLength: 50
+        is_active:
+          type: boolean
+      required:
+      - delivery_time
+      - description
+      - id
+      - name
+    ShipmentCreate:
+      type: object
+      properties:
+        sender_name:
+          type: string
+          maxLength: 255
+        sender_email:
+          type: string
+          format: email
+          maxLength: 254
+        sender_phone:
+          type: string
+          maxLength: 20
+        sender_address:
+          type: string
+        sender_country:
+          type: string
+        recipient_name:
+          type: string
+          maxLength: 255
+        recipient_email:
+          type: string
+          format: email
+          maxLength: 254
+        recipient_phone:
+          type: string
+          maxLength: 20
+        recipient_address:
+          type: string
+        recipient_country:
+          type: string
+        package_type:
+          type: string
+          maxLength: 50
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        length:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        width:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        height:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        description:
+          type: string
+          description: Package contents description
+        declared_value:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          description: Declared value for customs
+        service_type:
+          type: string
+        insurance_required:
+          type: boolean
+          description: Whether insurance is required for the shipment
+        signature_required:
+          type: boolean
+          description: Whether signature is required upon delivery
+        notes:
+          type: string
+      required:
+      - declared_value
+      - description
+      - height
+      - length
+      - package_type
+      - recipient_address
+      - recipient_country
+      - recipient_email
+      - recipient_name
+      - recipient_phone
+      - sender_address
+      - sender_country
+      - sender_email
+      - sender_name
+      - sender_phone
+      - service_type
+      - weight
+      - width
+    ShippingCalculator:
+      type: object
+      properties:
+        origin_country:
+          type: string
+          description: 9-letter country id for origin
+          maxLength: 9
+        destination_country:
+          type: string
+          description: 9-letter country id for destination
+          maxLength: 9
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+          description: Weight in kg
+        length:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+          description: Length in cm
+        width:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+          description: Width in cm
+        height:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+          description: Height in cm
+        service_type:
+          type: string
+          description: Service type id
+          maxLength: 9
+      required:
+      - destination_country
+      - height
+      - length
+      - origin_country
+      - service_type
+      - weight
+      - width
+    ShippingZone:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        countries:
+          type: array
+          items:
+            $ref: '#/components/schemas/Country'
+          readOnly: true
+        description:
+          type: string
+        is_active:
+          type: boolean
+      required:
+      - countries
+      - id
+      - name
+    TokenObtainPair:
+      type: object
+      properties:
+        username:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - password
+      - refresh
+      - username
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        phone_number:
+          type: string
+          maxLength: 15
+        address:
+          type: string
+        user_type:
+          $ref: '#/components/schemas/UserTypeEnum'
+        is_verified:
+          type: boolean
+          readOnly: true
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - date_joined
+      - id
+      - is_verified
+      - username
+    UserCreate:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        password:
+          type: string
+          writeOnly: true
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        phone_number:
+          type: string
+          maxLength: 15
+        address:
+          type: string
+        user_type:
+          $ref: '#/components/schemas/UserTypeEnum'
+        country:
+          type: string
+          maxLength: 100
+      required:
+      - password
+      - username
+    UserTypeEnum:
+      enum:
+      - WALK_IN
+      - BUY4ME
+      - ADMIN
+      - SUPER_ADMIN
+      type: string
+      description: |-
+        * `WALK_IN` - Walk In
+        * `BUY4ME` - Buy4Me
+        * `ADMIN` - Admin
+        * `SUPER_ADMIN` - Super Admin
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+tags:
+- name: auth
+  description: Authentication endpoints
+- name: users
+  description: User management endpoints
+- name: shipments
+  description: Shipment management endpoints
+- name: buy4me
+  description: Buy4Me service endpoints

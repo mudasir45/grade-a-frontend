@@ -31,6 +31,7 @@ export interface Shipment {
 
 
 export interface ShipmentRequest {
+    id?: string
     sender_name: string
     sender_email: string
     sender_phone: string

@@ -88,11 +88,9 @@ export function ShipmentForm() {
             origin_country: formData.sender_country,
             destination_country: formData.recipient_country,
             weight: formData.weight,
-            dimensions: {
-              length: formData.length,
-              width: formData.width,
-              height: formData.height
-            },
+            length: formData.length,
+            width: formData.width,
+            height: formData.height,
             service_type: formData.service_type,
             declared_value: formData.declared_value,
             insurance_required: formData.insurance_required

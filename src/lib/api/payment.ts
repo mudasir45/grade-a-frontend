@@ -1,8 +1,5 @@
-'use client'
-
 import { BoostIcon, CardIcon, FPXIcon, GrabPayIcon } from '@/components/icons/payment';
 import { PaymentIntent, PaymentMethod } from '@/lib/types/payment';
-import { API_BASE_URL } from '../config';
 
 export const PAYMENT_METHODS: PaymentMethod[] = [
   {
@@ -37,53 +34,31 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
 ] as const;
 
 export class PaymentAPI {
-  private static getHeaders() {
-    const token = localStorage.getItem('auth_token')
-    return {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    }
-  }
-
   static async createPaymentIntent(data: {
-    amount: number
+    amount: number // Amount in cents
     currency: string
-    payment_method: string
-    payment_details: any
-  }) {
+    payment_method_type: string
+    request_id: string
+  }): Promise<PaymentIntent> {
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/`, {
+      const response = await fetch('/api/payments/create-intent', {
         method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify(data)
-      })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      const responseData = await response.json();
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.detail || 'Failed to create payment')
+        throw new Error(responseData.error || 'Failed to create payment intent');
       }
 
-      return response.json()
+      return responseData;
     } catch (error) {
-      throw error instanceof Error ? error : new Error('Failed to create payment')
-    }
-  }
-
-  static async confirmPayment(paymentIntentId: string) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/payments/${paymentIntentId}/confirm/`, {
-        method: 'POST',
-        headers: this.getHeaders()
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.detail || 'Failed to confirm payment')
-      }
-
-      return response.json()
-    } catch (error) {
-      throw error instanceof Error ? error : new Error('Failed to confirm payment')
+      console.error('Payment API Error:', error);
+      throw error;
     }
   }
 
