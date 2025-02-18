@@ -84,7 +84,7 @@ export class ShippingAPI {
       if (params.search) query.append('search', params.search)
 
       const response = await fetch(
-        `${API_BASE_URL}/shipping/shipments/?${query}`,
+        `${API_BASE_URL}/shipments/${query}`,
         { headers: this.getHeaders() }
       )
 
@@ -101,7 +101,7 @@ export class ShippingAPI {
   static async getShipmentDetails(id: string) {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/shipping/shipments/${id}/`,
+        `${API_BASE_URL}/shipments/${id}/`,
         { headers: this.getHeaders() }
       )
 
@@ -189,7 +189,7 @@ export class ShippingAPI {
 
   static async updateShipmentStatus(id: string, status: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/shipping/shipments/${id}/status/`, {
+      const response = await fetch(`${API_BASE_URL}/shipments/${id}/status/`, {
         method: 'PATCH',
         headers: this.getHeaders(),
         body: JSON.stringify({ status })

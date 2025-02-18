@@ -1,70 +1,90 @@
 'use client'
 
-import { useState } from 'react'
-import { format } from 'date-fns'
-import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from '@/components/ui/table'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { useAuth } from '@/hooks/use-auth'
-import { formatCurrency } from '@/lib/utils'
-import { Download, Search, Filter, Eye } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import { ShippingAPI } from '@/lib/api/shipping'
+import { formatCurrency, formatDate } from '@/lib/utils'
+import { Download, Eye, Filter, Loader2, Search } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { TrackingDialog } from './tracking-dialog'
+
+interface Shipment {
+  id: string
+  tracking_number: string
+  status: string
+  sender_country: string
+  recipient_country: string
+  total_cost: string
+  created_at: string
+  current_location: string
+}
 
 export function ShipmentHistory() {
-  const { user } = useAuth()
+  const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedShipment, setSelectedShipment] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [shipments, setShipments] = useState<Shipment[]>([])
+  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null)
+  const [trackingDialog, setTrackingDialog] = useState<{
+    open: boolean
+    trackingNumber: string
+  }>({
+    open: false,
+    trackingNumber: ''
+  })
 
-  // Mock shipment data
-  const shipments = [
-    {
-      id: 'SHP001',
-      date: '2024-03-15',
-      trackingNumber: 'TRK123456789',
-      status: 'Delivered',
-      from: 'Kuala Lumpur, MY',
-      to: 'Singapore, SG',
-      cost: 150.00
-    },
-    {
-      id: 'SHP002',
-      date: '2024-03-10',
-      trackingNumber: 'TRK987654321',
-      status: 'In Transit',
-      from: 'Singapore, SG',
-      to: 'Jakarta, ID',
-      cost: 200.00
+  // Fetch shipments on component mount
+  useEffect(() => {
+    fetchShipments()
+  }, [])
+
+  const fetchShipments = async () => {
+    try {
+      const response = await ShippingAPI.getShipments()
+      setShipments(response)
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to fetch shipments',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
     }
-  ]
+  }
 
   const filteredShipments = shipments.filter(shipment =>
-    shipment.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    shipment.from.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    shipment.to.toLowerCase().includes(searchTerm.toLowerCase())
+    shipment.tracking_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    shipment.current_location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    shipment.status.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'delivered':
+    switch (status.toUpperCase()) {
+      case 'DELIVERED':
         return 'bg-green-500'
-      case 'in transit':
+      case 'IN_TRANSIT':
         return 'bg-blue-500'
-      case 'pending':
+      case 'PROCESSING':
         return 'bg-yellow-500'
+      case 'PENDING':
+        return 'bg-orange-500'
       default:
         return 'bg-gray-500'
     }
@@ -72,15 +92,14 @@ export function ShipmentHistory() {
 
   const downloadHistory = () => {
     // Generate CSV data
-    const headers = ['Shipment ID', 'Date', 'Tracking Number', 'Status', 'From', 'To', 'Cost']
+    const headers = ['Shipment ID', 'Date', 'Tracking Number', 'Status', 'Location', 'Cost']
     const rows = filteredShipments.map(shipment => [
       shipment.id,
-      format(new Date(shipment.date), 'MM/dd/yyyy'),
-      shipment.trackingNumber,
+      formatDate(shipment.created_at),
+      shipment.tracking_number,
       shipment.status,
-      shipment.from,
-      shipment.to,
-      formatCurrency(shipment.cost)
+      shipment.current_location || 'Not available',
+      formatCurrency(Number(shipment.total_cost))
     ])
 
     const csv = [
@@ -93,10 +112,18 @@ export function ShipmentHistory() {
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.setAttribute('download', `shipment_history_${format(new Date(), 'yyyyMMdd')}.csv`)
+    link.setAttribute('download', `shipment_history_${formatDate(new Date().toISOString())}.csv`)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   return (
@@ -121,7 +148,7 @@ export function ShipmentHistory() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search shipments..."
+                placeholder="Search by tracking number, location, or status..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
@@ -140,9 +167,8 @@ export function ShipmentHistory() {
                   <TableHead>Shipment ID</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Tracking Number</TableHead>
-                  <TableHead>From</TableHead>
-                  <TableHead>To</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Location</TableHead>
                   <TableHead>Cost</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -152,33 +178,35 @@ export function ShipmentHistory() {
                   <TableRow key={shipment.id}>
                     <TableCell className="font-medium">{shipment.id}</TableCell>
                     <TableCell>
-                      {format(new Date(shipment.date), 'MMM d, yyyy')}
+                      {formatDate(shipment.created_at)}
                     </TableCell>
-                    <TableCell>{shipment.trackingNumber}</TableCell>
-                    <TableCell>{shipment.from}</TableCell>
-                    <TableCell>{shipment.to}</TableCell>
+                    <TableCell>{shipment.tracking_number}</TableCell>
                     <TableCell>
                       <div className="flex items-center">
                         <div className={`h-2 w-2 rounded-full mr-2 ${getStatusColor(shipment.status)}`} />
                         <span>{shipment.status}</span>
                       </div>
                     </TableCell>
-                    <TableCell>{formatCurrency(shipment.cost)}</TableCell>
+                    <TableCell>{shipment.current_location || 'Not available'}</TableCell>
+                    <TableCell>{formatCurrency(Number(shipment.total_cost))}</TableCell>
                     <TableCell>
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => setSelectedShipment(shipment)}
+                        onClick={() => setTrackingDialog({
+                          open: true,
+                          trackingNumber: shipment.tracking_number
+                        })}
                       >
                         <Eye className="h-4 w-4 mr-2" />
-                        View
+                        Track
                       </Button>
                     </TableCell>
                   </TableRow>
                 ))}
                 {filteredShipments.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       No shipments found
                     </TableCell>
                   </TableRow>
@@ -188,6 +216,11 @@ export function ShipmentHistory() {
           </div>
         </CardContent>
       </Card>
+      <TrackingDialog 
+        open={trackingDialog.open}
+        trackingNumber={trackingDialog.trackingNumber}
+        onClose={() => setTrackingDialog({ open: false, trackingNumber: '' })}
+      />
     </div>
   )
 }
