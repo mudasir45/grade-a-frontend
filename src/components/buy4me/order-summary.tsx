@@ -100,7 +100,7 @@ export function OrderSummary() {
       <PaymentForm
         amount={totals.total}
         currency={CURRENCY.code}
-        requestId={activeRequest.id}
+        requestId={activeRequest!.id}
         onSuccess={handlePaymentSuccess}
         onCancel={() => setShowPayment(false)}
       />

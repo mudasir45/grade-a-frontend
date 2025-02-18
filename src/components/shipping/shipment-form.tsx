@@ -23,11 +23,13 @@ import { Textarea } from '@/components/ui/textarea'
 import useShippingData from '@/hooks/use-shipping-data'
 import { useToast } from '@/hooks/use-toast'
 import { ShippingAPI } from '@/lib/api/shipping'
+import { CURRENCY } from '@/lib/config'
 import { packageTypes } from '@/lib/shipping-data'
 import type { ShipmentRequest, ShippingRate } from '@/lib/types/shipping'
 import { motion } from 'framer-motion'
 import { ArrowRight, Package } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { PaymentForm } from '../buy4me/payment-form'
 
 
 
@@ -37,6 +39,7 @@ export function ShipmentForm() {
   const [step, setStep] = useState(1)
   const [shippingRate, setShippingRate] = useState<ShippingRate | null>(null)
   const [calculating, setCalculating] = useState(false)
+  const [showPayment, setShowPayment] = useState(false)
   const {
     departureCountries,
     destinationCountries,
@@ -127,50 +130,119 @@ export function ShipmentForm() {
     e.preventDefault()
     setLoading(true)
 
-    try {
-      const shipment = await ShippingAPI.createShipment(formData as ShipmentRequest)
+    // try {
+    //   const shipment = await ShippingAPI.createShipment(formData as ShipmentRequest)
       
-      toast({
-        title: 'Shipment Created',
-        description: `Tracking number: ${shipment.tracking_number}`,
-      })
+    //   toast({
+    //     title: 'Shipment Created',
+    //     description: `Tracking number: ${shipment.tracking_number}`,
+    //   })
       
-      // Reset form
-      setFormData({
-        sender_name: '',
-        sender_email: '',
-        sender_phone: '',
-        sender_address: '',
-        sender_country: '',
-        recipient_name: '',
-        recipient_email: '',
-        recipient_phone: '',
-        recipient_address: '',
-        recipient_country: '',
-        package_type: '',
-        weight: 0,
-        length: 0,
-        width: 0,
-        height: 0,
-        description: '',
-        declared_value: 0,
-        service_type: 'standard',
-        insurance_required: false,
-        signature_required: false
-      })
-      setStep(1)
-      setShippingRate(null)
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to create shipment',
-        variant: 'destructive',
-      })
-    } finally {
-      setLoading(false)
-    }
+    //   // Reset form
+    //   setFormData({
+    //     sender_name: '',
+    //     sender_email: '',
+    //     sender_phone: '',
+    //     sender_address: '',
+    //     sender_country: '',
+    //     recipient_name: '',
+    //     recipient_email: '',
+    //     recipient_phone: '',
+    //     recipient_address: '',
+    //     recipient_country: '',
+    //     package_type: '',
+    //     weight: 0,
+    //     length: 0,
+    //     width: 0,
+    //     height: 0,
+    //     description: '',
+    //     declared_value: 0,
+    //     service_type: 'standard',
+    //     insurance_required: false,
+    //     signature_required: false
+    //   })
+    //   setStep(1)
+    //   setShippingRate(null)
+    // } catch (error) {
+    //   toast({
+    //     title: 'Error',
+    //     description: error instanceof Error ? error.message : 'Failed to create shipment',
+    //     variant: 'destructive',
+    //   })
+    // } finally {
+    //   setLoading(false)
+    // }
   }
 
+  const handlePaymentSuccess = async (transactionId: string) => {
+    try {
+        setLoading(true)
+        const shipment = await ShippingAPI.createShipment(formData as ShipmentRequest)
+        
+        toast({
+          title: 'Shipment Created',
+          description: `Tracking number: ${shipment.tracking_number}`,
+        })
+        
+        // Reset form
+        setFormData({
+          sender_name: '',
+          sender_email: '',
+          sender_phone: '',
+          sender_address: '',
+          sender_country: '',
+          recipient_name: '',
+          recipient_email: '',
+          recipient_phone: '',
+          recipient_address: '',
+          recipient_country: '',
+          package_type: '',
+          weight: 0,
+          length: 0,
+          width: 0,
+          height: 0,
+          description: '',
+          declared_value: 0,
+          service_type: 'standard',
+          insurance_required: false,
+          signature_required: false
+        })
+        setStep(1)
+        setShippingRate(null)
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: error instanceof Error ? error.message : 'Failed to create shipment',
+          variant: 'destructive',
+        })
+      } finally {
+        setLoading(false)
+      }
+  }
+
+  const handleProceedToPayment = () => {
+    if (!shippingRate) {
+      toast({
+        title: 'No Shipping Rate',
+        description: 'Please calculate a shipping rate before proceeding.',
+        variant: 'destructive',
+      })
+      return
+    }
+    setShowPayment(true)
+  }
+
+  if (showPayment) {
+    return (
+      <PaymentForm
+        amount={shippingRate?.cost_breakdown.total_cost ?? 0}
+        currency={CURRENCY.code}
+        requestId={formData.id ? formData.id : 'TRX_1234567890'}
+        onSuccess={handlePaymentSuccess}
+        onCancel={() => setShowPayment(false)}
+      />
+    )
+  }
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error: {error.message}</div>;
 
@@ -558,7 +630,7 @@ export function ShipmentForm() {
               <Button type="button" variant="outline" onClick={() => setStep(2)}>
                 Back
               </Button>
-              <Button type="submit" disabled={loading || !shippingRate}>
+              <Button type="submit" disabled={loading || !shippingRate} onClick={handleProceedToPayment}>
                 {loading ? (
                   'Creating Shipment...'
                 ) : (
