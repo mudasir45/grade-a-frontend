@@ -11,32 +11,116 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
-import { countries } from '@/lib/shipping-data'
+import { User } from '@/lib/types/index'
 import { AnimatePresence, motion } from 'framer-motion'
-import { LogIn, User } from 'lucide-react'
-import { useState } from 'react'
+import { LogIn, User as UserIcon } from 'lucide-react'
+import { useCallback, useState } from 'react'
+
+const INITIAL_FORM_STATE = {
+  email: '',
+  password: '',
+  name: '',
+  country: '',
+}
 
 export function AuthDialog() {
   const { toast } = useToast()
-  const [isOpen, setIsOpen] = useState(false)
   const [isLogin, setIsLogin] = useState(true)
   const [loading, setLoading] = useState(false)
-  const {login, register, user} = useAuth()
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    name: '',
-    country: '',
-  })
+  const {  register, user, isOpen, setIsOpen, setUser} = useAuth()
+  const [formData, setFormData] = useState(INITIAL_FORM_STATE)
+
+  const login = async (email: string, password: string) => {
+    try {
+      const response = await fetch('http://localhost:8000/api/token/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: email, password }),
+      });
+      
+      const data = await response.json();
+      console.log('data', data)
+      if (response.status === 401) {
+        toast({
+          title: 'Invalid credentials',
+          description: 'Please check your email and password',
+          variant: 'destructive',
+        })
+        return null;
+      }
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      localStorage.setItem('auth_token', data.access);
+      
+      // Fetch user details after successful login
+      const userResponse = await fetch('http://127.0.0.1:8000/api/accounts/users/me/', {
+        headers: {
+          'Authorization': `Bearer ${data.access}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      const userData = await userResponse.json();
+      
+      if (userData.error) {
+        throw new Error(userData.error);
+      }
+
+      const userObj: User = {
+        id: userData.id,
+        email: userData.email,
+        country: userData.country,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        user_type: userData.user_type,
+      };
+
+      localStorage.setItem('current_user', JSON.stringify(userObj));
+      setUser(userObj);
+    } catch (error) {
+      console.error(error);
+      throw new Error('Invalid credentials');
+    }
+  };
+
+  const resetForm = useCallback(() => {
+    setFormData(INITIAL_FORM_STATE)
+  }, [])
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [id]: value
+    }))
+  }, [])
+
+  const handleAuthSuccess = useCallback((message: string) => {
+    toast({
+      title: message,
+      description: `You have successfully ${isLogin ? 'logged in' : 'created an account'}.`,
+    })
+    setIsOpen(false)
+    resetForm()
+  }, [isLogin, setIsOpen, toast, resetForm])
+
+  const handleAuthError = useCallback((error: unknown) => {
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'Authentication failed. Please try again.'
+    
+    toast({
+      title: 'Error',
+      description: errorMessage,
+      variant: 'destructive',
+    })
+  }, [toast])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,35 +128,34 @@ export function AuthDialog() {
 
     try {
       if (isLogin) {
-        await login(formData.email, formData.password)
-        toast({
-          title: 'Welcome back!',
-          description: 'You have successfully logged in.',
-        })
+        const data = await login(formData.email, formData.password)
+        if (data) {
+          handleAuthSuccess('Welcome back!')
+        }
       } else {
-        await register(formData.email, formData.password, formData.name, formData.country, "BUY4ME")
-        toast({
-          title: 'Account created!',
-          description: 'Your account has been successfully created.',
-        })
+        if (!formData.name.trim()) {
+          throw new Error('Please enter your full name')
+        }
+        await register(formData.email, formData.password, formData.name, "BUY4ME")
+        handleAuthSuccess('Account created!')
       }
-      setIsOpen(false)
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'An error occurred',
-        variant: 'destructive',
-      })
+      handleAuthError(error)
     } finally {
       setLoading(false)
     }
   }
 
+  const toggleAuthMode = useCallback(() => {
+    setIsLogin(prev => !prev)
+    resetForm()
+  }, [resetForm])
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <User className="mr-2 h-4 w-4" />
+        <Button aria-label={user ? 'Open account menu' : 'Sign in'}>
+          <UserIcon className="mr-2 h-4 w-4" />
           {user ? 'Account' : 'Sign In'}
         </Button>
       </DialogTrigger>
@@ -94,7 +177,9 @@ export function AuthDialog() {
               type="email"
               required
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={handleInputChange}
+              placeholder="Enter your email"
+              autoComplete="email"
             />
           </div>
 
@@ -105,11 +190,14 @@ export function AuthDialog() {
               type="password"
               required
               value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              onChange={handleInputChange}
+              placeholder="Enter your password"
+              autoComplete={isLogin ? 'current-password' : 'new-password'}
+              minLength={3}
             />
           </div>
 
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             {!isLogin && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
@@ -123,37 +211,22 @@ export function AuthDialog() {
                     id="name"
                     required
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={handleInputChange}
+                    placeholder="Enter your full name"
+                    autoComplete="name"
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="country">Country</Label>
-                  <Select
-                    value={formData.country}
-                    onValueChange={(value) => setFormData({ ...formData, country: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your country" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {countries.map((country) => (
-                        <SelectItem key={country.code} value={country.code}>
-                          <span className="flex items-center gap-2">
-                            <span>{country.flag}</span>
-                            <span>{country.name}</span>
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
           <div className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={loading}
+              aria-busy={loading}
+            >
               <LogIn className="mr-2 h-4 w-4" />
               {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
             </Button>
@@ -162,7 +235,7 @@ export function AuthDialog() {
               type="button"
               variant="link"
               className="text-sm"
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={toggleAuthMode}
             >
               {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
             </Button>

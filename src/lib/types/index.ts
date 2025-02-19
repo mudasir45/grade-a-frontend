@@ -38,8 +38,8 @@ export interface User {
     first_name: string;
     last_name: string;
     email: string;
-    country: string;
-    user_type: string;
+    country?: string;
+    user_type?: string;
     [key: string]: any; // For dynamic properties
   }
   
@@ -47,8 +47,12 @@ export interface User {
     user: User | null;
     loading: boolean;
     login: (email: string, password: string) => Promise<void>;
-    register: (email: string, password: string, name: string, country: string, user_type: string) => Promise<void>;
+    register: (email: string, password: string, name: string, country?: string, user_type?: string) => Promise<void>;
     logout: () => void;
+    isOpen: boolean;
+    setIsOpen: (isOpen: boolean) => void;
+    getUser: () => Promise<User | null>;
+    setUser: (user: User | null) => void;
   }
 
 export type Buy4MeRequestStatus = 

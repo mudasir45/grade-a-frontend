@@ -10,34 +10,46 @@ import { Buy4MeShell } from '@/components/buy4me/shell'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/hooks/use-auth'
+import { toast } from '@/hooks/use-toast'
 import { CreditCard, History, List, ShoppingBag, User } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 export default function Buy4MePage() {
-  const { user } = useAuth()
+  const { user, getUser, loading } = useAuth()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('browse')
-  const [mounted, setMounted] = useState(false)
 
-  // Handle mounting state
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    console.log('getUser', user)
+    getUser()
+    .then((user) => {
+        if (user?.user_type !== 'BUY4ME') {
+            router.push('/')
+            toast({
+                title: 'Unauthorized',
+                description: 'You are not authorized to access this page',
+            })
+        }
 
-  // Handle authentication redirect
-//   useEffect(() => {
-//     if (mounted && !user) {
-//       router.push('/')
-//     }
-//   }, [mounted, user, router])
+    })
+    .catch((error) => {
+      console.error('Failed to get user:', error)
+    })
+  }, [loading])
 
-//   if (!mounted || !user) {
-//     return null
-//   }
 
+  
   const handleTabChange = (value: string) => {
     setActiveTab(value)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="w-10 h-10 border-t-2 border-b-2 border-gray-900 rounded-full animate-spin"></div>
+      </div>
+    )
   }
 
   return (

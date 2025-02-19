@@ -59,7 +59,7 @@ export function Navbar() {
           ))}
         </div>
         <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:gap-x-4">
-          <DropdownMenu>
+          {/* <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
                 <Globe className="h-5 w-5" />
@@ -70,7 +70,7 @@ export function Navbar() {
               <DropdownMenuItem>中文</DropdownMenuItem>
               <DropdownMenuItem>Bahasa Melayu</DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu> */}
           {user ? <UserNav /> : <AuthDialog />}
         </div>
       </nav>
