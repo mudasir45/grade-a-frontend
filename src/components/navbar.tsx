@@ -1,19 +1,12 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { motion } from 'framer-motion'
-import { Package, Menu, X, Globe } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { AuthDialog } from '@/components/auth/auth-dialog'
 import { UserNav } from '@/components/user-nav'
 import { useAuth } from '@/hooks/use-auth'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { motion } from 'framer-motion'
+import { Menu, Package, X } from 'lucide-react'
+import Link from 'next/link'
+import { useState } from 'react'
 
 const navigation = [
   { name: 'Services', href: '#services' },

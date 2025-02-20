@@ -141,18 +141,18 @@ export function OrderHistory() {
                     onClick={() => setSelectedOrder(order)}
                   >
                     <TableCell className="font-medium">
-                      #{order.order_number}
+                      #{order.id}
                     </TableCell>
                     <TableCell>{formatDate(order.created_at)}</TableCell>
                     <TableCell>
                       <OrderStatusBadge status={order.status} />
                     </TableCell>
-                    <TableCell>{order.items_count} items</TableCell>
+                    <TableCell>{order.items.length} items</TableCell>
                     <TableCell>
-                      {formatCurrency(order.total_amount, order.currency)}
+                      {/* {formatCurrency(order.total_cost)} */}
                     </TableCell>
                     <TableCell>
-                      {order.tracking_number || 'Not available'}
+                      {/* {order.tracking_number || 'Not available'} */}
                     </TableCell>
                   </TableRow>
                 ))}

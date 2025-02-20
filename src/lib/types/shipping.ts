@@ -195,6 +195,21 @@ export interface ShippingRate {
     cost_breakdown: CostBreakdown;
 }
 
+export interface Address {
+  name: string
+  email: string
+  phone: string
+  address: string
+  country: string
+}
+
+export type PaymentStatus = 
+  | 'PENDING'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'REFUNDED'
+  | 'CANCELLED'
+
 export interface ShipmentResponse {
   id: string
   tracking_number: string

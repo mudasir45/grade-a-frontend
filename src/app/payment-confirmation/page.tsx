@@ -11,7 +11,7 @@ import { ShipmentRequest } from '@/lib/types/shipping';
 
 import { CheckCircle, Clock, HomeIcon, Loader2, XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
 interface PaymentStatus {
   status: 'success' | 'pending' | 'failed' | 'unpaid'
@@ -52,7 +52,7 @@ const STATUS_MAP: Record<string, PaymentStatus> = {
   }
 }
 
-export default function PaymentConfirmationPage() {
+function PaymentConfirmationContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const billStatus = searchParams.get('billstatus')
@@ -242,4 +242,19 @@ async function checkPaymentStatus(billCode: string): Promise<'1' | '2' | '3' | '
     console.error('Error checking payment status:', error)
     return '3'
   }
+}
+
+export default function PaymentConfirmationPage() {
+  return (
+    <Suspense 
+      fallback={
+        <div className="min-h-screen flex flex-col items-center justify-center space-y-4 bg-gray-50">
+          <Loader2 className="w-12 h-12 animate-spin text-primary" />
+          <p className="text-lg font-medium text-gray-600">Loading payment status...</p>
+        </div>
+      }
+    >
+      <PaymentConfirmationContent />
+    </Suspense>
+  )
 }

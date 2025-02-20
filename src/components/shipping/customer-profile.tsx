@@ -1,27 +1,26 @@
 'use client'
 
-import { useState } from 'react'
-import { useAuth } from '@/hooks/use-auth'
-import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select'
-import { countries } from '@/lib/shipping-data'
-import { User, CreditCard, Bell, Lock, Globe } from 'lucide-react'
+import { useAuth } from '@/hooks/use-auth'
+import { useToast } from '@/hooks/use-toast'
+import { Bell, CreditCard, Globe, Lock } from 'lucide-react'
+import { useState } from 'react'
 
 export function CustomerProfile() {
   const { user } = useAuth()
@@ -101,7 +100,7 @@ export function CustomerProfile() {
               />
             </div>
 
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="country">Country</Label>
               <Select
                 value={formData.country}
@@ -110,18 +109,18 @@ export function CustomerProfile() {
                 <SelectTrigger>
                   <SelectValue placeholder="Select your country" />
                 </SelectTrigger>
-                <SelectContent>
-                  {countries.map((country) => (
-                    <SelectItem key={country.code} value={country.code}>
-                      <span className="flex items-center gap-2">
-                        <span>{country.flag}</span>
-                        <span>{country.name}</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+                    <SelectContent>
+                    {countries.map((country) => (
+                        <SelectItem key={country.code} value={country.code}>
+                        <span className="flex items-center gap-2">
+                            <span>{country.flag}</span>
+                            <span>{country.name}</span>
+                        </span>
+                        </SelectItem>
+                    ))}
+                    </SelectContent>
               </Select>
-            </div>
+            </div> */}
 
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="address">Address</Label>

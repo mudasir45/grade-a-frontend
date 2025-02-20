@@ -23,7 +23,6 @@ import { Textarea } from '@/components/ui/textarea'
 import useShippingData from '@/hooks/use-shipping-data'
 import { useToast } from '@/hooks/use-toast'
 import { ShippingAPI } from '@/lib/api/shipping'
-import { packageTypes } from '@/lib/shipping-data'
 import type { ShipmentRequest, ShippingRate } from '@/lib/types/shipping'
 import { motion } from 'framer-motion'
 import { ArrowRight, Loader2, Package } from 'lucide-react'
@@ -566,7 +565,12 @@ export function ShipmentForm() {
                       <SelectValue placeholder="Select package type" />
                     </SelectTrigger>
                     <SelectContent>
-                      {packageTypes.map((type) => (
+                      {[
+                        { id: 'document', name: 'Document' },
+                        { id: 'parcel', name: 'Parcel' }, 
+                        { id: 'box', name: 'Box' },
+                        { id: 'pallet', name: 'Pallet' }
+                      ].map((type) => (
                         <SelectItem key={type.id} value={type.id}>
                           {type.name}
                         </SelectItem>

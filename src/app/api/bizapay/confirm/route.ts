@@ -1,11 +1,13 @@
 // app/api/confirm/route.ts
 import axios from 'axios';
 import FormData from 'form-data';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
+export const dynamic = 'force-dynamic' // Mark this route as dynamic
+
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
+    const searchParams = request.nextUrl.searchParams
     const bill_code = searchParams.get('bill_code');
     if (!bill_code) {
       return NextResponse.json({ error: 'Missing payment_id parameter' }, { status: 400 });

@@ -1,10 +1,9 @@
 'use client'
 
-import Link from 'next/link'
-import { motion } from 'framer-motion'
-import { Package, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Facebook, Instagram, Linkedin, Mail, MapPin, Package, Phone, Twitter } from 'lucide-react'
+import Link from 'next/link'
 
 const footerLinks = {
   services: [
