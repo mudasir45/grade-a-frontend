@@ -3,7 +3,9 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { usePayment } from '@/contexts/payment-context';
 import { useBuy4Me } from '@/hooks/use-buy4me';
+import { useShipping } from '@/hooks/use-shipping';
 import { toast } from '@/hooks/use-toast';
 import { CheckCircle, Clock, HomeIcon, Loader2, XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -53,28 +55,43 @@ export default function PaymentConfirmationPage() {
   const searchParams = useSearchParams()
   const billStatus = searchParams.get('billstatus')
   const billCode = searchParams.get('billcode')
-  const shippingAddress = searchParams.get('shipping_address')
   
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const { submitRequest } = useBuy4Me()
+  
+  const { paymentData } = usePayment()
+  const { submitRequest: submitBuy4MeRequest } = useBuy4Me()
+  const { submitShipment } = useShipping()
 
   const handlePaymentSuccess = async () => {
+    if (!paymentData) {
+      setError('Payment data not found')
+      return
+    }
+
     try {
       setLoading(true)
-      await submitRequest(shippingAddress!)
 
-      toast({
-        title: 'Request Submitted',
-        description: 'Your request has been submitted successfully.',
-      })
+      if (paymentData.paymentType === 'buy4me') {
+        await submitBuy4MeRequest(paymentData.shippingAddress!)
+        toast({
+          title: 'Request Submitted',
+          description: 'Your buy4me request has been submitted successfully.',
+        })
+      } else if (paymentData.paymentType === 'shipping') {
+        await submitShipment(paymentData.metadata!)
+        toast({
+          title: 'Shipment Created',
+          description: 'Your shipping request has been created successfully.',
+        })
+      }
     } catch (error) {
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to submit request.',
+        description: error instanceof Error ? error.message : 'Failed to process request.',
         variant: 'destructive',
       })
-      setError(error instanceof Error ? error.message : 'Failed to submit request')
+      setError(error instanceof Error ? error.message : 'Failed to process request')
     } finally {
       setLoading(false)
     }

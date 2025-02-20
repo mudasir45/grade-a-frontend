@@ -2,6 +2,7 @@ import { Footer } from "@/components/footer";
 import { Navbar } from "@/components/navbar";
 import { Providers } from "@/components/providers";
 import { AuthProvider } from "@/context/AuthContext";
+import { PaymentProvider } from '@/contexts/payment-context';
 import type { Metadata } from "next";
 import "./globals.css";
 
@@ -21,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en">
     <body className={fontClass} suppressHydrationWarning>
+    <PaymentProvider>
     <Providers>
         <AuthProvider>
         <Navbar />
@@ -28,6 +30,7 @@ export default function RootLayout({
         <Footer />
         </AuthProvider>
         </Providers>
+        </PaymentProvider>
       </body>
     </html>
   );

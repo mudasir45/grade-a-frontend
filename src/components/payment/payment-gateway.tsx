@@ -1,36 +1,52 @@
 // app/components/PaymentForm.tsx
 'use client';
 
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { usePayment } from '@/contexts/payment-context';
 import { FormEvent, useState } from 'react';
 
 interface PaymentFormProps {
-  amount: string;
-  orderId?: string;
-  shippingAddress?: string;
-//   onSuccess?: (response: any) => void;
-//   onFailure?: (error: any) => void;
+  amount: string
+  orderId?: string
+  shippingAddress?: string
+  paymentType: 'buy4me' | 'shipping'
+  metadata?: Record<string, any>
 }
-
 
 const PaymentForm: React.FC<PaymentFormProps> = ({
   amount,
   orderId,
   shippingAddress,
-//   onSuccess,
-//   onFailure,
+  paymentType,
+  metadata
 }) => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>('');
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string>('')
+  const { setPaymentData } = usePayment()
 
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    
     try {
-      const finalOrderId = orderId || crypto.randomUUID();
+      const finalOrderId = orderId || crypto.randomUUID()
+      
+      // Store payment data in context for confirmation page
+      setPaymentData({
+        amount,
+        orderId: finalOrderId,
+        shippingAddress,
+        paymentType,
+        metadata
+      })
+
       const res = await fetch('/api/bizapay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -38,77 +54,76 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
           payerName: name,
           payerEmail: email,
           payerPhone: phone,
-          webReturnUrl: 'http://localhost:3000/payment-confirmation?shipping_address=' + shippingAddress,
-          callbackUrl: 'http://localhost:3000/payment-confirmation?shipping_address=' + shippingAddress,
+          webReturnUrl: `${window.location.origin}/payment-confirmation`,
+          callbackUrl: `${window.location.origin}/api/bizapay/webhook`,
           orderId: finalOrderId,
           amount,
+          paymentType,
+          metadata
         }),
-      });
-      const data = await res.json();
+      })
+
+      const data = await res.json()
       if (data.url) {
-        console.log("data: ", data)
-        window.location.href = data.url;
-        //   onSuccess && onSuccess(data);
+        window.location.href = data.url
       } else {
-        setError('Payment initiation failed: No redirect URL provided.');
-        //   onFailure && onFailure(data);
+        setError('Payment initiation failed: No redirect URL provided.')
       }
     } catch (err: any) {
-      console.error('Payment error:', err);
-      setError('Payment error occurred.');
-      //   onFailure && onFailure(err);
+      console.error('Payment error:', err)
+      setError('Payment error occurred.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-md mx-auto  p-6 rounded shadow ">
-      <h2 className="text-2xl font-semibold mb-4">Enter Your Details</h2>
-      
-      <div className="mb-4">
-        <label htmlFor="name" className="block font-semibold text-gray-700 mb-1">Name</label>
-        <input
-          type="text"
-          id="name"
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full border p-2 rounded"
-        />
-      </div>
-      
-      <div className="mb-4">
-        <label htmlFor="email" className="block font-semibold text-gray-700 mb-1">Email</label>
-        <input
-          type="email"
-          id="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full border p-2 rounded"
-        />
-      </div>
-      
-      <div className="mb-4">
-        <label htmlFor="phone" className="block font-semibold text-gray-700 mb-1">Phone</label>
-        <input
-          type="text"
-          id="phone"
-          required
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          className="w-full border p-2 rounded"
-        />
-      </div>
-      
+    <Card className="max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>Enter Payment Details</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone</Label>
+            <Input
+              id="phone"
+              required
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+          </div>
 
-      {error && <p className="text-red-500 mb-4">{error}</p>}
-      <button type="submit" disabled={loading} className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
-        {loading ? 'Processing...' : `Pay Now (${amount} $)`}
-      </button>
-    </form>
-  );
-};
+          {error && <p className="text-red-500">{error}</p>}
+          
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? 'Processing...' : `Pay ${amount} MYR`}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
 
-export default PaymentForm;
+export default PaymentForm

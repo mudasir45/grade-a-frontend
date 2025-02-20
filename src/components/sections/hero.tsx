@@ -1,11 +1,13 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import Image from 'next/image'
 import { Button } from '@/components/ui/button'
+import { motion } from 'framer-motion'
 import { ArrowRight, Package, ShoppingBag } from 'lucide-react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 
 export function HeroSection() {
+  const router = useRouter()
   return (
     <div className="relative min-h-screen flex items-center">
       {/* Background Image */}
@@ -51,12 +53,12 @@ export function HeroSection() {
             transition={{ delay: 0.6, duration: 0.8 }}
             className="mt-10 flex items-center justify-center gap-x-6"
           >
-            <Button size="lg" className="gap-2">
+            <Button onClick={() => router.push('/shipping')} size="lg" className="gap-2">
               <Package className="h-5 w-5" />
               Ship Now
               <ArrowRight className="h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline" className="gap-2 bg-white/10 hover:bg-white/20">
+            <Button onClick={() => router.push('/buy4me')} size="lg" variant="outline" className="gap-2 bg-white/10 hover:bg-white/20">
               <ShoppingBag className="h-5 w-5" />
               Buy4Me Service
             </Button>

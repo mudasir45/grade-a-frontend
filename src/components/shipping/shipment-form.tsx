@@ -28,7 +28,7 @@ import type { ShipmentRequest, ShippingRate } from '@/lib/types/shipping'
 import { motion } from 'framer-motion'
 import { ArrowRight, Loader2, Package } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { UnifiedPaymentForm } from '../payment/unified-payment-form'
+import PaymentForm from '../payment/payment-gateway'
 import { ShippingSuccess } from './shipping-success'
 
 export function ShipmentForm() {
@@ -340,12 +340,14 @@ export function ShipmentForm() {
 
   if (showPayment && shippingRate) {
     return (
-      <UnifiedPaymentForm
-        amount={shippingRate.cost_breakdown.total_cost}
-        currency="MYR"
-        orderId={formData.id ?? crypto.randomUUID()}
-        onSuccess={handlePaymentSuccess}
-        onCancel={() => setShowPayment(false)}
+      <PaymentForm
+        amount={shippingRate.cost_breakdown.total_cost.toString()}
+        shippingAddress={formData.sender_address}
+        paymentType="shipping"
+        metadata={{
+          requestType: 'shipping',
+          shipmentData: formData
+        }}
       />
     )
   }

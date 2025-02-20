@@ -101,18 +101,15 @@ export function OrderSummary() {
 
   if (showPayment) {
     return (
-    //   <UnifiedPaymentForm
-    //     amount={totals.total}
-    //     currency={CURRENCY.code}
-    //     orderId={crypto.randomUUID()}
-    //     onSuccess={handlePaymentSuccess}
-    //     onCancel={handlePaymentCancel}
-    //   />
-    <PaymentForm
+      <PaymentForm
         amount={totals.total.toString()}
-        // onSuccess={handlePaymentSuccess}
-        // onFailure={handlePaymentCancel}
-  />
+        shippingAddress={shippingAddress}
+        paymentType="buy4me"
+        metadata={{
+          requestType: 'buy4me',
+          items: activeRequest?.items
+        }}
+      />
     )
   }
 
