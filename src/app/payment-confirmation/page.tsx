@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePayment } from '@/contexts/payment-context';
 import { useBuy4Me } from '@/hooks/use-buy4me';
-import { useShipping } from '@/hooks/use-shipping';
 import { toast } from '@/hooks/use-toast';
+import { ShippingAPI } from '@/lib/api/shipping';
+import { ShipmentRequest } from '@/lib/types/shipping';
+
 import { CheckCircle, Clock, HomeIcon, Loader2, XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -61,7 +63,6 @@ export default function PaymentConfirmationPage() {
   
   const { paymentData } = usePayment()
   const { submitRequest: submitBuy4MeRequest } = useBuy4Me()
-  const { submitShipment } = useShipping()
 
   const handlePaymentSuccess = async () => {
     if (!paymentData) {
@@ -79,7 +80,10 @@ export default function PaymentConfirmationPage() {
           description: 'Your buy4me request has been submitted successfully.',
         })
       } else if (paymentData.paymentType === 'shipping') {
-        await submitShipment(paymentData.metadata!)
+        await ShippingAPI.createShipment(
+            paymentData.metadata! as ShipmentRequest
+          )
+        
         toast({
           title: 'Shipment Created',
           description: 'Your shipping request has been created successfully.',

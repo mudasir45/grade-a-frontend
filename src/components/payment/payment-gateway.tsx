@@ -67,7 +67,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       if (data.url) {
         window.location.href = data.url
       } else {
-        setError('Payment initiation failed: No redirect URL provided.')
+        setError(data.msg || 'Payment initiation failed: No redirect URL provided.')
       }
     } catch (err: any) {
       console.error('Payment error:', err)

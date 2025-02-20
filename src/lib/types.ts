@@ -33,7 +33,7 @@ export interface Shipment {
     description: string
     declaredValue: number
   }
-  serviceType: 'economy' | 'standard' | 'express'
+  serviceType: string;
   insurance: boolean
   signature: boolean
   cost: {

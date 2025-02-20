@@ -16,6 +16,8 @@ export async function POST(request: Request) {
       amount,
     } = body;
 
+    // validate the amount and fix it to 2 decimal places
+    const fixedAmount = parseFloat(amount).toFixed(2);
     // Load Bizapay credentials from environment variables
     const bizapayAuth = process.env.BIZAPAY_AUTH;
     const bizapayApiKey = process.env.BIZAPAY_API_KEY;
@@ -29,7 +31,7 @@ export async function POST(request: Request) {
     formData.append('apiKey', bizapayApiKey);
     formData.append('category', bizapayCategory);
     formData.append('name', 'Order Payment');
-    formData.append('amount', amount); // e.g. "35.00"
+    formData.append('amount', fixedAmount); // e.g. "35.00"
     formData.append('payer_name', payerName);
     formData.append('payer_email', payerEmail);
     formData.append('payer_phone', payerPhone);
