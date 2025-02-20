@@ -154,7 +154,7 @@ export function EmbeddedBrowser() {
       </div>
 
       {/* URL Analysis */}
-      <Card>
+      <Card className='hidden'>
         <CardHeader>
           <CardTitle>Analyze Product URL</CardTitle>
           <CardDescription>

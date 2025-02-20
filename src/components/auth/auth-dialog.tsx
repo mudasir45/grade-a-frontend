@@ -34,7 +34,7 @@ export function AuthDialog() {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch('http://localhost:8000/api/token/', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/token/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,7 +59,7 @@ export function AuthDialog() {
       localStorage.setItem('auth_token', data.access);
       
       // Fetch user details after successful login
-      const userResponse = await fetch('http://127.0.0.1:8000/api/accounts/users/me/', {
+      const userResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/accounts/users/me/`, {
         headers: {
           'Authorization': `Bearer ${data.access}`,
           'Content-Type': 'application/json',

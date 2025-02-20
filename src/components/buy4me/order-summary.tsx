@@ -9,7 +9,6 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
 import { Textarea } from '@/components/ui/textarea'
 import { useBuy4Me } from '@/hooks/use-buy4me'
 import { useToast } from '@/hooks/use-toast'
@@ -204,7 +203,7 @@ export function OrderSummary() {
         </CardFooter>
       </Card>
 
-      <Card className="md:col-span-2">
+      {/* <Card className="md:col-span-2">
         <CardHeader>
           <CardTitle>Request Processing Timeline</CardTitle>
           <CardDescription>Estimated processing and delivery schedule</CardDescription>
@@ -234,7 +233,7 @@ export function OrderSummary() {
             <Progress value={0} />
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   )
 }

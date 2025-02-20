@@ -63,6 +63,9 @@ export function CustomerProfile() {
 
   return (
     <div className="grid gap-6">
+         <div className="text-center text-sm text-white bg-red-500 p-2 rounded-md font-bold d-inline">
+            Working on this part
+        </div>
       <Card>
         <CardHeader>
           <CardTitle>Profile Settings</CardTitle>

@@ -41,7 +41,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const getUser = async () => {
    try{
-       const response = await fetch('http://127.0.0.1:8000/api/accounts/users/me/', {
+       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/accounts/users/me/`, {
          headers: {
            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
          }
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch('http://localhost:8000/api/token/', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/token/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -85,7 +85,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       localStorage.setItem('auth_token', data.access);
       
       // Fetch user details after successful login
-      const userResponse = await fetch('http://127.0.0.1:8000/api/accounts/users/me/', {
+      const userResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/accounts/users/me/`, {
         headers: {
           'Authorization': `Bearer ${data.access}`,
           'Content-Type': 'application/json',
@@ -120,7 +120,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const [firstName, ...lastNameParts] = name.split(' ');
       const lastName = lastNameParts.join(' ');
 
-      const response = await fetch('http://127.0.0.1:8000/api/accounts/signup/', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/accounts/signup/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -131,7 +131,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           password,
           first_name: firstName,
           last_name: lastName,
-          user_type
+          user_type: "BUY4ME"
         }),
       });
       

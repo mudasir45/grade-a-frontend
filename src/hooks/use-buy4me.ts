@@ -18,7 +18,7 @@ export function useBuy4Me() {
         const token = localStorage.getItem('auth_token')
         
         // Fetch existing requests
-        const response = await fetch('http://localhost:8000/api/buy4me/requests/', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/buy4me/requests/`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -38,7 +38,7 @@ export function useBuy4Me() {
           setActiveRequest(draftRequest)
         } else {
           // Create new draft request if none exists
-          const newRequestResponse = await fetch('http://localhost:8000/api/buy4me/requests/', {
+          const newRequestResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/buy4me/requests/`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -73,7 +73,7 @@ export function useBuy4Me() {
     
     try {
       const token = localStorage.getItem('auth_token')
-      const response = await fetch(`http://localhost:8000/api/buy4me/requests/${activeRequest.id}/items/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/buy4me/requests/${activeRequest.id}/items/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -106,7 +106,7 @@ export function useBuy4Me() {
     
     try {
       const token = localStorage.getItem('auth_token')
-      const response = await fetch(`http://localhost:8000/api/buy4me/requests/${activeRequest.id}/items/${itemId}/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/buy4me/requests/${activeRequest.id}/items/${itemId}/`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -139,7 +139,7 @@ export function useBuy4Me() {
     
     try {
       const token = localStorage.getItem('auth_token')
-      const response = await fetch(`http://localhost:8000/api/buy4me/requests/${activeRequest.id}/items/${itemId}/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/buy4me/requests/${activeRequest.id}/items/${itemId}/`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -187,7 +187,7 @@ export function useBuy4Me() {
     
     try {
       const token = localStorage.getItem('auth_token')
-      const response = await fetch(`http://localhost:8000/api/buy4me/requests/${activeRequest.id}/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/buy4me/requests/${activeRequest.id}/`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
