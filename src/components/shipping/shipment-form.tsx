@@ -23,13 +23,12 @@ import { Textarea } from '@/components/ui/textarea'
 import useShippingData from '@/hooks/use-shipping-data'
 import { useToast } from '@/hooks/use-toast'
 import { ShippingAPI } from '@/lib/api/shipping'
-import { CURRENCY } from '@/lib/config'
 import { packageTypes } from '@/lib/shipping-data'
 import type { ShipmentRequest, ShippingRate } from '@/lib/types/shipping'
 import { motion } from 'framer-motion'
 import { ArrowRight, Loader2, Package } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { PaymentForm } from '../buy4me/payment-form'
+import { UnifiedPaymentForm } from '../payment/unified-payment-form'
 import { ShippingSuccess } from './shipping-success'
 
 export function ShipmentForm() {
@@ -287,19 +286,19 @@ export function ShipmentForm() {
     setLoading(true)
 
     try {
+      // Create shipment after successful payment
       const shipment = await ShippingAPI.createShipment({
         ...formData,
-        // payment_intent_id: transactionId
+        // payment_id: transactionId
       })
 
-      // Show success component with correct data
       setShowSuccess(true)
       setSuccessData({
         tracking_number: shipment.tracking_number,
-        total_cost: shippingRate?.cost_breakdown.total_cost || 0, // Use the calculated shipping rate
-        service_type: serviceTypes.find(s => s.id === formData.service_type)?.name || formData.service_type,
-        sender_country: departureCountries.find(c => c.code === formData.sender_country)?.name || formData.sender_country,
-        recipient_country: destinationCountries.find(c => c.code === formData.recipient_country)?.name || formData.recipient_country
+        total_cost: shippingRate?.cost_breakdown.total_cost || 0,
+        service_type: formData.service_type,
+        sender_country: formData.sender_country,
+        recipient_country: formData.recipient_country
       })
 
       // Reset form
@@ -308,12 +307,11 @@ export function ShipmentForm() {
       setShippingRate(null)
       setShowPayment(false)
     } catch (error) {
-      console.error('Shipment creation error:', error)
       toast({
         title: 'Error',
         description: error instanceof Error 
           ? error.message 
-          : 'Failed to create shipment. Please try again.',
+          : 'Failed to create shipment',
         variant: 'destructive',
       })
     } finally {
@@ -340,12 +338,12 @@ export function ShipmentForm() {
     )
   }
 
-  if (showPayment) {
+  if (showPayment && shippingRate) {
     return (
-      <PaymentForm
-        amount={shippingRate?.cost_breakdown.total_cost ?? 0}
-        currency={CURRENCY.code}
-        requestId={formData.id ?? crypto.randomUUID()}
+      <UnifiedPaymentForm
+        amount={shippingRate.cost_breakdown.total_cost}
+        currency="MYR"
+        orderId={formData.id ?? crypto.randomUUID()}
         onSuccess={handlePaymentSuccess}
         onCancel={() => setShowPayment(false)}
       />

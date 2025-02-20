@@ -17,8 +17,8 @@ import { CURRENCY } from '@/lib/config'
 import { Buy4MeRequest } from '@/lib/types/index'
 import { formatCurrency } from '@/lib/utils'
 import { useState } from 'react'
+import PaymentForm from '../payment/payment-gateway'
 import { OrderTracking } from './order-tracking'
-import { PaymentForm } from './payment-form'
 
 export function OrderSummary() {
   const { activeRequest, calculateTotals, submitRequest, loading: requestLoading } = useBuy4Me()
@@ -77,6 +77,10 @@ export function OrderSummary() {
     }
   }
 
+  const handlePaymentCancel = () => {
+    setShowPayment(false)
+  }
+
   if (submittedRequest) {
     return (
       <div className="space-y-6">
@@ -97,13 +101,18 @@ export function OrderSummary() {
 
   if (showPayment) {
     return (
-      <PaymentForm
-        amount={totals.total}
-        currency={CURRENCY.code}
-        requestId={activeRequest!.id}
-        onSuccess={handlePaymentSuccess}
-        onCancel={() => setShowPayment(false)}
-      />
+    //   <UnifiedPaymentForm
+    //     amount={totals.total}
+    //     currency={CURRENCY.code}
+    //     orderId={crypto.randomUUID()}
+    //     onSuccess={handlePaymentSuccess}
+    //     onCancel={handlePaymentCancel}
+    //   />
+    <PaymentForm
+        amount={totals.total.toString()}
+        // onSuccess={handlePaymentSuccess}
+        // onFailure={handlePaymentCancel}
+  />
     )
   }
 

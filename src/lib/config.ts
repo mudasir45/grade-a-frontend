@@ -14,3 +14,9 @@ export const CURRENCY = {
   code: 'MYR',
   symbol: 'RM',
 } 
+
+export const BIZAPAY_CONFIG = {
+  apiKey: process.env.BIZAPAY_API_KEY!,
+  category: process.env.BIZAPAY_CATEGORY!,
+  auth: process.env.BIZAPAY_AUTH!,
+}
