@@ -52,7 +52,7 @@ export function Navbar() {
             <Link href="/" className="-m-1.5 p-1.5">
               <span className="flex items-center space-x-2">
                 <Package className="h-8 w-8 text-red-600" />
-                <span className="text-xl font-bold">RedBox Express</span>
+                <span className="text-xl font-bold">Grade A Express</span>
               </span>
             </Link>
           </div>

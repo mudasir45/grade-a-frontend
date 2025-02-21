@@ -30,6 +30,12 @@ import { useCallback, useEffect, useState } from 'react'
 import PaymentForm from '../payment/payment-gateway'
 import { ShippingSuccess } from './shipping-success'
 
+interface FormErrors {
+  sender: string[]
+  recipient: string[]
+  package: string[]
+}
+
 export function ShipmentForm() {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
@@ -49,7 +55,7 @@ export function ShipmentForm() {
   } = useShippingData();
 
   // Set default service type from the first available service
-  const defaultServiceType = serviceTypes[0]?.id || 'economy'
+  const defaultServiceType = serviceTypes[0]?.id
 
   const [formData, setFormData] = useState<ShipmentRequest>({
     sender_name: '',    
@@ -69,7 +75,7 @@ export function ShipmentForm() {
     height: 0,
     description: '',
     declared_value: 0,
-    service_type: defaultServiceType,
+    service_type: "",
     insurance_required: false,
     signature_required: false
   })
@@ -92,7 +98,7 @@ export function ShipmentForm() {
     height: 0,
     description: '',
     declared_value: 0,
-    service_type: defaultServiceType,
+    service_type: "",
     insurance_required: false,
     signature_required: false
   }
@@ -318,6 +324,101 @@ export function ShipmentForm() {
     }
   }
 
+  const [errors, setErrors] = useState<FormErrors>({
+    sender: [],
+    recipient: [],
+    package: []
+  })
+
+  // Validation functions for each step
+  const validateSenderDetails = (): boolean => {
+    const newErrors: string[] = []
+    
+    if (!formData.sender_name.trim()) newErrors.push('Sender name is required')
+    if (!formData.sender_email.trim()) newErrors.push('Sender email is required')
+    if (!formData.sender_phone.trim()) newErrors.push('Sender phone is required')
+    if (!formData.sender_address.trim()) newErrors.push('Sender address is required')
+    if (!formData.sender_country) newErrors.push('Sender country is required')
+
+    setErrors(prev => ({ ...prev, sender: newErrors }))
+    return newErrors.length === 0
+  }
+
+  const validateRecipientDetails = (): boolean => {
+    const newErrors: string[] = []
+    
+    if (!formData.recipient_name.trim()) newErrors.push('Recipient name is required')
+    if (!formData.recipient_email.trim()) newErrors.push('Recipient email is required')
+    if (!formData.recipient_phone.trim()) newErrors.push('Recipient phone is required')
+    if (!formData.recipient_address.trim()) newErrors.push('Recipient address is required')
+    if (!formData.recipient_country) newErrors.push('Recipient country is required')
+
+    setErrors(prev => ({ ...prev, recipient: newErrors }))
+    return newErrors.length === 0
+  }
+
+  const validatePackageDetails = (): boolean => {
+    const newErrors: string[] = []
+    
+    if (!formData.package_type) newErrors.push('Package type is required')
+    if (!formData.weight || formData.weight <= 0) newErrors.push('Valid weight is required')
+    if (!formData.length || formData.length <= 0) newErrors.push('Valid length is required')
+    if (!formData.width || formData.width <= 0) newErrors.push('Valid width is required')
+    if (!formData.height || formData.height <= 0) newErrors.push('Valid height is required')
+    if (!formData.description.trim()) newErrors.push('Package description is required')
+    if (!formData.service_type) newErrors.push('Service type is required')
+
+    setErrors(prev => ({ ...prev, package: newErrors }))
+    return newErrors.length === 0
+  }
+
+  const handleNextStep = () => {
+    let isValid = false
+    
+    switch (step) {
+      case 1:
+        isValid = validateSenderDetails()
+        break
+      case 2:
+        isValid = validateRecipientDetails()
+        break
+      case 3:
+        isValid = validatePackageDetails()
+        break
+    }
+
+    if (isValid) {
+      setStep(prev => prev + 1)
+      // Clear errors for next step
+      setErrors(prev => ({ ...prev, [Object.keys(errors)[step - 1]]: [] }))
+    } else {
+      toast({
+        title: 'Validation Error',
+        description: 'Please fill in all required fields correctly.',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  // Render error messages
+  const renderErrors = (stepErrors: string[]) => {
+    if (stepErrors.length === 0) return null
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-red-50 text-red-600 p-4 rounded-lg mb-4"
+      >
+        <ul className="list-disc list-inside space-y-1">
+          {stepErrors.map((error, index) => (
+            <li key={index} className="text-sm">{error}</li>
+          ))}
+        </ul>
+      </motion.div>
+    )
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -371,6 +472,7 @@ export function ShipmentForm() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {renderErrors(errors.sender)}
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="sender_name">Full Name</Label>
@@ -437,7 +539,7 @@ export function ShipmentForm() {
               </div>
 
               <div className="flex justify-end">
-                <Button type="button" onClick={() => setStep(2)}>
+                <Button type="button" onClick={handleNextStep}>
                   Next
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -461,6 +563,7 @@ export function ShipmentForm() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {renderErrors(errors.recipient)}
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="recipient_name">Full Name</Label>
@@ -530,7 +633,7 @@ export function ShipmentForm() {
                 <Button type="button" variant="outline" onClick={() => setStep(1)}>
                   Back
                 </Button>
-                <Button type="button" onClick={() => setStep(3)}>
+                <Button type="button" onClick={handleNextStep}>
                   Next
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -554,6 +657,7 @@ export function ShipmentForm() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {renderErrors(errors.package)}
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="package_type">Package Type</Label>
@@ -649,7 +753,7 @@ export function ShipmentForm() {
                   <Select
                     value={formData.service_type}
                     onValueChange={(value) => setFormData({ ...formData, service_type: value })}
-                    defaultValue={serviceTypes[0]?.id}
+                    
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select service type" />
@@ -706,36 +810,19 @@ export function ShipmentForm() {
                       <span>Weight Charge:</span>
                       <span>${shippingRate.rate_details.weight_charge}</span>
                     </div>
-                    {/* {shippingRate.cost_breakdown.additional_charges.length > 0 && (
-                      <div className="flex justify-between">
-                        <span>Dimensional Charge:</span>
-                        <span>${shippingRate.cost_breakdown.additional_charges[0].amount}</span>
-                      </div>
-                    )} */}
-                    {/* <div className="flex justify-between">
-                      <span>Zone Charge:</span>
-                      <span>${shippingRate.cost_breakdown.additional_charges[1].amount}</span>
-                    </div> */}
+               
                     <div className="flex justify-between">
                       <span>Service Charge:</span>
                       <span>${shippingRate.cost_breakdown.service_price}</span>
                     </div>
-                    {/* {shippingRate.cost_breakdown.additional_charges.length > 0 && (
-                      <div className="flex justify-between">
-                        <span>Insurance:</span>
-                        <span>${shippingRate.cost_breakdown.additional_charges[2].amount}</span>
-                      </div>
-                    )} */}
+              
                     { shippingRate.cost_breakdown.additional_charges.map(charge => (
                       <div className="flex justify-between">
                         <span>{charge.name}:</span>
                         <span>${charge.amount}</span>
                       </div>
                     ))}
-                    {/* <div className="flex justify-between">
-                      <span>Fuel Surcharge:</span>
-                      <span>${shippingRate.cost_breakdown.additional_charges[0].amount}</span>
-                    </div> */}
+                
                     <div className="border-t pt-2 flex justify-between font-bold">
                       <span>Total:</span>
                       <span>${shippingRate.cost_breakdown.total_cost}</span>
