@@ -1,123 +1,119 @@
-'use client'
+"use client";
 
-import { AuthDialog } from '@/components/auth/auth-dialog'
-import { UserNav } from '@/components/user-nav'
-import { useAuth } from '@/hooks/use-auth'
-import { motion } from 'framer-motion'
-import { Menu, Package, X } from 'lucide-react'
-import Link from 'next/link'
-import { useState } from 'react'
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useAuth } from "@/hooks/use-auth";
+import { cn } from "@/lib/utils";
+import { Menu, Package } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import * as React from "react";
+import { AuthDialog } from "./auth/auth-dialog";
+import { UserNav } from "./user-nav";
+
 
 const navigation = [
-  { name: 'Services', href: '#services' },
-  { name: 'How it Works', href: '#how-it-works' },
-  { name: 'Pricing', href: '#pricing' },
-  { name: 'About', href: '#about' },
-  { name: 'Contact', href: '#contact' },
-]
+    { name: 'Services', href: '#services' },
+    { name: 'How it Works', href: '#how-it-works' },
+    { name: 'Pricing', href: '#pricing' },
+    { name: 'About', href: '#about' },
+    { name: 'Contact', href: '#contact' },
+] as const;
 
 export function Navbar() {
+  const pathname = usePathname();
+  const [isScrolled, setIsScrolled] = React.useState(false);
+  const [isOpen, setIsOpen] = React.useState(false);
   const { user } = useAuth()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  React.useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 0);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <header className="fixed w-full bg-white/80 backdrop-blur-md z-50 border-b">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between p-6 lg:px-8" aria-label="Global">
-        <div className="flex lg:flex-1">
-          <Link href="/" className="-m-1.5 p-1.5">
-            <span className="flex items-center space-x-2">
-              <Package className="h-8 w-8 text-red-600" />
-              <span className="text-xl font-bold">RedBox Express</span>
-            </span>
-          </Link>
-        </div>
-        <div className="flex lg:hidden">
-          <button
-            type="button"
-            className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700"
-            onClick={() => setMobileMenuOpen(true)}
-          >
-            <Menu className="h-6 w-6" aria-hidden="true" />
-          </button>
-        </div>
-        <div className="hidden lg:flex lg:gap-x-12">
-          {navigation.map((item) => (
-            <a
-              key={item.name}
-              href={item.href}
-              className="text-sm font-semibold leading-6 text-gray-900 hover:text-red-600 transition-colors"
-            >
-              {item.name}
-            </a>
-          ))}
-        </div>
-        <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:gap-x-4">
-          {/* <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Globe className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem>English</DropdownMenuItem>
-              <DropdownMenuItem>中文</DropdownMenuItem>
-              <DropdownMenuItem>Bahasa Melayu</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu> */}
-          {user ? <UserNav /> : <AuthDialog />}
-        </div>
-      </nav>
-      
-      {/* Mobile menu */}
-      <motion.div
-        className={`lg:hidden ${mobileMenuOpen ? 'fixed inset-0 z-50' : 'hidden'}`}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-      >
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm" />
-        <motion.div
-          className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-white px-6 py-6 sm:max-w-sm"
-          initial={{ x: "100%" }}
-          animate={{ x: 0 }}
-          exit={{ x: "100%" }}
-        >
-          <div className="flex items-center justify-between">
+    <header
+      className={cn(
+        "fixed top-0 w-full z-50 transition-all duration-200",
+        isScrolled
+          ? "bg-background/80 backdrop-blur-md shadow-sm"
+          : "bg-transparent"
+      )}
+    >
+      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-label="Top">
+        <div className="flex h-16 items-center justify-between">
+          <div className="flex items-center">
+                {/* <Link href="/" className="flex items-center space-x-2">
+                <Image src={logo} alt="iMerge" width={100} height={30} />
+                </Link> */}
             <Link href="/" className="-m-1.5 p-1.5">
               <span className="flex items-center space-x-2">
                 <Package className="h-8 w-8 text-red-600" />
                 <span className="text-xl font-bold">RedBox Express</span>
               </span>
             </Link>
-            <button
-              type="button"
-              className="-m-2.5 rounded-md p-2.5 text-gray-700"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <X className="h-6 w-6" aria-hidden="true" />
-            </button>
           </div>
-          <div className="mt-6 flow-root">
-            <div className="-my-6 divide-y divide-gray-500/10">
-              <div className="space-y-2 py-6">
-                {navigation.map((item) => (
-                  <a
-                    key={item.name}
-                    href={item.href}
-                    className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {item.name}
-                  </a>
-                ))}
-              </div>
-              <div className="py-6">
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-8">
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  "text-sm font-medium transition-colors hover:text-primary",
+                  pathname === item.href
+                    ? "text-primary"
+                    : "text-muted-foreground"
+                )}
+              >
+                {item.name}
+              </Link>
+            ))}
+       
+            <div className="py-6">
                 {user ? <UserNav /> : <AuthDialog />}
               </div>
-            </div>
           </div>
-        </motion.div>
-      </motion.div>
+
+          {/* Mobile Navigation */}
+          <div className="md:hidden flex items-center gap-4">
+       
+            <Sheet open={isOpen} onOpenChange={setIsOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                <nav className="flex flex-col gap-4">
+                  {navigation.map((item) => (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={() => setIsOpen(false)}
+                      className={cn(
+                        "text-lg font-medium transition-colors hover:text-primary p-2 rounded-md",
+                        pathname === item.href
+                          ? "bg-secondary text-primary"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+                   <div className="py-6">
+                        {user ? <UserNav /> : <AuthDialog />}
+                    </div>
+                </nav>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
+      </nav>
     </header>
-  )
+  );
 }

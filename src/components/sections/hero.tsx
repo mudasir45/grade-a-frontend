@@ -51,7 +51,7 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: 0.8 }}
-            className="mt-10 flex items-center justify-center gap-x-6"
+            className="mt-10 flex flex-col md:flex-row gap-6 items-center justify-center gap-x-6"
           >
             <Button onClick={() => router.push('/shipping')} size="lg" className="gap-2">
               <Package className="h-5 w-5" />

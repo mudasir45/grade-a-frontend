@@ -47,10 +47,10 @@ const useShippingData = () => {
       // Fetch all data in parallel
       const [departureResponse, destinationResponse, serviceTypesResponse, zonesResponse] = 
         await Promise.all([
-          fetch('http://127.0.0.1:8000/api/shipping-rates/countries?country_type=DEPARTURE'),
-          fetch('http://127.0.0.1:8000/api/shipping-rates/countries?country_type=DESTINATION'),
-          fetch('http://127.0.0.1:8000/api/shipping-rates/service-types/'),
-          fetch('http://127.0.0.1:8000/api/shipping-rates/shipping-zones/')
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/shipping-rates/countries?country_type=DEPARTURE`),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/shipping-rates/countries?country_type=DESTINATION`),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/shipping-rates/service-types/`),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/shipping-rates/shipping-zones/`)
         ]);
 
       const [departureData, destinationData, serviceTypesData, zonesData] = 
