@@ -24,9 +24,11 @@ import useShippingData from '@/hooks/use-shipping-data'
 import { useToast } from '@/hooks/use-toast'
 import { ShippingAPI } from '@/lib/api/shipping'
 import type { ShipmentRequest, ShippingRate } from '@/lib/types/shipping'
+import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 import { ArrowRight, Loader2, Package } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { z } from 'zod'
 import PaymentForm from '../payment/payment-gateway'
 import { ShippingSuccess } from './shipping-success'
 
@@ -36,6 +38,18 @@ interface FormErrors {
   package: string[]
 }
 
+interface FieldError {
+  field: string
+  message: string
+}
+
+// Validation schemas
+const emailSchema = z.string().email('Invalid email address')
+const phoneSchema = z.string().regex(
+  /^\+?[1-9]\d{1,14}$/, 
+  'Phone number must be in international format (e.g., +1234567890)'
+)
+
 export function ShipmentForm() {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
@@ -44,6 +58,7 @@ export function ShipmentForm() {
   const [calculating, setCalculating] = useState(false)
   const [showPayment, setShowPayment] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<FieldError[]>([])
   const {
     departureCountries,
     destinationCountries,
@@ -330,13 +345,63 @@ export function ShipmentForm() {
     package: []
   })
 
-  // Validation functions for each step
+  // Real-time field validation
+  const validateField = (field: string, value: string): string | null => {
+    try {
+      switch (field) {
+        case 'sender_email':
+        case 'recipient_email':
+          emailSchema.parse(value)
+          return null
+        case 'sender_phone':
+        case 'recipient_phone':
+          phoneSchema.parse(value)
+          return null
+        default:
+          return null
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return error.errors[0].message
+      }
+      return 'Invalid input'
+    }
+  }
+
+  // Handle field change with validation
+  const handleFieldChange = (field: string, value: string | number | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+
+    if (typeof value === 'string' && (field.includes('email') || field.includes('phone'))) {
+      const error = validateField(field, value)
+      if (error) {
+        setFieldErrors(prev => [
+          ...prev.filter(e => e.field !== field),
+          { field, message: error }
+        ])
+      } else {
+        setFieldErrors(prev => prev.filter(e => e.field !== field))
+      }
+    }
+  }
+
+  // Get error message for a field
+  const getFieldError = (field: string): string | undefined => {
+    return fieldErrors.find(e => e.field === field)?.message
+  }
+
+  // Enhanced validation functions for each step
   const validateSenderDetails = (): boolean => {
     const newErrors: string[] = []
     
     if (!formData.sender_name.trim()) newErrors.push('Sender name is required')
-    if (!formData.sender_email.trim()) newErrors.push('Sender email is required')
-    if (!formData.sender_phone.trim()) newErrors.push('Sender phone is required')
+    
+    const emailError = validateField('sender_email', formData.sender_email)
+    if (emailError) newErrors.push(emailError)
+    
+    const phoneError = validateField('sender_phone', formData.sender_phone)
+    if (phoneError) newErrors.push(phoneError)
+    
     if (!formData.sender_address.trim()) newErrors.push('Sender address is required')
     if (!formData.sender_country) newErrors.push('Sender country is required')
 
@@ -348,8 +413,13 @@ export function ShipmentForm() {
     const newErrors: string[] = []
     
     if (!formData.recipient_name.trim()) newErrors.push('Recipient name is required')
-    if (!formData.recipient_email.trim()) newErrors.push('Recipient email is required')
-    if (!formData.recipient_phone.trim()) newErrors.push('Recipient phone is required')
+    
+    const emailError = validateField('recipient_email', formData.recipient_email)
+    if (emailError) newErrors.push(emailError)
+    
+    const phoneError = validateField('recipient_phone', formData.recipient_phone)
+    if (phoneError) newErrors.push(phoneError)
+    
     if (!formData.recipient_address.trim()) newErrors.push('Recipient address is required')
     if (!formData.recipient_country) newErrors.push('Recipient country is required')
 
@@ -477,7 +547,7 @@ export function ShipmentForm() {
                   <Input
                     id="sender_name"
                     value={formData.sender_name}
-                    onChange={(e) => setFormData({ ...formData, sender_name: e.target.value })}
+                    onChange={(e) => handleFieldChange('sender_name', e.target.value)}
                     className="w-full"
                     required
                   />
@@ -489,10 +559,16 @@ export function ShipmentForm() {
                     id="sender_email"
                     type="email"
                     value={formData.sender_email}
-                    onChange={(e) => setFormData({ ...formData, sender_email: e.target.value })}
-                    className="w-full"
+                    onChange={(e) => handleFieldChange('sender_email', e.target.value)}
+                    className={cn(
+                      "w-full",
+                      getFieldError('sender_email') && "border-red-500 focus-visible:ring-red-500"
+                    )}
                     required
                   />
+                  {getFieldError('sender_email') && (
+                    <p className="text-xs text-red-500 mt-1">{getFieldError('sender_email')}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -500,10 +576,17 @@ export function ShipmentForm() {
                   <Input
                     id="sender_phone"
                     value={formData.sender_phone}
-                    onChange={(e) => setFormData({ ...formData, sender_phone: e.target.value })}
-                    className="w-full"
+                    onChange={(e) => handleFieldChange('sender_phone', e.target.value)}
+                    className={cn(
+                      "w-full",
+                      getFieldError('sender_phone') && "border-red-500 focus-visible:ring-red-500"
+                    )}
+                    placeholder="+1234567890"
                     required
                   />
+                  {getFieldError('sender_phone') && (
+                    <p className="text-xs text-red-500 mt-1">{getFieldError('sender_phone')}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -540,7 +623,11 @@ export function ShipmentForm() {
               </div>
             </CardContent>
             <CardFooter className="flex justify-end pt-6">
-              <Button type="button" onClick={handleNextStep}>
+              <Button 
+                type="button" 
+                onClick={handleNextStep}
+                disabled={fieldErrors.some(e => e.field.startsWith('sender_'))}
+              >
                 Next
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -568,7 +655,7 @@ export function ShipmentForm() {
                   <Input
                     id="recipient_name"
                     value={formData.recipient_name}
-                    onChange={(e) => setFormData({ ...formData, recipient_name: e.target.value })}
+                    onChange={(e) => handleFieldChange('recipient_name', e.target.value)}
                     className="w-full"
                     required
                   />
@@ -580,10 +667,16 @@ export function ShipmentForm() {
                     id="recipient_email"
                     type="email"
                     value={formData.recipient_email}
-                    onChange={(e) => setFormData({ ...formData, recipient_email: e.target.value })}
-                    className="w-full"
+                    onChange={(e) => handleFieldChange('recipient_email', e.target.value)}
+                    className={cn(
+                      "w-full",
+                      getFieldError('recipient_email') && "border-red-500 focus-visible:ring-red-500"
+                    )}
                     required
                   />
+                  {getFieldError('recipient_email') && (
+                    <p className="text-xs text-red-500 mt-1">{getFieldError('recipient_email')}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -591,10 +684,17 @@ export function ShipmentForm() {
                   <Input
                     id="recipient_phone"
                     value={formData.recipient_phone}
-                    onChange={(e) => setFormData({ ...formData, recipient_phone: e.target.value })}
-                    className="w-full"
+                    onChange={(e) => handleFieldChange('recipient_phone', e.target.value)}
+                    className={cn(
+                      "w-full",
+                      getFieldError('recipient_phone') && "border-red-500 focus-visible:ring-red-500"
+                    )}
+                    placeholder="+1234567890"
                     required
                   />
+                  {getFieldError('recipient_phone') && (
+                    <p className="text-xs text-red-500 mt-1">{getFieldError('recipient_phone')}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -634,7 +734,11 @@ export function ShipmentForm() {
               <Button type="button" variant="outline" onClick={() => setStep(1)}>
                 Back
               </Button>
-              <Button type="button" onClick={handleNextStep}>
+              <Button 
+                type="button" 
+                onClick={handleNextStep}
+                disabled={fieldErrors.some(e => e.field.startsWith('recipient_'))}
+              >
                 Next
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
