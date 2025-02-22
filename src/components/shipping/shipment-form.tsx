@@ -457,29 +457,28 @@ export function ShipmentForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
       {step === 1 && (
         <motion.div
-          initial={{ opacity: 0, x: 20 }}
+          initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
+          className="space-y-4"
         >
           <Card>
             <CardHeader>
-              <CardTitle>Sender Information</CardTitle>
-              <CardDescription>
-                Enter the sender's contact and address details
-              </CardDescription>
+              <CardTitle className="text-lg sm:text-xl">Sender Details</CardTitle>
+              <CardDescription>Enter the sender's information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {renderErrors(errors.sender)}
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="sender_name">Full Name</Label>
                   <Input
                     id="sender_name"
                     value={formData.sender_name}
                     onChange={(e) => setFormData({ ...formData, sender_name: e.target.value })}
+                    className="w-full"
                     required
                   />
                 </div>
@@ -491,6 +490,7 @@ export function ShipmentForm() {
                     type="email"
                     value={formData.sender_email}
                     onChange={(e) => setFormData({ ...formData, sender_email: e.target.value })}
+                    className="w-full"
                     required
                   />
                 </div>
@@ -501,6 +501,7 @@ export function ShipmentForm() {
                     id="sender_phone"
                     value={formData.sender_phone}
                     onChange={(e) => setFormData({ ...formData, sender_phone: e.target.value })}
+                    className="w-full"
                     required
                   />
                 </div>
@@ -511,14 +512,13 @@ export function ShipmentForm() {
                     value={formData.sender_country}
                     onValueChange={(value) => setFormData({ ...formData, sender_country: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select country" />
                     </SelectTrigger>
                     <SelectContent>
                       {departureCountries.map((country) => (
                         <SelectItem key={country.code} value={country.id}>
                           <span className="flex items-center gap-2">
-                            {/* <span>{country.flag}</span> */}
                             <span>{country.name}</span>
                           </span>
                         </SelectItem>
@@ -527,50 +527,49 @@ export function ShipmentForm() {
                   </Select>
                 </div>
 
-                <div className="space-y-2 md:col-span-2">
+                <div className="sm:col-span-2 space-y-2">
                   <Label htmlFor="sender_address">Address</Label>
                   <Textarea
                     id="sender_address"
                     value={formData.sender_address}
                     onChange={(e) => setFormData({ ...formData, sender_address: e.target.value })}
+                    className="min-h-[100px]"
                     required
                   />
                 </div>
               </div>
-
-              <div className="flex justify-end">
-                <Button type="button" onClick={handleNextStep}>
-                  Next
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
             </CardContent>
+            <CardFooter className="flex justify-end pt-6">
+              <Button type="button" onClick={handleNextStep}>
+                Next
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </CardFooter>
           </Card>
         </motion.div>
       )}
 
       {step === 2 && (
         <motion.div
-          initial={{ opacity: 0, x: 20 }}
+          initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
+          className="space-y-4"
         >
           <Card>
             <CardHeader>
-              <CardTitle>Recipient Information</CardTitle>
-              <CardDescription>
-                Enter the recipient's contact and address details
-              </CardDescription>
+              <CardTitle className="text-lg sm:text-xl">Recipient Details</CardTitle>
+              <CardDescription>Enter the recipient's information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {renderErrors(errors.recipient)}
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="recipient_name">Full Name</Label>
                   <Input
                     id="recipient_name"
                     value={formData.recipient_name}
                     onChange={(e) => setFormData({ ...formData, recipient_name: e.target.value })}
+                    className="w-full"
                     required
                   />
                 </div>
@@ -582,6 +581,7 @@ export function ShipmentForm() {
                     type="email"
                     value={formData.recipient_email}
                     onChange={(e) => setFormData({ ...formData, recipient_email: e.target.value })}
+                    className="w-full"
                     required
                   />
                 </div>
@@ -592,6 +592,7 @@ export function ShipmentForm() {
                     id="recipient_phone"
                     value={formData.recipient_phone}
                     onChange={(e) => setFormData({ ...formData, recipient_phone: e.target.value })}
+                    className="w-full"
                     required
                   />
                 </div>
@@ -602,14 +603,13 @@ export function ShipmentForm() {
                     value={formData.recipient_country}
                     onValueChange={(value) => setFormData({ ...formData, recipient_country: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select country" />
                     </SelectTrigger>
                     <SelectContent>
                       {destinationCountries.map((country) => (
                         <SelectItem key={country.code} value={country.id}>
                           <span className="flex items-center gap-2">
-                            {/* <span>{country.flag}</span> */}
                             <span>{country.name}</span>
                           </span>
                         </SelectItem>
@@ -618,54 +618,52 @@ export function ShipmentForm() {
                   </Select>
                 </div>
 
-                <div className="space-y-2 md:col-span-2">
+                <div className="sm:col-span-2 space-y-2">
                   <Label htmlFor="recipient_address">Address</Label>
                   <Textarea
                     id="recipient_address"
                     value={formData.recipient_address}
                     onChange={(e) => setFormData({ ...formData, recipient_address: e.target.value })}
+                    className="min-h-[100px]"
                     required
                   />
                 </div>
               </div>
-
-              <div className="flex justify-between">
-                <Button type="button" variant="outline" onClick={() => setStep(1)}>
-                  Back
-                </Button>
-                <Button type="button" onClick={handleNextStep}>
-                  Next
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
             </CardContent>
+            <CardFooter className="flex justify-between pt-6">
+              <Button type="button" variant="outline" onClick={() => setStep(1)}>
+                Back
+              </Button>
+              <Button type="button" onClick={handleNextStep}>
+                Next
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </CardFooter>
           </Card>
         </motion.div>
       )}
 
       {step === 3 && (
         <motion.div
-          initial={{ opacity: 0, x: 20 }}
+          initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
+          className="space-y-4"
         >
           <Card>
             <CardHeader>
-              <CardTitle>Package Details</CardTitle>
-              <CardDescription>
-                Provide information about your package
-              </CardDescription>
+              <CardTitle className="text-lg sm:text-xl">Package Details</CardTitle>
+              <CardDescription>Provide information about your package</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               {renderErrors(errors.package)}
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="package_type">Package Type</Label>
                   <Select
                     value={formData.package_type}
                     onValueChange={(value) => setFormData({ ...formData, package_type: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select package type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -692,37 +690,50 @@ export function ShipmentForm() {
                     step="0.1"
                     value={formData.weight}
                     onChange={(e) => setFormData({ ...formData, weight: parseFloat(e.target.value) })}
+                    className="w-full"
                     required
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="sm:col-span-2 space-y-2">
                   <Label>Dimensions (cm)</Label>
                   <div className="grid grid-cols-3 gap-2">
-                    <Input
-                      placeholder="Length"
-                      type="number"
-                      min="1"
-                      value={formData.length}
-                      onChange={(e) => setFormData({ ...formData, length: parseFloat(e.target.value) })}
-                      required
-                    />
-                    <Input
-                      placeholder="Width"
-                      type="number"
-                      min="1"
-                      value={formData.width}
-                      onChange={(e) => setFormData({ ...formData, width: parseFloat(e.target.value) })}
-                      required
-                    />
-                    <Input
-                      placeholder="Height"
-                      type="number"
-                      min="1"
-                      value={formData.height}
-                      onChange={(e) => setFormData({ ...formData, height: parseFloat(e.target.value) })}
-                      required
-                    />
+                    <div>
+                      <Input
+                        placeholder="Length"
+                        type="number"
+                        min="1"
+                        value={formData.length}
+                        onChange={(e) => setFormData({ ...formData, length: parseFloat(e.target.value) })}
+                        className="w-full"
+                        required
+                      />
+                      <span className="text-xs text-muted-foreground mt-1">Length</span>
+                    </div>
+                    <div>
+                      <Input
+                        placeholder="Width"
+                        type="number"
+                        min="1"
+                        value={formData.width}
+                        onChange={(e) => setFormData({ ...formData, width: parseFloat(e.target.value) })}
+                        className="w-full"
+                        required
+                      />
+                      <span className="text-xs text-muted-foreground mt-1">Width</span>
+                    </div>
+                    <div>
+                      <Input
+                        placeholder="Height"
+                        type="number"
+                        min="1"
+                        value={formData.height}
+                        onChange={(e) => setFormData({ ...formData, height: parseFloat(e.target.value) })}
+                        className="w-full"
+                        required
+                      />
+                      <span className="text-xs text-muted-foreground mt-1">Height</span>
+                    </div>
                   </div>
                 </div>
 
@@ -734,28 +745,18 @@ export function ShipmentForm() {
                     min="0"
                     value={formData.declared_value}
                     onChange={(e) => setFormData({ ...formData, declared_value: parseFloat(e.target.value) })}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="description">Package Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="w-full"
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Service Type</Label>
+                  <Label htmlFor="service_type">Service Type</Label>
                   <Select
                     value={formData.service_type}
                     onValueChange={(value) => setFormData({ ...formData, service_type: value })}
-                    
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select service type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -768,7 +769,18 @@ export function ShipmentForm() {
                   </Select>
                 </div>
 
-                <div className="space-y-4">
+                <div className="sm:col-span-2 space-y-2">
+                  <Label htmlFor="description">Package Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="min-h-[100px]"
+                    required
+                  />
+                </div>
+
+                <div className="sm:col-span-2 space-y-4">
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="insurance_required"
@@ -796,54 +808,68 @@ export function ShipmentForm() {
                 </div>
               </div>
 
+              {calculating && (
+                <div className="flex items-center justify-center space-x-2 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Calculating shipping rate...</span>
+                </div>
+              )}
+
               {shippingRate && (
                 <Card className="mt-6">
                   <CardHeader>
-                    <CardTitle>Shipping Cost Breakdown</CardTitle>
+                    <CardTitle className="text-lg">Shipping Cost Breakdown</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Base Rate:</span>
-                      <span>${shippingRate.rate_details.base_rate}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Weight Charge:</span>
-                      <span>${shippingRate.rate_details.weight_charge}</span>
-                    </div>
-               
-                    <div className="flex justify-between">
-                      <span>Service Charge:</span>
-                      <span>${shippingRate.cost_breakdown.service_price}</span>
-                    </div>
-              
-                    { shippingRate.cost_breakdown.additional_charges.map(charge => (
+                    <div className="grid gap-2 text-sm sm:text-base">
                       <div className="flex justify-between">
-                        <span>{charge.name}:</span>
-                        <span>${charge.amount}</span>
+                        <span>Base Rate:</span>
+                        <span>${shippingRate.rate_details.base_rate}</span>
                       </div>
-                    ))}
-                
-                    <div className="border-t pt-2 flex justify-between font-bold">
-                      <span>Total:</span>
-                      <span>${shippingRate.cost_breakdown.total_cost}</span>
+                      <div className="flex justify-between">
+                        <span>Weight Charge:</span>
+                        <span>${shippingRate.rate_details.weight_charge}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Service Charge:</span>
+                        <span>${shippingRate.cost_breakdown.service_price}</span>
+                      </div>
+                      {shippingRate.cost_breakdown.additional_charges.map(charge => (
+                        <div key={charge.name} className="flex justify-between">
+                          <span>{charge.name}:</span>
+                          <span>${charge.amount}</span>
+                        </div>
+                      ))}
+                      <div className="border-t pt-2 flex justify-between font-bold">
+                        <span>Total:</span>
+                        <span>${shippingRate.cost_breakdown.total_cost}</span>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               )}
             </CardContent>
 
-            <CardFooter className="flex justify-between">
-              <Button type="button" variant="outline" onClick={() => setStep(2)}>
+            <CardFooter className="flex flex-col sm:flex-row justify-between gap-4 pt-6">
+              <Button type="button" variant="outline" onClick={() => setStep(2)} className="w-full sm:w-auto">
                 Back
               </Button>
-              <Button type="submit" disabled={loading || !shippingRate} onClick={handleProceedToPayment}>
+              <Button 
+                type="submit" 
+                disabled={loading || !shippingRate} 
+                onClick={handleProceedToPayment}
+                className="w-full sm:w-auto"
+              >
                 {loading ? (
-                  'Creating Shipment...'
+                  <span className="flex items-center">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating Shipment...
+                  </span>
                 ) : (
-                  <>
+                  <span className="flex items-center">
                     Create Shipment
                     <Package className="ml-2 h-4 w-4" />
-                  </>
+                  </span>
                 )}
               </Button>
             </CardFooter>

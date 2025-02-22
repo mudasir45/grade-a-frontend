@@ -10,114 +10,165 @@ import { ShipmentTracking } from '@/components/shipping/shipment-tracking'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/hooks/use-auth'
+import { toast } from '@/hooks/use-toast'
 import { History, MessageSquare, Package, Truck, User } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export default function ShippingDashboard() {
-  const { user } = useAuth()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('ship')
-  const [mounted, setMounted] = useState(false)
+  const { user, getUser, loading } = useAuth()
 
-//   useEffect(() => {
-//     setMounted(true)
-//   }, [])
+  useEffect(() => {
+    console.log('getUser', user)
+    getUser()
+    .then((user) => {
+        if (user?.user_type !== 'WALK_IN') {
+            router.push('/')
+            toast({
+                title: 'Unauthorized',
+                description: 'You are not authorized to access this page',
+            })
+        }
+    })
+    .catch((error) => {
+      console.error('Failed to get user:', error)
+    })
+  }, [loading])
 
-//   useEffect(() => {
-//     if (mounted && !user) {
-//       router.push('/')
-//     }
-//   }, [mounted, user, router])
-
-//   if (!mounted || !user) {
-//     return null
-//   }
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[50vh]">
+        <div className="w-10 h-10 border-t-2 border-b-2 border-gray-900 rounded-full animate-spin"></div>
+      </div>
+    )
+  }
 
   return (
     <ShippingShell>
-      <ShippingHeader
-        heading="Shipping Dashboard"
-        text="Manage your shipments and track your packages"
-      />
-      
-      <div className="grid gap-6">
-        {/* Quick Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card className="p-4">
-            <div className="flex items-center gap-2">
-              <Package className="h-4 w-4 text-muted-foreground" />
-              <div className="text-sm font-medium">Active Shipments</div>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <ShippingHeader
+          heading="Shipping Dashboard"
+          text="Manage your shipments and track your packages"
+        />
+        
+        <div className="grid gap-6">
+          {/* Quick Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <Card className="p-3 sm:p-4">
+              <div className="flex items-center gap-2">
+                <Package className="h-4 w-4 text-muted-foreground" />
+                <div className="text-xs sm:text-sm font-medium">Active Shipments</div>
+              </div>
+              <div className="mt-2 text-xl sm:text-2xl font-bold">5</div>
+            </Card>
+            <Card className="p-3 sm:p-4">
+              <div className="flex items-center gap-2">
+                <Truck className="h-4 w-4 text-muted-foreground" />
+                <div className="text-xs sm:text-sm font-medium">In Transit</div>
+              </div>
+              <div className="mt-2 text-xl sm:text-2xl font-bold">3</div>
+            </Card>
+            <Card className="p-3 sm:p-4">
+              <div className="flex items-center gap-2">
+                <History className="h-4 w-4 text-muted-foreground" />
+                <div className="text-xs sm:text-sm font-medium">Completed</div>
+              </div>
+              <div className="mt-2 text-xl sm:text-2xl font-bold">28</div>
+            </Card>
+            <Card className="p-3 sm:p-4">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                <div className="text-xs sm:text-sm font-medium">Support Tickets</div>
+              </div>
+              <div className="mt-2 text-xl sm:text-2xl font-bold">1</div>
+            </Card>
+          </div>
+
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            {/* Desktop and Tablet Navigation */}
+            <div className="hidden sm:block">
+              <TabsList className="grid w-full grid-cols-5 gap-1">
+                <TabsTrigger value="ship" className="flex items-center gap-2 text-sm">
+                  <Package className="h-4 w-4" />
+                  <span>Ship Package</span>
+                </TabsTrigger>
+                <TabsTrigger value="track" className="flex items-center gap-2 text-sm">
+                  <Truck className="h-4 w-4" />
+                  <span>Track Shipments</span>
+                </TabsTrigger>
+                <TabsTrigger value="history" className="flex items-center gap-2 text-sm">
+                  <History className="h-4 w-4" />
+                  <span>History</span>
+                </TabsTrigger>
+                <TabsTrigger value="support" className="flex items-center gap-2 text-sm">
+                  <MessageSquare className="h-4 w-4" />
+                  <span>Support</span>
+                </TabsTrigger>
+                <TabsTrigger value="profile" className="flex items-center gap-2 text-sm">
+                  <User className="h-4 w-4" />
+                  <span>Profile</span>
+                </TabsTrigger>
+              </TabsList>
             </div>
-            <div className="mt-2 text-2xl font-bold">5</div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-2">
-              <Truck className="h-4 w-4 text-muted-foreground" />
-              <div className="text-sm font-medium">In Transit</div>
+
+            {/* Mobile Navigation - Primary */}
+            <div className="sm:hidden">
+              <TabsList className="grid w-full grid-cols-3 gap-1">
+                <TabsTrigger value="ship" className="flex items-center justify-center gap-1 text-xs">
+                  <Package className="h-4 w-4" />
+                  <span>Ship</span>
+                </TabsTrigger>
+                <TabsTrigger value="track" className="flex items-center justify-center gap-1 text-xs">
+                  <Truck className="h-4 w-4" />
+                  <span>Track</span>
+                </TabsTrigger>
+                <TabsTrigger value="history" className="flex items-center justify-center gap-1 text-xs">
+                  <History className="h-4 w-4" />
+                  <span>History</span>
+                </TabsTrigger>
+              </TabsList>
             </div>
-            <div className="mt-2 text-2xl font-bold">3</div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-2">
-              <History className="h-4 w-4 text-muted-foreground" />
-              <div className="text-sm font-medium">Completed</div>
+
+            {/* Mobile Navigation - Secondary */}
+            <div className="sm:hidden mt-2">
+              <TabsList className="grid w-full grid-cols-2 gap-2">
+                <TabsTrigger value="support" className="flex items-center justify-center gap-1 text-xs">
+                  <MessageSquare className="h-4 w-4" />
+                  <span>Support</span>
+                </TabsTrigger>
+                <TabsTrigger value="profile" className="flex items-center justify-center gap-1 text-xs">
+                  <User className="h-4 w-4" />
+                  <span>Profile</span>
+                </TabsTrigger>
+              </TabsList>
             </div>
-            <div className="mt-2 text-2xl font-bold">28</div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-              <div className="text-sm font-medium">Support Tickets</div>
+
+            {/* Tab Content */}
+            <div className="mt-4 sm:mt-6">
+              <TabsContent value="ship" className="space-y-4">
+                <ShipmentForm />
+              </TabsContent>
+
+              <TabsContent value="track" className="space-y-4">
+                <ShipmentTracking />
+              </TabsContent>
+
+              <TabsContent value="history" className="space-y-4">
+                <ShipmentHistory />
+              </TabsContent>
+
+              <TabsContent value="support" className="space-y-4">
+                <CustomerSupport />
+              </TabsContent>
+
+              <TabsContent value="profile" className="space-y-4">
+                <CustomerProfile />
+              </TabsContent>
             </div>
-            <div className="mt-2 text-2xl font-bold">1</div>
-          </Card>
+          </Tabs>
         </div>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="ship" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Ship Package
-            </TabsTrigger>
-            <TabsTrigger value="track" className="flex items-center gap-2">
-              <Truck className="h-4 w-4" />
-              Track Shipments
-            </TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center gap-2">
-              <History className="h-4 w-4" />
-              History
-            </TabsTrigger>
-            <TabsTrigger value="support" className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              Support
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Profile
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="ship" className="space-y-4">
-            <ShipmentForm />
-          </TabsContent>
-
-          <TabsContent value="track" className="space-y-4">
-            <ShipmentTracking />
-          </TabsContent>
-
-          <TabsContent value="history" className="space-y-4">
-            <ShipmentHistory />
-          </TabsContent>
-
-          <TabsContent value="support" className="space-y-4">
-            <CustomerSupport />
-          </TabsContent>
-
-          <TabsContent value="profile" className="space-y-4">
-            <CustomerProfile />
-          </TabsContent>
-        </Tabs>
       </div>
     </ShippingShell>
   )

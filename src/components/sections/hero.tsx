@@ -58,7 +58,7 @@ export function HeroSection() {
               Ship Now
               <ArrowRight className="h-4 w-4" />
             </Button>
-            <Button onClick={() => router.push('/buy4me')} size="lg" variant="outline" className="gap-2 bg-white/10 hover:bg-white/20">
+            <Button onClick={() => router.push('/buy4me')} size="lg" variant="outline" className="gap-2 bg-gray-900 hover:bg-gray-800">
               <ShoppingBag className="h-5 w-5" />
               Buy4Me Service
             </Button>
