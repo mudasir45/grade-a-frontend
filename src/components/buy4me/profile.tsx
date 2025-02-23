@@ -18,33 +18,55 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { useAuth } from '@/hooks/use-auth'
+import { useBuy4Me } from '@/hooks/use-buy4me'
 import { useToast } from '@/hooks/use-toast'
-import { Bell, CreditCard, Globe, Lock } from 'lucide-react'
-import { useState } from 'react'
-
+import { Country } from '@/lib/types/index'
+import { Lock } from 'lucide-react'
+import { useEffect, useState } from 'react'
 export function Buy4MeProfile() {
-  const { user } = useAuth()
+  const { user, getUser, loading: authLoading, changePassword: changePasswordRequest, updateUser: updateUserRequest } = useAuth()
   const { toast } = useToast()
+  const { getUserCountries, loading: isLoading} = useBuy4Me()
   const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
-    country: user?.country || '',
-    currency: 'USD',
-    notifications: {
-      email: true,
-      push: true
-    }
+  const [userCountries, setUserCountries] = useState<Country[]>([])
+  const [changePassword, setChangePassword] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: ""
   })
+  const [formData, setFormData] = useState({
+    name: user?.first_name + ' ' + user?.last_name || '',
+    email: user?.email || '',
+    phone: user?.phone_number || '',
+    country: user?.country || '',
+    currency: user?.preferred_currency || 'USD',
+    country_details: user?.country_details || '',
+  })
+
+  
+
+  useEffect(() => {
+    const fetchCountries = async () => {
+      const countries = await getUserCountries()
+      setUserCountries(countries)
+    }
+    fetchCountries()
+  }, [getUserCountries, isLoading])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
-      // In a real app, this would update the user's information in the backend
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
+      const response = await updateUserRequest({
+        first_name: formData.name.split(' ')[0],
+        last_name: formData.name.split(' ')[1],
+        email: formData.email,
+        phone_number: formData.phone,
+        country: formData.country,
+        preferred_currency: formData.currency,
+      })
+      console.log('formData', response)
       toast({
         title: 'Profile Updated',
         description: 'Your profile has been updated successfully.',
@@ -60,11 +82,50 @@ export function Buy4MeProfile() {
     }
   }
 
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    if (changePassword.newPassword !== changePassword.confirmPassword) {
+      toast({
+        title: 'Error',
+        description: 'New password and confirm password do not match.',
+        variant: 'destructive',
+      })
+      return
+    }
+    try {
+      const response = await changePasswordRequest(changePassword.oldPassword, changePassword.newPassword)
+      console.log('response at change password', response)
+      toast({
+        title: 'Password Changed',
+        description: 'Your password has been changed successfully.',
+      })
+      setChangePassword({
+        oldPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      })
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to change password.',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (isLoading || authLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="w-10 h-10 border-t-transparent border-b-transparent border-r-transparent border-l-blue-500 rounded-full animate-spin border-4"></div>
+      </div>
+    )
+  }
+
   return (
     <div className="grid gap-6">
-        <div className="text-center text-sm text-white bg-red-500 p-2 rounded-md font-bold d-inline">
-            Working on this part
-        </div>
       <Card>
         <CardHeader>
           <CardTitle>Profile Settings</CardTitle>
@@ -93,7 +154,17 @@ export function Buy4MeProfile() {
               />
             </div>
 
-            {/* <div className="space-y-2">
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="country">Country</Label>
               <Select
                 value={formData.country}
@@ -103,17 +174,16 @@ export function Buy4MeProfile() {
                   <SelectValue placeholder="Select your country" />
                 </SelectTrigger>
                 <SelectContent>
-                  {countries.map((country) => (
-                    <SelectItem key={country.code} value={country.code}>
+                  {userCountries.map((country) => (
+                    <SelectItem key={country.id} value={country.id}>
                       <span className="flex items-center gap-2">
-                        <span>{country.flag}</span>
-                        <span>{country.name}</span>
+                        <span>{country.name} ({country.code})</span>
                       </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div> */}
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="currency">Preferred Currency</Label>
@@ -143,7 +213,7 @@ export function Buy4MeProfile() {
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
+        {/* <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
               <Bell className="h-4 w-4" />
@@ -167,9 +237,9 @@ export function Buy4MeProfile() {
               </Button>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
-        <Card>
+        {/* <Card >
           <CardHeader>
             <div className="flex items-center gap-2">
               <CreditCard className="h-4 w-4" />
@@ -187,7 +257,7 @@ export function Buy4MeProfile() {
               No payment methods added yet
             </p>
           </CardContent>
-        </Card>
+        </Card> */}
 
         <Card>
           <CardHeader>
@@ -200,16 +270,29 @@ export function Buy4MeProfile() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button variant="outline" className="w-full">
+            <div className="space-y-2">
+                <Label htmlFor="old-password">Old Password</Label>
+                <Input id="old-password" value={changePassword.oldPassword} onChange={(e)=> setChangePassword({...changePassword, oldPassword: e.target.value})} type="password" />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="new-password">New Password</Label>
+                <Input id="new-password" value={changePassword.newPassword} onChange={(e)=> setChangePassword({...changePassword, newPassword: e.target.value})} type="password" />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="confirm-new-password">Confirm New Password</Label>
+                <Input id="confirm-new-password" value={changePassword.confirmPassword} onChange={(e)=> setChangePassword({...changePassword, confirmPassword: e.target.value})} type="password" />
+            </div>
+            
+            <Button variant="outline" className="w-full" onClick={handlePasswordChange}>
               Change Password
             </Button>
-            <Button variant="outline" className="w-full">
+            {/* <Button variant="outline" className="w-full">
               Two-Factor Authentication
-            </Button>
+            </Button> */}
           </CardContent>
         </Card>
 
-        <Card>
+        {/* <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
               <Globe className="h-4 w-4" />
@@ -247,7 +330,7 @@ export function Buy4MeProfile() {
               </Select>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
     </div>
   )

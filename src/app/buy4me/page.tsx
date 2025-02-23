@@ -21,21 +21,22 @@ export default function Buy4MePage() {
   const [activeTab, setActiveTab] = useState('browse')
 
   useEffect(() => {
-    console.log('getUser', user)
-    getUser()
-    .then((user) => {
+    if (!loading) {  // Only run if not loading
+      getUser()
+      .then((user) => {
         if (user?.user_type !== 'BUY4ME') {
-            router.push('/')
-            toast({
-                title: 'Unauthorized',
-                description: 'You are not authorized to access this page',
-            })
+          router.push('/')
+          toast({
+            title: 'Unauthorized',
+            description: 'You are not authorized to access this page',
+          })
         }
-    })
-    .catch((error) => {
-      console.error('Failed to get user:', error)
-    })
-  }, [loading])
+      })
+      .catch((error) => {
+        console.error('Failed to get user:', error)
+      })
+    }
+  }, []) // Remove loading from dependencies
 
   const handleTabChange = (value: string) => {
     setActiveTab(value)

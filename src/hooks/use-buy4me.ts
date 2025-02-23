@@ -1,5 +1,5 @@
 import { baseShippingRate, serviceFeePercentage } from '@/lib/buy4me-data'
-import { Buy4MeItem, Buy4MeRequest } from '@/lib/types/index'
+import { Buy4MeItem, Buy4MeRequest, Country, ServiceType } from '@/lib/types/index'
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from './use-auth'
 
@@ -212,6 +212,30 @@ export function useBuy4Me() {
     }
   }, [user, activeRequest])
 
+  //get all countires 
+  const getUserCountries = useCallback(async () => {
+    const token = localStorage.getItem('auth_token')
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/accounts/user-countries/`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      }
+    })
+    const data = await response.json()
+    return data.results as Country[]
+  }, [])
+
+   const getServiceTypes = useCallback(async () => {
+    const token = localStorage.getItem('auth_token')
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/shipping-rates/service-types/`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      }
+    })  
+    if (!response.ok) throw new Error('Failed to fetch service types')
+    const data = await response.json()
+    return data.results as ServiceType[]
+  }, [])
+    
   return {
     activeRequest,
     loading,
@@ -219,6 +243,8 @@ export function useBuy4Me() {
     updateItem,
     removeItem,
     calculateTotals,
-    submitRequest
+    submitRequest,
+    getUserCountries,
+    getServiceTypes
   }
 }

@@ -33,14 +33,24 @@ export interface ShippingRate {
   regular: number;
 }
 
-export interface User {
+export interface Country {
     id: string;
+    name: string;
+    code: string;
+}
+
+export interface User {
+    id?: string;
     first_name: string;
     last_name: string;
     email: string;
+    phone_number?: string;
+    preferred_currency?: string;
+    country_details?: Country;
     country?: string;
     user_type?: string;
-    [key: string]: any; // For dynamic properties
+    default_shipping_method?: string;
+    [key: string]: any; 
   }
   
   export interface AuthContextType {
@@ -53,6 +63,8 @@ export interface User {
     setIsOpen: (isOpen: boolean) => void;
     getUser: () => Promise<User | null>;
     setUser: (user: User | null) => void;
+    changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
+    updateUser: (user: User) => Promise<void>;
   }
 
 export type Buy4MeRequestStatus = 
@@ -103,4 +115,13 @@ export interface PaymentResult {
   success: boolean;
   transactionId?: string;
   error?: string;
+}
+
+
+export interface ServiceType {
+  id: string;
+  name: string;
+  description: string;
+  delivery_time: string;
+  is_active: boolean;
 }

@@ -15,50 +15,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false)
   const router = useRouter();
+
   useEffect(() => {
-    // Check for existing session
-    const storedUser = localStorage.getItem('current_user');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser) as User;
-        setUser(parsedUser);
-      } catch (error) {
-        console.error('Failed to parse stored user:', error);
-        localStorage.removeItem('current_user');
-      }
-    }
-    // getUser()
-    // .then((user) => {
-    //   setUser(user)
-    // })
-    // .catch((error) => {
-    //   console.error('Failed to get user:', error);
-    //   setIsOpen(true)
-    // })
+    getUser()
+    .then((user) => {
+      setUser(user)
+    })
+    .catch((error) => {
+      console.error('Failed to get user:', error);
+      setIsOpen(true)
+    })
     setLoading(false);
   }, []);
 
 
   const getUser = async () => {
    try{
+    setLoading(true);
        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/accounts/users/me/`, {
          headers: {
            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
          }
        })
        const data = await response.json();
-       if (response.status === 401) {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('current_user');
-        setUser(null);
-           setIsOpen(true)
-           return null;
-       }
-       return data;
+       if (response.ok) {
+           return data;
+        }
+        return null;
  
    } catch (error) {
     console.error('Failed to get user:', error);
     throw new Error('Failed to get user');
+   } finally {
+    setLoading(false);
    }
   }
 
@@ -98,17 +87,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw new Error(userData.error);
       }
 
-      const userObj: User = {
-        id: userData.id,
-        email: userData.email,
-        country: userData.country,
-        first_name: userData.first_name,
-        last_name: userData.last_name,
-        user_type: userData.user_type,
-      };
-
-      localStorage.setItem('current_user', JSON.stringify(userObj));
-      setUser(userObj);
+      setUser(userData);
     } catch (error) {
       console.error(error);
       throw new Error('Invalid credentials');
@@ -149,8 +128,54 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const updateUser = async (user: User) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/accounts/users/update_me/`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(user),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        return data;
+      }
+      throw new Error('Failed to update user');
+    } catch (error) {
+      console.error(error);
+      throw new Error('Failed to update user');
+    }
+  }
+
+  const changePassword = async (oldPassword: string, newPassword: string) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/accounts/users/update_password/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          old_password: oldPassword,
+          new_password: newPassword,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        return data;
+      }
+      throw new Error('Failed to change password');
+    } catch (error) {
+      console.error(error);
+      throw new Error('Failed to change password');
+    }
+  }
+
   const logout = () => {
-    localStorage.removeItem('current_user');
     localStorage.removeItem('auth_token');
     setUser(null);
     router.push('/');
@@ -166,6 +191,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsOpen,
     setUser,
     getUser,
+    changePassword,
+    updateUser,
   };
 
   return (

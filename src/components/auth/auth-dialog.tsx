@@ -13,7 +13,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
-import { User } from '@/lib/types/index'
 import { AnimatePresence, motion } from 'framer-motion'
 import { LogIn, User as UserIcon } from 'lucide-react'
 import { useCallback, useState } from 'react'
@@ -72,17 +71,7 @@ export function AuthDialog() {
         throw new Error(userData.error);
       }
 
-      const userObj: User = {
-        id: userData.id,
-        email: userData.email,
-        country: userData.country,
-        first_name: userData.first_name,
-        last_name: userData.last_name,
-        user_type: userData.user_type,
-      };
-
-      localStorage.setItem('current_user', JSON.stringify(userObj));
-      setUser(userObj);
+      setUser(userData);
     } catch (error) {
       console.error(error);
       throw new Error('Invalid credentials');

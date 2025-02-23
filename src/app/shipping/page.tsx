@@ -21,21 +21,22 @@ export default function ShippingDashboard() {
   const { user, getUser, loading } = useAuth()
 
   useEffect(() => {
-    console.log('getUser', user)
-    getUser()
-    .then((user) => {
+    if (!loading) {  // Only run if not loading
+      getUser()
+      .then((user) => {
         if (user?.user_type !== 'WALK_IN') {
-            router.push('/')
-            toast({
-                title: 'Unauthorized',
-                description: 'You are not authorized to access this page',
-            })
+          router.push('/')
+          toast({
+            title: 'Unauthorized',
+            description: 'You are not authorized to access this page',
+          })
         }
-    })
-    .catch((error) => {
-      console.error('Failed to get user:', error)
-    })
-  }, [loading])
+      })
+      .catch((error) => {
+        console.error('Failed to get user:', error)
+      })
+    }
+  }, []) // Remove loading from dependencies
 
   if (loading) {
     return (
