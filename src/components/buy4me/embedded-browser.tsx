@@ -20,7 +20,7 @@ import { useState } from 'react'
 
 export function EmbeddedBrowser() {
   const { toast } = useToast()
-  const { addToRequestList } = useBuy4Me()
+  const { addToRequestList, loading: buy4meLoading } = useBuy4Me()
   const [loading, setLoading] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
   const [productUrl, setProductUrl] = useState('')
@@ -128,6 +128,10 @@ export function EmbeddedBrowser() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (buy4meLoading) {
+    return <div>Loading...</div>
   }
 
   return (

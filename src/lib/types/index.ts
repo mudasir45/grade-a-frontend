@@ -125,3 +125,10 @@ export interface ServiceType {
   delivery_time: string;
   is_active: boolean;
 }
+export interface PaymentData {
+    amount: string
+    orderId?: string
+    shippingAddress?: string
+    paymentType: 'buy4me' | 'shipping'
+    metadata?: Record<string, any>
+  }

@@ -46,6 +46,14 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         paymentType,
         metadata
       })
+      const paymentData = {
+        amount,
+        orderId: finalOrderId,
+        shippingAddress,
+        paymentType,
+        metadata
+      }
+      localStorage.setItem('paymentData', JSON.stringify(paymentData))
 
       const res = await fetch('/api/bizapay', {
         method: 'POST',

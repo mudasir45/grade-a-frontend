@@ -17,16 +17,17 @@ export function useBuy4Me() {
         setLoading(true)
         const token = localStorage.getItem('auth_token')
         
+        console.log("Active request before calling the first api: ", activeRequest)
         // Fetch existing requests
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/buy4me/requests/`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
         })
         
         if (!response.ok) throw new Error('Failed to fetch requests')
-        
+            
         const data = await response.json()
         
         // Find an existing draft request
@@ -182,9 +183,9 @@ export function useBuy4Me() {
   }, [activeRequest])
 
   const submitRequest = useCallback(async (shippingAddress: string) => {
+      console.log("Active Request", activeRequest)
     if (!user || !activeRequest) throw new Error('No active request')
     if ((activeRequest.items || []).length === 0) throw new Error('No items in request')
-    
     try {
       const token = localStorage.getItem('auth_token')
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/buy4me/requests/${activeRequest.id}/`, {

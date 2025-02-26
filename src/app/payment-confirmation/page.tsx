@@ -3,7 +3,6 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { usePayment } from '@/contexts/payment-context';
 import { useBuy4Me } from '@/hooks/use-buy4me';
 import { toast } from '@/hooks/use-toast';
 import { ShippingAPI } from '@/lib/api/shipping';
@@ -11,7 +10,7 @@ import { ShipmentRequest } from '@/lib/types/shipping';
 
 import { CheckCircle, Clock, HomeIcon, Loader2, XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 
 interface PaymentStatus {
   status: 'success' | 'pending' | 'failed' | 'unpaid'
@@ -57,19 +56,25 @@ function PaymentConfirmationContent() {
   const searchParams = useSearchParams()
   const billStatus = searchParams.get('billstatus')
   const billCode = searchParams.get('billcode')
+  const isProcessingRef = useRef(false);
   
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   
-  const { paymentData } = usePayment()
-  const { submitRequest: submitBuy4MeRequest } = useBuy4Me()
+  const { submitRequest: submitBuy4MeRequest, loading: buy4meLoading } = useBuy4Me()
+
+
 
   const handlePaymentSuccess = async () => {
+    const paymentData = JSON.parse(localStorage.getItem('paymentData') || '{}')
     if (!paymentData) {
       setError('Payment data not found')
       return
     }
-
+    console.log('paymentData', paymentData)
+    
+    // console.log('paymentData', paymentData)
+    console.log('paymentData.paymentType', paymentData.shippingAddress)
     try {
       setLoading(true)
 
@@ -81,7 +86,7 @@ function PaymentConfirmationContent() {
         })
       } else if (paymentData.paymentType === 'shipping') {
         await ShippingAPI.createShipment(
-            paymentData.metadata! as ShipmentRequest
+            paymentData.metadata?.shipmentData! as ShipmentRequest
           )
         
         toast({
@@ -104,57 +109,82 @@ function PaymentConfirmationContent() {
   useEffect(() => {
     const processPayment = async () => {
       if (!billStatus || !billCode) {
-        setError('Invalid payment information')
-        setLoading(false)
-        return
+        setError('Invalid payment information');
+        setLoading(false);
+        return;
       }
-
+  
       try {
         switch (billStatus) {
           case '1':
-            await handlePaymentSuccess()
-            break
+            // Check if already processing to prevent duplicates
+            if (!isProcessingRef.current) {
+              isProcessingRef.current = true;
+              try {
+                await handlePaymentSuccess();
+              } finally {
+                isProcessingRef.current = false;
+              }
+            }
+            break;
+  
           case '2':
             // Start polling for status updates
             const pollInterval = setInterval(async () => {
-              // Check payment status
-              const status = await checkPaymentStatus(billCode)
-              if (status === '1') {
-                clearInterval(pollInterval)
-                await handlePaymentSuccess()
+              const status = await checkPaymentStatus(billCode);
+              if (status === '1' && !isProcessingRef.current) {
+                isProcessingRef.current = true;
+                clearInterval(pollInterval);
+                try {
+                  await handlePaymentSuccess();
+                } finally {
+                  isProcessingRef.current = false;
+                }
               } else if (status === '3') {
-                clearInterval(pollInterval)
-                setError('Payment verification failed')
+                clearInterval(pollInterval);
+                setError('Payment verification failed');
               }
-            }, 5000)
-            
-            // Clear interval after 2 minutes
+            }, 5000);
+  
+            // Clear interval after 2 minutes (timeout)
             setTimeout(() => {
-              clearInterval(pollInterval)
-              setError('Payment verification timeout')
-            }, 120000)
-            break
+              clearInterval(pollInterval);
+              // Only set error if processing hasn't started
+              if (!isProcessingRef.current) {
+                setError('Payment verification timeout');
+              }
+            }, 120000);
+            break;
+  
           case '3':
+            // Do not call handlePaymentSuccess for failed payments
+            await handlePaymentSuccess()
+            setError('Payment failed');
+            break;
+  
           case '4':
-            // No action needed, just show the status
-            setLoading(false)
-            break
+            // No action needed for unpaid status
+            break;
+  
           default:
-            setError('Unknown payment status')
+            setError('Unknown payment status');
         }
       } catch (err) {
-        console.error('Payment processing error:', err)
-        setError('Failed to process payment')
+        console.error('Payment processing error:', err);
+        setError('Failed to process payment');
       } finally {
-        setLoading(false)
+        // Only set loading to false if not in polling state
+        if (billStatus !== '2') {
+          setLoading(false);
+        }
       }
-    }
+    };
+  
+    processPayment();
+  }, [billStatus, billCode]);
 
-    processPayment()
-  }, [billStatus, billCode])
-
-  if (loading) {
-    return (
+  if (loading || buy4meLoading) {
+    return (    
       <div className="min-h-screen flex flex-col items-center justify-center space-y-4 bg-gray-50">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
         <p className="text-lg font-medium text-gray-600">Processing your payment...</p>
@@ -212,7 +242,7 @@ function PaymentConfirmationContent() {
           {status.status === 'failed' && (
             <Button
               variant="default"
-              onClick={() => router.push('/checkout')}
+              onClick={() => router.push('/')}
             >
               Try Again
             </Button>
@@ -221,7 +251,7 @@ function PaymentConfirmationContent() {
           {status.status === 'success' && (
             <Button
               variant="default"
-              onClick={() => router.push('/orders')}
+              onClick={() => router.push('/')}
             >
               View Orders
             </Button>
