@@ -123,8 +123,8 @@ export function ManageShipment() {
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by tracking #, sender or receiver..."
-              className="pl-8"
+              placeholder="Search shipments..."
+              className="pl-8 text-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -134,7 +134,7 @@ export function ManageShipment() {
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="in-transit">In Transit</SelectItem>
               <SelectItem value="delivered">Delivered</SelectItem>
@@ -142,17 +142,80 @@ export function ManageShipment() {
           </Select>
         </div>
 
-        {/* Shipments Table */}
-        <div className="rounded-md border">
+        {/* Mobile Card View */}
+        <div className="block sm:hidden space-y-4">
+          {filteredShipments.length > 0 ? (
+            filteredShipments.map((shipment) => (
+              <Card key={shipment.id} className="p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="font-medium">{shipment.trackingNumber}</div>
+                  {getStatusBadge(shipment.status)}
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="text-muted-foreground">Date:</div>
+                    <div>{shipment.date}</div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="text-muted-foreground">Sender:</div>
+                    <div>{shipment.senderName}</div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="text-muted-foreground">Receiver:</div>
+                    <div>{shipment.receiverName}</div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="text-muted-foreground">Route:</div>
+                    <div>{shipment.origin} → {shipment.destination}</div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="text-muted-foreground">Amount:</div>
+                    <div>{shipment.amount}</div>
+                  </div>
+                </div>
+                <div className="flex justify-end mt-4">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem className="flex items-center gap-2">
+                        <Eye className="h-4 w-4" />
+                        View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="flex items-center gap-2">
+                        <Pencil className="h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="flex items-center gap-2 text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </Card>
+            ))
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No shipments found.
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden sm:block rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Tracking #</TableHead>
-                <TableHead className="hidden md:table-cell">Date</TableHead>
+                <TableHead>Date</TableHead>
                 <TableHead>Sender</TableHead>
                 <TableHead>Receiver</TableHead>
-                <TableHead className="hidden md:table-cell">Route</TableHead>
-                <TableHead className="hidden lg:table-cell">Weight</TableHead>
+                <TableHead>Route</TableHead>
+                <TableHead>Weight</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -163,13 +226,13 @@ export function ManageShipment() {
                 filteredShipments.map((shipment) => (
                   <TableRow key={shipment.id}>
                     <TableCell className="font-medium">{shipment.trackingNumber}</TableCell>
-                    <TableCell className="hidden md:table-cell">{shipment.date}</TableCell>
+                    <TableCell>{shipment.date}</TableCell>
                     <TableCell>{shipment.senderName}</TableCell>
                     <TableCell>{shipment.receiverName}</TableCell>
-                    <TableCell className="hidden md:table-cell">
+                    <TableCell>
                       {shipment.origin} → {shipment.destination}
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">{shipment.weight} kg</TableCell>
+                    <TableCell>{shipment.weight} kg</TableCell>
                     <TableCell>{shipment.amount}</TableCell>
                     <TableCell>{getStatusBadge(shipment.status)}</TableCell>
                     <TableCell className="text-right">
@@ -210,27 +273,29 @@ export function ManageShipment() {
         </div>
 
         {/* Pagination */}
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious href="#" />
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#" isActive>
-                1
-              </PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#">2</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#">3</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationNext href="#" />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+        <div className="flex justify-center sm:justify-end">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious href="#" />
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationLink href="#" isActive>
+                  1
+                </PaginationLink>
+              </PaginationItem>
+              <PaginationItem className="hidden sm:block">
+                <PaginationLink href="#">2</PaginationLink>
+              </PaginationItem>
+              <PaginationItem className="hidden sm:block">
+                <PaginationLink href="#">3</PaginationLink>
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationNext href="#" />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
       </CardContent>
     </Card>
   )
