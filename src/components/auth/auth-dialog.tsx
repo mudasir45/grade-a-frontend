@@ -1,72 +1,87 @@
-'use client'
+"use client";
 
-import { Button } from '@/components/ui/button'
+import { Button } from "@/components/ui/button";
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useAuth } from '@/hooks/use-auth'
-import { useToast } from '@/hooks/use-toast'
-import { AnimatePresence, motion } from 'framer-motion'
-import { LogIn, User as UserIcon } from 'lucide-react'
-import { useCallback, useState } from 'react'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import { AnimatePresence, motion } from "framer-motion";
+import { LogIn, User as UserIcon } from "lucide-react";
+import { useCallback, useState } from "react";
 
 const INITIAL_FORM_STATE = {
-  email: '',
-  password: '',
-  name: '',
-  country: '',
-}
+  phone: "",
+  password: "",
+  name: "",
+  country: "",
+};
+
+// Helper function to validate phone number
+const isValidPhoneNumber = (phone: string) => {
+  // Remove any non-digit characters
+  const digitsOnly = phone.replace(/\D/g, "");
+  // Check if it's exactly 10 digits
+  return digitsOnly.length === 10;
+};
 
 export function AuthDialog() {
-  const { toast } = useToast()
-  const [isLogin, setIsLogin] = useState(true)
-  const [loading, setLoading] = useState(false)
-  const {  register, user, isOpen, setIsOpen, setUser} = useAuth()
-  const [formData, setFormData] = useState(INITIAL_FORM_STATE)
+  const { toast } = useToast();
+  const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const { register, user, isOpen, setIsOpen, setUser } = useAuth();
+  const [formData, setFormData] = useState(INITIAL_FORM_STATE);
+  const [phoneError, setPhoneError] = useState("");
 
-  const login = async (email: string, password: string) => {
+  const login = async (phone: string, password: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/token/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username: email, password }),
-      });
-      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/token/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ username: phone, password }),
+        }
+      );
+
       const data = await response.json();
-      console.log('data', data)
+      console.log("data", data);
       if (response.status === 401) {
         toast({
-          title: 'Invalid credentials',
-          description: 'Please check your email and password',
-          variant: 'destructive',
-        })
+          title: "Invalid credentials",
+          description: "Please check your email and password",
+          variant: "destructive",
+        });
         return null;
       }
       if (data.error) {
         throw new Error(data.error);
       }
 
-      localStorage.setItem('auth_token', data.access);
-      
+      localStorage.setItem("auth_token", data.access);
+
       // Fetch user details after successful login
-      const userResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/accounts/users/me/`, {
-        headers: {
-          'Authorization': `Bearer ${data.access}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      
+      const userResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/accounts/users/me/`,
+        {
+          headers: {
+            Authorization: `Bearer ${data.access}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
       const userData = await userResponse.json();
-      
+
       if (userData.error) {
         throw new Error(userData.error);
       }
@@ -74,102 +89,158 @@ export function AuthDialog() {
       setUser(userData);
     } catch (error) {
       console.error(error);
-      throw new Error('Invalid credentials');
+      throw new Error("Invalid credentials");
     }
   };
 
   const resetForm = useCallback(() => {
-    setFormData(INITIAL_FORM_STATE)
-  }, [])
+    setFormData(INITIAL_FORM_STATE);
+  }, []);
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [id]: value
-    }))
-  }, [])
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { id, value } = e.target;
 
-  const handleAuthSuccess = useCallback((message: string) => {
-    toast({
-      title: message,
-      description: `You have successfully ${isLogin ? 'logged in' : 'created an account'}.`,
-    })
-    setIsOpen(false)
-    resetForm()
-  }, [isLogin, setIsOpen, toast, resetForm])
+      if (id === "phone") {
+        // Allow only numbers and limit to 10 digits
+        const digitsOnly = value.replace(/\D/g, "").slice(0, 10);
 
-  const handleAuthError = useCallback((error: unknown) => {
-    const errorMessage = error instanceof Error 
-      ? error.message 
-      : 'Authentication failed. Please try again.'
-    
-    toast({
-      title: 'Error',
-      description: errorMessage,
-      variant: 'destructive',
-    })
-  }, [toast])
+        // Validate phone number
+        if (digitsOnly.length > 0) {
+          if (digitsOnly.length !== 10) {
+            setPhoneError("Phone number must be 10 digits");
+          } else {
+            setPhoneError("");
+          }
+        } else {
+          setPhoneError("");
+        }
+
+        setFormData((prev) => ({
+          ...prev,
+          [id]: digitsOnly,
+        }));
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          [id]: value,
+        }));
+      }
+    },
+    []
+  );
+
+  const handleAuthSuccess = useCallback(
+    (message: string) => {
+      toast({
+        title: message,
+        description: `You have successfully ${
+          isLogin ? "logged in" : "created an account"
+        }.`,
+      });
+      setIsOpen(false);
+      resetForm();
+    },
+    [isLogin, setIsOpen, toast, resetForm]
+  );
+
+  const handleAuthError = useCallback(
+    (error: unknown) => {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Authentication failed. Please try again.";
+
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    },
+    [toast]
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+
+    // Validate phone number before submission
+    if (!isValidPhoneNumber(formData.phone)) {
+      toast({
+        title: "Invalid Phone Number",
+        description: "Please enter a valid 10-digit phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
 
     try {
       if (isLogin) {
-        const data = await login(formData.email, formData.password)
+        const data = await login(formData.phone, formData.password);
         if (data) {
-          handleAuthSuccess('Welcome back!')
+          handleAuthSuccess("Welcome back!");
         }
       } else {
         if (!formData.name.trim()) {
-          throw new Error('Please enter your full name')
+          throw new Error("Please enter your full name");
         }
-        await register(formData.email, formData.password, formData.name, "BUY4ME")
-        handleAuthSuccess('Account created!')
+        const response = await register(
+          formData.phone,
+          formData.password,
+          formData.name,
+          "BUY4ME"
+        );
+        console.log("response", response);
+        handleAuthSuccess("Account created!");
       }
     } catch (error) {
-      handleAuthError(error)
+      console.log("error", error);
+      handleAuthError(error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const toggleAuthMode = useCallback(() => {
-    setIsLogin(prev => !prev)
-    resetForm()
-  }, [resetForm])
+    setIsLogin((prev) => !prev);
+    resetForm();
+  }, [resetForm]);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button aria-label={user ? 'Open account menu' : 'Sign in'}>
+        <Button aria-label={user ? "Open account menu" : "Sign in"}>
           <UserIcon className="mr-2 h-4 w-4" />
-          {user ? 'Account' : 'Sign In'}
+          {user ? "Account" : "Sign In"}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{isLogin ? 'Sign In' : 'Create Account'}</DialogTitle>
+          <DialogTitle>{isLogin ? "Sign In" : "Create Account"}</DialogTitle>
           <DialogDescription>
             {isLogin
-              ? 'Enter your credentials to access your account'
-              : 'Fill in your details to create a new account'}
+              ? "Enter your credentials to access your account"
+              : "Fill in your details to create a new account"}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="phone">Phone</Label>
             <Input
-              id="email"
-              type="email"
+              id="phone"
+              type="tel"
               required
-              value={formData.email}
+              value={formData.phone}
               onChange={handleInputChange}
-              placeholder="Enter your email"
-              autoComplete="email"
+              placeholder="Enter your 10-digit phone number"
+              autoComplete="tel"
+              className={phoneError ? "border-red-500" : ""}
             />
+            {phoneError && (
+              <p className="text-sm text-red-500 mt-1">{phoneError}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -181,7 +252,7 @@ export function AuthDialog() {
               value={formData.password}
               onChange={handleInputChange}
               placeholder="Enter your password"
-              autoComplete={isLogin ? 'current-password' : 'new-password'}
+              autoComplete={isLogin ? "current-password" : "new-password"}
               minLength={3}
             />
           </div>
@@ -190,7 +261,7 @@ export function AuthDialog() {
             {!isLogin && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
+                animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 className="space-y-4"
               >
@@ -210,14 +281,18 @@ export function AuthDialog() {
           </AnimatePresence>
 
           <div className="flex flex-col gap-4">
-            <Button 
-              type="submit" 
-              className="w-full" 
+            <Button
+              type="submit"
+              className="w-full"
               disabled={loading}
               aria-busy={loading}
             >
               <LogIn className="mr-2 h-4 w-4" />
-              {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
+              {loading
+                ? "Please wait..."
+                : isLogin
+                ? "Sign In"
+                : "Create Account"}
             </Button>
 
             <Button
@@ -226,11 +301,13 @@ export function AuthDialog() {
               className="text-sm"
               onClick={toggleAuthMode}
             >
-              {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+              {isLogin
+                ? "Don't have an account? Sign up"
+                : "Already have an account? Sign in"}
             </Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
