@@ -1,22 +1,18 @@
 'use client'
 
-import { CustomerProfile } from '@/components/shipping/customer-profile'
-import { CustomerSupport } from '@/components/shipping/customer-support'
 import { ShippingHeader } from '@/components/shipping/header'
 import { ShippingShell } from '@/components/shipping/shell'
 import { ShipmentForm } from '@/components/staff/shipment-form'
 import { ManageShipment } from '@/components/staff/manage-shipment'
-import { ShipmentHistory } from '@/components/shipping/shipment-history'
-import { ShipmentTracking } from '@/components/shipping/shipment-tracking'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/hooks/use-auth'
 import { toast } from '@/hooks/use-toast'
-import { History, MessageSquare, Package, Truck, User } from 'lucide-react'
+import { History, MessageSquare, Package, Truck} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-export default function ShippingDashboard() {
+export default function StaffDashboard() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('createShipment')
   const { user, getUser, loading } = useAuth()
@@ -106,12 +102,10 @@ export default function ShippingDashboard() {
             {/* Mobile Navigation - Primary */}
             <div className="sm:hidden">
               <TabsList className="grid w-full grid-cols-2 gap-1">
-                <TabsTrigger value="createShipment" className="flex items-center justify-center gap-1 text-xs">
-                  <Package className="h-4 w-4" />
+                <TabsTrigger value="createShipment" className="flex items-center justify-center gap-1 text-sm">
                   <span>Create Shipment</span>
                 </TabsTrigger>
-                <TabsTrigger value="manageShipments" className="flex items-center justify-center gap-1 text-xs">
-                  <Package className="h-4 w-4" />
+                <TabsTrigger value="manageShipments" className="flex items-center justify-center gap-1 text-sm">
                   <span>Manage Shipments</span>
                 </TabsTrigger>
               </TabsList>
