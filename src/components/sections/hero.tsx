@@ -1,13 +1,13 @@
-'use client'
+"use client";
 
-import { Button } from '@/components/ui/button'
-import { motion } from 'framer-motion'
-import { ArrowRight, Package, ShoppingBag } from 'lucide-react'
-import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import { ArrowRight, Package, ShoppingBag } from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 export function HeroSection() {
-  const router = useRouter()
+  const router = useRouter();
   return (
     <div className="relative min-h-screen flex items-center">
       {/* Background Image */}
@@ -44,8 +44,9 @@ export function HeroSection() {
             transition={{ delay: 0.4, duration: 0.8 }}
             className="mt-6 text-lg leading-8 text-gray-300 max-w-2xl mx-auto"
           >
-            Your one-stop solution for international shipping and shopping assistance.
-            We make it easy to ship worldwide and buy from your favorite stores.
+            Your one-stop solution for international shipping and shopping
+            assistance. We make it easy to ship worldwide and buy from your
+            favorite stores.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -53,12 +54,21 @@ export function HeroSection() {
             transition={{ delay: 0.6, duration: 0.8 }}
             className="mt-10 flex flex-col md:flex-row gap-6 items-center justify-center gap-x-6"
           >
-            <Button onClick={() => router.push('/shipping')} size="lg" className="gap-2">
+            <Button
+              onClick={() => router.push("/shipping")}
+              size="lg"
+              className="gap-2"
+            >
               <Package className="h-5 w-5" />
               Ship Now
               <ArrowRight className="h-4 w-4" />
             </Button>
-            <Button onClick={() => router.push('/buy4me')} size="lg" variant="outline" className="gap-2 bg-gray-900 hover:bg-gray-800">
+            <Button
+              onClick={() => router.push("/buy4me")}
+              size="lg"
+              variant="ghost"
+              className="gap-2 bg-gray-900 text-white hover:text-white hover:bg-gray-800"
+            >
               <ShoppingBag className="h-5 w-5" />
               Buy4Me Service
             </Button>
@@ -66,5 +76,5 @@ export function HeroSection() {
         </motion.div>
       </div>
     </div>
-  )
+  );
 }

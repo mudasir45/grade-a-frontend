@@ -1,36 +1,45 @@
-'use client'
+"use client";
 
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Facebook, Instagram, Linkedin, Mail, MapPin, Package, Phone, Twitter } from 'lucide-react'
-import Link from 'next/link'
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Facebook,
+  Instagram,
+  Linkedin,
+  Mail,
+  MapPin,
+  Package,
+  Phone,
+  Twitter,
+} from "lucide-react";
+import Link from "next/link";
 
 const footerLinks = {
   services: [
-    { name: 'International Shipping', href: '#' },
-    { name: 'Buy4Me Service', href: '#' },
-    { name: 'Express Delivery', href: '#' },
-    { name: 'Consolidation', href: '#' },
+    { name: "International Shipping", href: "#" },
+    { name: "Buy4Me Service", href: "#" },
+    { name: "Express Delivery", href: "#" },
+    { name: "Consolidation", href: "#" },
   ],
   company: [
-    { name: 'About Us', href: '#' },
-    { name: 'Contact', href: '#' },
-    { name: 'Careers', href: '#' },
-    { name: 'Blog', href: '#' },
+    { name: "About Us", href: "#" },
+    { name: "Contact", href: "#" },
+    { name: "Careers", href: "#" },
+    { name: "Blog", href: "#" },
   ],
   support: [
-    { name: 'Help Center', href: '#' },
-    { name: 'Track Package', href: '#' },
-    { name: 'Shipping Rates', href: '#' },
-    { name: 'FAQs', href: '#' },
+    { name: "Help Center", href: "#" },
+    { name: "Track Package", href: "#" },
+    { name: "Shipping Rates", href: "#" },
+    { name: "FAQs", href: "#" },
   ],
   legal: [
-    { name: 'Privacy Policy', href: '#' },
-    { name: 'Terms of Service', href: '#' },
-    { name: 'Shipping Policy', href: '#' },
-    { name: 'Returns Policy', href: '#' },
+    { name: "Privacy Policy", href: "#" },
+    { name: "Terms of Service", href: "#" },
+    { name: "Shipping Policy", href: "#" },
+    { name: "Returns Policy", href: "#" },
   ],
-}
+};
 
 export function Footer() {
   return (
@@ -41,10 +50,13 @@ export function Footer() {
           <div className="lg:col-span-2">
             <Link href="/" className="flex items-center space-x-2">
               <Package className="h-8 w-8 text-red-500" />
-              <span className="text-xl font-bold text-white">Logistic System</span>
+              <span className="text-xl font-bold text-white">
+                Logistic System
+              </span>
             </Link>
             <p className="mt-4 text-sm leading-6">
-              Your trusted partner for global logistics and Buy4Me services. Fast, reliable, and affordable shipping solutions worldwide.
+              Your trusted partner for global logistics and Buy4Me services.
+              Fast, reliable, and affordable shipping solutions worldwide.
             </p>
             <div className="mt-6 space-y-4">
               <div className="flex items-center gap-3">
@@ -64,11 +76,16 @@ export function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Services</h3>
+            <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
+              Services
+            </h3>
             <ul className="mt-4 space-y-3">
               {footerLinks.services.map((link) => (
                 <li key={link.name}>
-                  <Link href={link.href} className="text-sm hover:text-white transition-colors">
+                  <Link
+                    href={link.href}
+                    className="text-sm hover:text-white transition-colors"
+                  >
                     {link.name}
                   </Link>
                 </li>
@@ -77,11 +94,16 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Company</h3>
+            <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
+              Company
+            </h3>
             <ul className="mt-4 space-y-3">
               {footerLinks.company.map((link) => (
                 <li key={link.name}>
-                  <Link href={link.href} className="text-sm hover:text-white transition-colors">
+                  <Link
+                    href={link.href}
+                    className="text-sm hover:text-white transition-colors"
+                  >
                     {link.name}
                   </Link>
                 </li>
@@ -91,8 +113,12 @@ export function Footer() {
 
           {/* Newsletter */}
           <div>
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Stay Updated</h3>
-            <p className="mt-4 text-sm">Subscribe to our newsletter for the latest updates and offers.</p>
+            <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
+              Stay Updated
+            </h3>
+            <p className="mt-4 text-sm">
+              Subscribe to our newsletter for the latest updates and offers.
+            </p>
             <form className="mt-4 space-y-3">
               <Input
                 type="email"
@@ -105,16 +131,28 @@ export function Footer() {
             </form>
             <div className="mt-6">
               <div className="flex space-x-4">
-                <Link href="#" className="text-gray-400 hover:text-white transition-colors">
+                <Link
+                  href="#"
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
                   <Facebook className="h-5 w-5" />
                 </Link>
-                <Link href="#" className="text-gray-400 hover:text-white transition-colors">
+                <Link
+                  href="#"
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
                   <Twitter className="h-5 w-5" />
                 </Link>
-                <Link href="#" className="text-gray-400 hover:text-white transition-colors">
+                <Link
+                  href="#"
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
                   <Instagram className="h-5 w-5" />
                 </Link>
-                <Link href="#" className="text-gray-400 hover:text-white transition-colors">
+                <Link
+                  href="#"
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
                   <Linkedin className="h-5 w-5" />
                 </Link>
               </div>
@@ -124,10 +162,20 @@ export function Footer() {
 
         <div className="mt-12 pt-8 border-t border-gray-800">
           <p className="text-sm text-center">
-            © {new Date().getFullYear()} RedBox Express. All rights reserved.
+            © {new Date().getFullYear()} Grade A Express. All rights reserved.
+          </p>
+          <p className="text-sm text-center">
+            Developed by{" "}
+            <a
+              className="text-blue-500 font-semibold"
+              href="https://www.imergesolutions.com/"
+              target="_blank"
+            >
+              iMerge Solutions
+            </a>
           </p>
         </div>
       </div>
     </footer>
-  )
+  );
 }

@@ -11,20 +11,18 @@ import * as React from "react";
 import { AuthDialog } from "./auth/auth-dialog";
 import { UserNav } from "./user-nav";
 
-
 const navigation = [
-    { name: 'Services', href: '#services' },
-    { name: 'How it Works', href: '#how-it-works' },
-    { name: 'Pricing', href: '#pricing' },
-    { name: 'About', href: '#about' },
-    { name: 'Contact', href: '#contact' },
+  { name: "Services", href: "/services" },
+  { name: "Tracking", href: "/tracking" },
+  { name: "About", href: "/about" },
+  { name: "Contact", href: "/contact" },
 ] as const;
 
 export function Navbar() {
   const pathname = usePathname();
   const [isScrolled, setIsScrolled] = React.useState(false);
   const [isOpen, setIsOpen] = React.useState(false);
-  const { user } = useAuth()
+  const { user } = useAuth();
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -46,7 +44,7 @@ export function Navbar() {
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-label="Top">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
-                {/* <Link href="/" className="flex items-center space-x-2">
+            {/* <Link href="/" className="flex items-center space-x-2">
                 <Image src={logo} alt="iMerge" width={100} height={30} />
                 </Link> */}
             <Link href="/" className="-m-1.5 p-1.5">
@@ -73,15 +71,12 @@ export function Navbar() {
                 {item.name}
               </Link>
             ))}
-       
-            <div className="py-6">
-                {user ? <UserNav /> : <AuthDialog />}
-              </div>
+
+            <div className="py-6">{user ? <UserNav /> : <AuthDialog />}</div>
           </div>
 
           {/* Mobile Navigation */}
           <div className="md:hidden flex items-center gap-4">
-       
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -105,9 +100,9 @@ export function Navbar() {
                       {item.name}
                     </Link>
                   ))}
-                   <div className="py-6">
-                        {user ? <UserNav /> : <AuthDialog />}
-                    </div>
+                  <div className="py-6">
+                    {user ? <UserNav /> : <AuthDialog />}
+                  </div>
                 </nav>
               </SheetContent>
             </Sheet>

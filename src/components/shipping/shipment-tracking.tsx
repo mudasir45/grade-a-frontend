@@ -1,52 +1,53 @@
-'use client'
+"use client";
 
-import { Button } from '@/components/ui/button'
+import { Button } from "@/components/ui/button";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { useToast } from '@/hooks/use-toast'
-import { ShippingAPI } from '@/lib/api/shipping'
-import { formatDate } from '@/lib/utils'
-import { Package, Search } from 'lucide-react'
-import { useState } from 'react'
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { ShippingAPI } from "@/lib/api/shipping";
+import { formatDate } from "@/lib/utils";
+import { Package, Search } from "lucide-react";
+import { useState } from "react";
 
 export function ShipmentTracking() {
-  const { toast } = useToast()
-  const [trackingNumber, setTrackingNumber] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [trackingData, setTrackingData] = useState<any>(null)
+  const { toast } = useToast();
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [trackingData, setTrackingData] = useState<any>(null);
 
   const handleTrack = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (!trackingNumber.trim()) {
       toast({
-        title: 'Missing Tracking Number',
-        description: 'Please enter a tracking number',
-        variant: 'destructive',
-      })
-      return
+        title: "Missing Tracking Number",
+        description: "Please enter a tracking number",
+        variant: "destructive",
+      });
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
 
     try {
-      const data = await ShippingAPI.trackShipment(trackingNumber)
-      setTrackingData(data)
+      const data = await ShippingAPI.trackShipment(trackingNumber);
+      setTrackingData(data);
     } catch (error) {
       toast({
-        title: 'Tracking Failed',
-        description: error instanceof Error ? error.message : 'Failed to track shipment',
-        variant: 'destructive',
-      })
+        title: "Tracking Failed",
+        description:
+          error instanceof Error ? error.message : "Failed to track shipment",
+        variant: "destructive",
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -59,7 +60,7 @@ export function ShipmentTracking() {
         />
         <Button type="submit" disabled={loading}>
           {loading ? (
-            'Tracking...'
+            "Tracking..."
           ) : (
             <>
               Track
@@ -95,8 +96,12 @@ export function ShipmentTracking() {
                 </div>
                 {trackingData.estimated_delivery && (
                   <div className="col-span-2">
-                    <p className="text-sm text-muted-foreground">Estimated Delivery</p>
-                    <p className="font-medium">{formatDate(trackingData.estimated_delivery)}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Estimated Delivery
+                    </p>
+                    <p className="font-medium">
+                      {formatDate(trackingData.estimated_delivery)}
+                    </p>
                   </div>
                 )}
               </div>
@@ -108,22 +113,32 @@ export function ShipmentTracking() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">From</p>
-                  <p className="font-medium">{trackingData.shipment_details.origin.name}</p>
-                  <p className="text-sm">{trackingData.shipment_details.origin.country}</p>
+                  <p className="font-medium">
+                    {trackingData.shipment_details.origin.name}
+                  </p>
+                  <p className="text-sm">
+                    {trackingData.shipment_details.origin.country}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">To</p>
-                  <p className="font-medium">{trackingData.shipment_details.destination.name}</p>
-                  <p className="text-sm">{trackingData.shipment_details.destination.country}</p>
+                  <p className="font-medium">
+                    {trackingData.shipment_details.destination.name}
+                  </p>
+                  <p className="text-sm">
+                    {trackingData.shipment_details.destination.country}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Service</p>
-                  <p className="font-medium capitalize">{trackingData.shipment_details.service}</p>
+                  <p className="font-medium capitalize">
+                    {trackingData.shipment_details.service}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Package</p>
                   <p className="font-medium">
-                    {trackingData.shipment_details.package.weight}kg, 
+                    {trackingData.shipment_details.package.weight}kg,
                     {trackingData.shipment_details.package.dimensions.length}x
                     {trackingData.shipment_details.package.dimensions.width}x
                     {trackingData.shipment_details.package.dimensions.height}cm
@@ -136,26 +151,30 @@ export function ShipmentTracking() {
             <div>
               <h3 className="font-semibold mb-4">Tracking History</h3>
               <div className="space-y-4">
-                {trackingData.tracking_history.map((event: any, index: number) => (
-                  <div
-                    key={index}
-                    className="relative pl-6 pb-4 border-l-2 border-muted-foreground last:border-l-0"
-                  >
-                    <div className="absolute -left-[9px] top-0 h-4 w-4 rounded-full bg-background border-2 border-muted-foreground" />
-                    <p className="font-medium">{event.status}</p>
-                    <p className="text-sm text-muted-foreground">{event.description}</p>
-                    <div className="flex gap-2 text-sm text-muted-foreground mt-1">
-                      <span>{event.location}</span>
-                      <span>•</span>
-                      <span>{formatDate(event.timestamp)}</span>
+                {trackingData.tracking_history.map(
+                  (event: any, index: number) => (
+                    <div
+                      key={index}
+                      className="relative pl-6 pb-4 border-l-2 border-muted-foreground last:border-l-0"
+                    >
+                      <div className="absolute -left-[9px] top-0 h-4 w-4 rounded-full bg-background border-2 border-muted-foreground" />
+                      <p className="font-medium">{event.status}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {event.description}
+                      </p>
+                      <div className="flex gap-2 text-sm text-muted-foreground mt-1">
+                        <span>{event.location}</span>
+                        <span>•</span>
+                        <span>{formatDate(event.timestamp)}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                )}
               </div>
             </div>
           </CardContent>
         </Card>
       )}
     </div>
-  )
+  );
 }
