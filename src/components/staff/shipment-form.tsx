@@ -1,7 +1,7 @@
 'use client'
 
 import { useToast } from '@/hooks/use-toast'
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -15,6 +15,11 @@ import useShippingData from '@/hooks/use-shipping-data'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 import { z } from 'zod'
+import { ShippingAPI } from '@/lib/api/shipping'
+import type { ShippingRate } from '@/lib/types/shipping'
+import { Loader2 } from 'lucide-react'
+import { ShippingSuccess } from '@/components/shipping/shipping-success'
+import { CreateCustomerDialog } from "@/components/staff/create-customer-dialog"
 
 interface FormErrors {
     sender: string[]
@@ -34,7 +39,53 @@ const phoneSchema = z.string().regex(
     'Phone number must be in international format (e.g., +1234567890)'
 )
 
-export function ShipmentForm() {
+interface ShipmentFormProps {
+    mode?: 'create' | 'edit'
+    trackingNumber?: string
+    initialData?: any // Type this properly based on your data structure
+    onEdit?: (data: any) => void
+    users?: any[]
+}
+
+// Add this interface to define the shape of your form data
+interface FormData {
+    sender_name: string
+    sender_phone: string
+    sender_email: string
+    sender_country: string
+    sender_address: string
+    recipient_name: string
+    recipient_phone: string
+    recipient_email: string
+    recipient_country: string
+    recipient_address: string
+    package_type: string
+    weight: number
+    base_rate: string
+    length: number
+    width: number
+    height: number
+    description: string
+    declared_value: number
+    service_type: string
+    insurance_required: boolean
+    signature_required: boolean
+    packaging_rm: number
+    delivery_rm: number
+   total_rm: number
+    total_naira: number
+     send_via: string
+    additional_charges: {
+        food: boolean
+        creams: boolean
+        traditional: boolean
+        electronics: boolean
+        documents: boolean
+        medications: boolean
+    }
+}
+
+export function ShipmentForm({ mode = 'create', trackingNumber, initialData, onEdit, users }: ShipmentFormProps) {
     const { toast } = useToast()
     const [fieldErrors, setFieldErrors] = useState<FieldError[]>([])
     const [errors, setErrors] = useState<FormErrors>({
@@ -54,18 +105,23 @@ export function ShipmentForm() {
 
     // Set default service type from the first available service
     const defaultServiceType = serviceTypes[0]?.id
-    const [searchCustomer, setSearchCustomer] = useState('')
-    const [formData, setFormData] = useState({
+    const [searchCustomerId, setSearchCustomerId] = useState('')
+    const [showCreateCustomerDialog, setShowCreateCustomerDialog] = useState(false)
+     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [showSuccess, setShowSuccess] = useState(false)
+    const [shipmentData, setShipmentData] = useState<any>(null)
+    // Initialize form data with default values
+    const defaultFormData: FormData = {
         sender_name: '',
         sender_phone: '',
         sender_email: '',
         sender_country: '',
         sender_address: '',
-        receiver_name: '',
-        receiver_phone: '',
-        receiver_email: '',
-        receiver_country: '',
-        receiver_address: '',
+        recipient_name: '',
+        recipient_phone: '',
+        recipient_email: '',
+        recipient_country: '',
+        recipient_address: '',
         package_type: '',
         weight: 0,
         base_rate: '',
@@ -75,13 +131,13 @@ export function ShipmentForm() {
         description: '',
         declared_value: 0,
         service_type: defaultServiceType || "",
-        insurance_required: false,      
+        insurance_required: false,
         signature_required: false,
-        packagingRM:0,
-        deliveryRM: 0,
-        totalBillRM: 0,
-        totalBillNaira: 0,
-        sendBillVia: 'whatsapp',
+        packaging_rm: 0,
+        delivery_rm: 0,
+       total_rm: 0,
+        total_naira: 0,
+         send_via: '',
         additional_charges: {
             food: false,
             creams: false,
@@ -90,7 +146,9 @@ export function ShipmentForm() {
             documents: false,
             medications: false
         },
-    })
+    }
+
+    const [formData, setFormData] = useState<FormData>(defaultFormData)
 
     const additional_charges = [
         { id: "food", label: "Food stuff" },
@@ -128,11 +186,11 @@ export function ShipmentForm() {
         try {
             switch (field) {
                 case 'sender_email':
-                case 'receiver_email':
+                case 'recipient_email':
                     emailSchema.parse(value)
                     return null
                 case 'sender_phone':
-                case 'receiver_phone':
+                case 'recipient_phone':
                     phoneSchema.parse(value)
                     return null
                 default:
@@ -165,9 +223,145 @@ export function ShipmentForm() {
         )
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const [shippingRate, setShippingRate] = useState<ShippingRate | null>(null)
+    const [calculating, setCalculating] = useState(false)
+
+    // Calculate shipping rate when relevant fields change
+    useEffect(() => {
+        const calculateShippingRate = async () => {
+            // Required fields for rate calculation
+            const requiredFields = [
+                'sender_country',
+                'recipient_country',
+                'weight',
+                'length',
+                'width',
+                'height'
+            ] as const
+
+            // Check if we have all required fields
+            const hasRequiredFields = requiredFields.every(field => {
+                const value = formData[field]
+                if (typeof value === 'number') {
+                    return value > 0
+                }
+                return Boolean(value)
+            })
+
+            // If we don't have all required fields, don't do anything
+            if (!hasRequiredFields) return
+
+            // If we don't have service type, show guidance
+            if (!formData.service_type) {
+                toast({
+                    title: 'Service Type Required',
+                    description: 'Please select a service type to see shipping rates.',
+                })
+                return
+            }
+
+            setCalculating(true)
+            setShippingRate(null)
+
+            try {
+                const rate = await ShippingAPI.calculateRate({
+                    origin_country: formData.sender_country,
+                    destination_country: formData.recipient_country,
+                    weight: formData.weight,
+                    length: formData.length,
+                    width: formData.width,
+                    height: formData.height,
+                    service_type: formData.service_type,
+                    declared_value: formData.declared_value || 0,
+                    insurance_required: formData.insurance_required || false
+                })
+
+                setShippingRate(rate)
+
+                // Update the delivery and total bill amounts
+                setFormData(prev => ({
+                    ...prev,
+                    delivery_rm: rate.cost_breakdown.total_cost,
+                   total_rm: rate.cost_breakdown.total_cost + prev.packaging_rm,
+                    total_naira: (rate.cost_breakdown.total_cost + prev.packaging_rm) * 100 // Assuming 1 RM = 100 Naira
+                }))
+            } catch (error) {
+                console.error('Rate calculation error:', error)
+                toast({
+                    title: 'Rate Calculation Failed',
+                    description: error instanceof Error
+                        ? error.message
+                        : 'Failed to calculate shipping rate. Please try again.',
+                    variant: 'destructive'
+                })
+            } finally {
+                setCalculating(false)
+            }
+        }
+
+        // Debounce the calculation to prevent too many API calls
+        const timeoutId = setTimeout(calculateShippingRate, 500)
+        return () => clearTimeout(timeoutId)
+    }, [
+        formData.sender_country,
+        formData.recipient_country,
+        formData.weight,
+        formData.length,
+        formData.width,
+        formData.height,
+        formData.service_type,
+        formData.declared_value,
+        formData.insurance_required,
+        formData.packaging_rm
+    ])
+
+   
+
+    const createShipment = async () => {
+        if (!searchCustomerId) {
+            toast({
+                title: 'Error',
+                description: 'Please select a customer first',
+                variant: 'destructive'
+            })
+            return
+        }
+
+        setIsSubmitting(true)
+        console.log(searchCustomerId)
+        try {
+            const token = localStorage.getItem('auth_token')
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/shipments/create-shipment/${searchCustomerId}/`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+
+            if (!response.ok) {
+                throw new Error('Response is not ok')
+            }
+
+            const data = await response.json()
+            setShipmentData(data)
+            setShowSuccess(true)
+        } catch (error) {
+            console.error('Error creating shipment:', error)
+            toast({
+                title: 'Error',
+                description: error instanceof Error ? error.message : 'Failed to create shipment',
+                variant: 'destructive'
+            })
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        console.log(formData)
+
         // Validate all fields before submission
         const senderErrors: string[] = []
         const recipientErrors: string[] = []
@@ -182,12 +376,12 @@ export function ShipmentForm() {
         if (!formData.sender_address) senderErrors.push('Sender address is required')
 
         // Validate recipient details
-        if (!formData.receiver_name) recipientErrors.push('Recipient name is required')
-        if (!formData.receiver_phone) recipientErrors.push('Recipient phone number is required')
-        const receiverEmailError = validateField('receiver_email', formData.receiver_email)
+        if (!formData.recipient_name) recipientErrors.push('Recipient name is required')
+        if (!formData.recipient_phone) recipientErrors.push('Recipient phone number is required')
+        const receiverEmailError = validateField('recipient_email', formData.recipient_email)
         if (receiverEmailError) recipientErrors.push(receiverEmailError)
-        if (!formData.receiver_country) recipientErrors.push('Recipient city is required')
-        if (!formData.receiver_address) recipientErrors.push('Recipient address is required')
+        if (!formData.recipient_country) recipientErrors.push('Recipient city is required')
+        if (!formData.recipient_address) recipientErrors.push('Recipient address is required')
 
         // Validate package details
         if (!formData.package_type) packageErrors.push('Package type is required')
@@ -212,36 +406,139 @@ export function ShipmentForm() {
             return
         }
 
-       
-        // Handle form submission logic here
-        toast({
-            title: 'Shipment Created',
-            description: 'The shipment has been successfully created.',
-        })
+        await createShipment()
+    }
+
+    // Update the form title and button text based on mode
+    const formTitle = mode === 'create' ? 'Create New Shipment' : 'Update Shipment'
+    const submitButtonText = mode === 'create' ? 'Create Shipment' : 'Update Shipment'
+
+    // Update form data when initialData is provided
+    useEffect(() => {
+        if (mode === 'edit' && initialData) {
+            // Merge initialData with default values to ensure all properties exist
+            setFormData({
+                ...defaultFormData,
+                ...initialData,
+                additional_charges: {
+                    ...defaultFormData.additional_charges,
+                    ...(initialData.additional_charges || {})
+                }
+            })
+        }
+    }, [mode, initialData])
+
+    // Add new function to fetch last shipment
+    const fetchLastShipment = async (userId: string) => {
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/shipments/last-shipment/${userId}/`)
+            if (!response.ok) {
+                throw new Error('Failed to fetch last shipment')
+            }
+            const data = await response.json()
+
+            // Update form data with last shipment details
+            setFormData(prev => ({
+                ...prev,
+                sender_name: data.sender_name || '',
+                sender_phone: data.sender_phone || '',
+                sender_email: data.sender_email || '',
+                sender_country: data.sender_country || '',
+                sender_address: data.sender_address || '',
+                recipient_name: data.recipient_name || '',
+                recipient_phone: data.recipient_phone || '',
+                recipient_email: data.recipient_email || '',
+                recipient_country: data.recipient_country || '',
+                recipient_address: data.recipient_address || '',
+            }))
+        } catch (error) {
+            console.error('Error fetching last shipment:', error)
+            toast({
+                title: 'Error',
+                description: 'Failed to fetch last shipment details',
+                variant: 'destructive',
+            })
+        }
+    }
+
+    // Update the customer search handler
+    const handleCustomerSelect = (userId: string) => {
+        setSearchCustomerId(userId)
+        fetchLastShipment(userId)
+    }
+
+   
+   
+
+    if (showSuccess && shipmentData) {
+        return <ShippingSuccess shipment={shipmentData} />
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6 flex">
+        <form className="space-y-6 flex">
             <Card className="w-full max-w-4xl mx-auto">
                 <CardHeader>
-                    <CardTitle className="text-2xl font-semibold">Create New Shipment</CardTitle>
+                    <CardTitle className="text-2xl font-semibold">{formTitle}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    {/* Customer Search */}
-                    <div className="flex gap-4 flex-col sm:flex-row sm:items-end">
-                        <div className="flex-1 space-y-2">
-                            <Label htmlFor="customer-search">Search customer</Label>
-                            <Select value={searchCustomer} onValueChange={setSearchCustomer}>
-                                <SelectTrigger id="search-customer">
-                                    <SelectValue placeholder="Search customer by phone number" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="923180522996">03180522996</SelectItem>
-                                </SelectContent>
-                            </Select>
+                    {/* Customer Search / Tracking Number */}
+                    {mode === 'create' ? (
+                        <div className="flex gap-4 flex-col sm:flex-row sm:items-end">
+                            <div className="flex-1 space-y-2">
+                                <Label htmlFor="customer-search">Search customer</Label>
+                                <Select
+                                    value={searchCustomerId}
+                                    onValueChange={handleCustomerSelect}
+                                >
+                                    <SelectTrigger id="search-customer">
+                                        <SelectValue placeholder="Search customer by username" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {users && users.map((user) => (
+                                            <SelectItem key={user.id} value={user.id}>
+                                                <span className="flex items-center gap-2">
+                                                    <span>{user.username}</span>
+                                                </span>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <Button 
+                                type='button' 
+                                variant="secondary"
+                                onClick={() => setShowCreateCustomerDialog(true)}
+                            >
+                                Create New Customer
+                            </Button>
                         </div>
-                        <Button type='button' variant="secondary">Create New Customer</Button>
-                    </div>
+                    ) : (
+                        <div className="flex gap-4 flex-row sm:items-end">
+                            <div className="flex-1 space-y-2">
+                                <Label htmlFor="tracking-number">Tracking Number</Label>
+                                <Input
+                                    id="tracking-number"
+                                    value={trackingNumber}
+                                    readOnly
+                                    className="bg-muted"
+                                />
+                            </div>
+                            <div className="w-full sm:w-1/4 space-y-2">
+                                <Label htmlFor="status">Status</Label>
+                                <Select>
+                                    <SelectTrigger id="status">
+                                        <SelectValue placeholder="Status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Status</SelectItem>
+                                        <SelectItem value="pending">Pending</SelectItem>
+                                        <SelectItem value="in-transit">In Transit</SelectItem>
+                                        <SelectItem value="delivered">Delivered</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="grid md:grid-cols-2 gap-4 md:gap-8">
                         {/* Sender Information */}
@@ -338,15 +635,15 @@ export function ShipmentForm() {
                                 <Input
                                     id="receiver-name"
                                     placeholder="Enter receiver name"
-                                    value={formData.receiver_name}
-                                    onChange={(e) => handleFieldChange('receiver_name', e.target.value)}
+                                    value={formData.recipient_name}
+                                    onChange={(e) => handleFieldChange('recipient_name', e.target.value)}
                                     className={cn(
                                         "w-full",
-                                        getFieldError('receiver_name') && "border-red-500 focus-visible:ring-red-500"
+                                        getFieldError('recipient_name') && "border-red-500 focus-visible:ring-red-500"
                                     )}
                                 />
-                                {getFieldError('receiver_name') && (
-                                    <p className="text-xs text-red-500 mt-1">{getFieldError('receiver_name')}</p>
+                                {getFieldError('recipient_name') && (
+                                    <p className="text-xs text-red-500 mt-1">{getFieldError('recipient_name')}</p>
                                 )}
                             </div>
                             <div className="space-y-2">
@@ -355,15 +652,15 @@ export function ShipmentForm() {
                                     id="receiver-number"
                                     type="tel"
                                     placeholder="Enter phone number"
-                                    value={formData.receiver_phone}
-                                    onChange={(e) => handleFieldChange('receiver_phone', e.target.value)}
+                                    value={formData.recipient_phone}
+                                    onChange={(e) => handleFieldChange('recipient_phone', e.target.value)}
                                     className={cn(
                                         "w-full",
-                                        getFieldError('receiver_phone') && "border-red-500 focus-visible:ring-red-500"
+                                        getFieldError('recipient_phone') && "border-red-500 focus-visible:ring-red-500"
                                     )}
                                 />
-                                {getFieldError('receiver_phone') && (
-                                    <p className="text-xs text-red-500 mt-1">{getFieldError('receiver_phone')}</p>
+                                {getFieldError('recipient_phone') && (
+                                    <p className="text-xs text-red-500 mt-1">{getFieldError('recipient_phone')}</p>
                                 )}
                             </div>
                             <div className="space-y-2">
@@ -372,25 +669,25 @@ export function ShipmentForm() {
                                     id="receiver-email"
                                     type="email"
                                     placeholder="Enter email"
-                                    value={formData.receiver_email}
-                                    onChange={(e) => handleFieldChange('receiver_email', e.target.value)}
+                                    value={formData.recipient_email}
+                                    onChange={(e) => handleFieldChange('recipient_email', e.target.value)}
                                     className={cn(
                                         "w-full",
-                                        getFieldError('receiver_email') && "border-red-500 focus-visible:ring-red-500"
+                                        getFieldError('recipient_email') && "border-red-500 focus-visible:ring-red-500"
                                     )}
                                 />
-                                {getFieldError('receiver_email') && (
-                                    <p className="text-xs text-red-500 mt-1">{getFieldError('receiver_email')}</p>
+                                {getFieldError('recipient_email') && (
+                                    <p className="text-xs text-red-500 mt-1">{getFieldError('recipient_email')}</p>
                                 )}
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="receiver-city">Receiver Country</Label>
                                 <Select
-                                    value={formData.receiver_country}
-                                    onValueChange={(value) => handleFieldChange('receiver_country', value)}
+                                    value={formData.recipient_country}
+                                    onValueChange={(value) => handleFieldChange('recipient_country', value)}
                                 >
                                     <SelectTrigger id="receiver-city" className={cn(
-                                        getFieldError('receiver_country') && "border-red-500 focus-visible:ring-red-500"
+                                        getFieldError('recipient_country') && "border-red-500 focus-visible:ring-red-500"
                                     )}>
                                         <SelectValue placeholder="Select country" />
                                     </SelectTrigger>
@@ -404,8 +701,8 @@ export function ShipmentForm() {
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                {getFieldError('receiver_country') && (
-                                    <p className="text-xs text-red-500 mt-1">{getFieldError('receiver_country')}</p>
+                                {getFieldError('recipient_country') && (
+                                    <p className="text-xs text-red-500 mt-1">{getFieldError('recipient_country')}</p>
                                 )}
                             </div>
                             <div className="space-y-2">
@@ -413,14 +710,14 @@ export function ShipmentForm() {
                                 <Textarea
                                     id="receiver-address"
                                     placeholder="Enter complete address"
-                                    value={formData.receiver_address}
-                                    onChange={(e) => handleFieldChange('receiver_address', e.target.value)}
+                                    value={formData.recipient_address}
+                                    onChange={(e) => handleFieldChange('recipient_address', e.target.value)}
                                     className={cn(
-                                        getFieldError('receiver_address') && "border-red-500 focus-visible:ring-red-500"
+                                        getFieldError('recipient_address') && "border-red-500 focus-visible:ring-red-500"
                                     )}
                                 />
-                                {getFieldError('receiver_address') && (
-                                    <p className="text-xs text-red-500 mt-1">{getFieldError('receiver_address')}</p>
+                                {getFieldError('recipient_address') && (
+                                    <p className="text-xs text-red-500 mt-1">{getFieldError('recipient_address')}</p>
                                 )}
                             </div>
                         </div>
@@ -470,7 +767,7 @@ export function ShipmentForm() {
                                     min="0.1"
                                     step="0.1"
                                     placeholder="Enter weight"
-                                    value={formData.weight || ''}
+                                    value={formData.weight}
                                     onChange={(e) => handleFieldChange('weight', parseFloat(e.target.value))}
                                     className={cn(
                                         "w-full",
@@ -556,8 +853,8 @@ export function ShipmentForm() {
                                     type="number"
                                     min="0"
                                     placeholder="Enter the cost of packing"
-                                    value={formData.packagingRM}
-                                    onChange={(e) => setFormData({ ...formData, packagingRM: parseFloat(e.target.value) })}
+                                    value={formData.packaging_rm}
+                                    onChange={(e) => setFormData({ ...formData, packaging_rm: parseFloat(e.target.value) })}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -632,30 +929,33 @@ export function ShipmentForm() {
                     <div className="space-y-4">
                         <div className="grid md:grid-cols-3 gap-6">
                             <div className="space-y-2">
-                                <Label htmlFor="deliveryRM">Delivery(RM)</Label>
+                                <Label htmlFor="delivery_rm">Delivery(RM)</Label>
                                 <Input
-                                    id="deliveryRM"
+                                    id="delivery_rm"
                                     type="number"
-                                    value={formData.deliveryRM}
+                                    value={formData.delivery_rm}
                                     readOnly
+                                    className="bg-muted"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="totalBillRM">Total Bill (RM)</Label>
+                                <Label htmlFor="total_rm">Total Bill (RM)</Label>
                                 <Input
-                                    id="totalBillRM"
+                                    id="total_rm"
                                     type="number"
-                                    value={formData.totalBillRM}
+                                    value={formData.total_rm}
                                     readOnly
+                                    className="bg-muted"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="totalBillNaira">Total Bill (Naira)</Label>
+                                <Label htmlFor="total_naira">Total Bill (Naira)</Label>
                                 <Input
-                                    id="totalBillNaira"
+                                    id="total_naira"
                                     type="number"
-                                    value={formData.totalBillNaira}
+                                    value={formData.total_naira}
                                     readOnly
+                                    className="bg-muted"
                                 />
                             </div>
                         </div>
@@ -693,8 +993,8 @@ export function ShipmentForm() {
                     <div className="space-y-4">
                         <h3 className="font-medium">Send Bill Via</h3>
                         <RadioGroup
-                            value={formData.sendBillVia}
-                            onValueChange={(value) => setFormData({ ...formData, sendBillVia: value })}
+                            value={formData.send_via}
+                            onValueChange={(value) => setFormData({ ...formData,  send_via: value })}
                             className="flex gap-4"
                         >
                             <div className="flex items-center space-x-2">
@@ -705,14 +1005,84 @@ export function ShipmentForm() {
                                 <RadioGroupItem value="sms" id="sms" />
                                 <Label htmlFor="sms">SMS</Label>
                             </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="both" id="both" />
+                                <Label htmlFor="both">Both</Label>
+                            </div>
                         </RadioGroup>
+                        <Button type="button">Send</Button>
                     </div>
+
+                    {calculating && (
+                        <div className="flex items-center justify-center space-x-2 text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>Calculating shipping rate...</span>
+                        </div>
+                    )}
+
+                    {shippingRate && (
+                        <Card className="mt-6">
+                            <CardHeader>
+                                <CardTitle className="text-lg">Shipping Cost Breakdown</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                                <div className="grid gap-2 text-sm sm:text-base">
+                                    <div className="flex justify-between">
+                                        <span>Base Rate:</span>
+                                        <span>${shippingRate.rate_details.base_rate}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>Weight Charge:</span>
+                                        <span>${shippingRate.rate_details.weight_charge}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>Service Charge:</span>
+                                        <span>${shippingRate.cost_breakdown.service_price}</span>
+                                    </div>
+                                    {shippingRate.cost_breakdown.additional_charges.map(charge => (
+                                        <div key={charge.name} className="flex justify-between">
+                                            <span>{charge.name}:</span>
+                                            <span>${charge.amount}</span>
+                                        </div>
+                                    ))}
+                                    <div className="border-t pt-2 flex justify-between font-bold">
+                                        <span>Total:</span>
+                                        <span>${shippingRate.cost_breakdown.total_cost}</span>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
                     <div className="flex flex-col sm:flex-row gap-4 sm:justify-end">
-                        <Button type="button" variant="outline">Print AWB</Button>
-                        <Button type="submit">Create Shipment</Button>
+                        <Button 
+                            type="button" 
+                            variant="outline" 
+                            disabled={isSubmitting}
+                        >
+                            Print AWB
+                        </Button>
+                        <Button 
+                            type="submit" 
+                            disabled={isSubmitting}
+                            onClick={handleSubmit}
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Creating...
+                                </>
+                            ) : (
+                                submitButtonText
+                            )}
+                        </Button>
                     </div>
                 </CardContent>
             </Card>
+            <CreateCustomerDialog 
+                open={showCreateCustomerDialog}
+                onOpenChange={setShowCreateCustomerDialog}
+            />
         </form>
     )
 }

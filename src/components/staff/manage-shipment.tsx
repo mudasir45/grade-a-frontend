@@ -17,81 +17,77 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { Eye, Pencil, Trash2, MoreHorizontal, Search, FileDown, Plus } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ShipmentForm } from "./shipment-form"
+// Update the imports and add interface for shipment type
+interface Shipment {
+  id: string
+  user: string
+  cod_amount: string
+  payment_method: string
+  payment_status: string
+  payment_date: string | null
+  transaction_id: string
+  receipt: string
+  sender_name: string
+  sender_email: string
+  sender_phone: string
+  sender_address: string
+  sender_country: string
+  recipient_name: string
+  recipient_email: string
+  recipient_phone: string
+  recipient_address: string
+  recipient_country: string
+  package_type: string
+  weight: string
+  length: string
+  width: string
+  height: string
+  description: string
+  declared_value: string
+  insurance_required: boolean
+  signature_required: boolean
+  tracking_number: string
+  current_location: string
+  tracking_history: {
+    status: string
+    location: string
+    timestamp: string
+    description: string
+  }[]
+  estimated_delivery: string | null
+  status: string
+  base_rate: string
+  per_kg_rate: string
+  weight_charge: string
+  service_charge: string
+  total_additional_charges: string
+  total_cost: string
+  notes: string
+  created_at: string
+  updated_at: string
+  staff: string
+  service_type: string
+}
 
-// Sample data for the table
-const shipments = [
-  {
-    id: "SHP-001",
-    trackingNumber: "TRK12345678",
-    senderName: "John Smith",
-    receiverName: "Jane Doe",
-    origin: "Lagos",
-    destination: "Abuja",
-    date: "2025-02-25",
-    weight: "2.5",
-    amount: "₦4,500",
-    status: "delivered",
-  },
-  {
-    id: "SHP-002",
-    trackingNumber: "TRK87654321",
-    senderName: "Michael Johnson",
-    receiverName: "Sarah Williams",
-    origin: "Kano",
-    destination: "Port Harcourt",
-    date: "2025-02-26",
-    weight: "1.8",
-    amount: "₦3,200",
-    status: "in-transit",
-  },
-  {
-    id: "SHP-003",
-    trackingNumber: "TRK11223344",
-    senderName: "David Brown",
-    receiverName: "Emily Davis",
-    origin: "Ibadan",
-    destination: "Enugu",
-    date: "2025-02-26",
-    weight: "3.2",
-    amount: "₦5,800",
-    status: "pending",
-  },
-  {
-    id: "SHP-004",
-    trackingNumber: "TRK55667788",
-    senderName: "Robert Wilson",
-    receiverName: "Olivia Taylor",
-    origin: "Abuja",
-    destination: "Lagos",
-    date: "2025-02-27",
-    weight: "4.0",
-    amount: "₦7,200",
-    status: "in-transit",
-  },
-  {
-    id: "SHP-005",
-    trackingNumber: "TRK99001122",
-    senderName: "Daniel Martinez",
-    receiverName: "Sophia Anderson",
-    origin: "Benin",
-    destination: "Kaduna",
-    date: "2025-02-27",
-    weight: "1.5",
-    amount: "₦2,700",
-    status: "pending",
-  },
-]
+interface ManageShipmentProps {
+  shipments: Shipment[]
+}
 
-export function ManageShipment() {
+export function ManageShipment({ shipments }: ManageShipmentProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
+  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null)
 
   // Filter shipments based on search term and status filter
   const filteredShipments = shipments.filter((shipment) => {
     const matchesSearch =
-      shipment.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      shipment.senderName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      shipment.receiverName.toLowerCase().includes(searchTerm.toLowerCase())
+      shipment.tracking_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      shipment.sender_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      shipment.recipient_name.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesStatus = statusFilter === "all" || shipment.status === statusFilter
 
@@ -99,7 +95,7 @@ export function ManageShipment() {
   })
 
   // Function to get the appropriate badge color based on status
-  const getStatusBadge = (status:any) => {
+  const getStatusBadge = (status: any) => {
     switch (status) {
       case "delivered":
         return <Badge className="bg-green-500">Delivered</Badge>
@@ -112,192 +108,352 @@ export function ManageShipment() {
     }
   }
 
+  // Function to handle edit click
+  const handleEditClick = (shipment: any) => {
+    setSelectedShipment(shipment)
+    setEditDialogOpen(true)
+  }
+
+  // Function to handle view click
+  const handleViewClick = (shipment: any) => {
+    setSelectedShipment(shipment)
+    setViewDialogOpen(true)
+  }
+
+  // Function to handle shipment update
+  const handleShipmentUpdate = (updatedData: any) => {
+    // Handle the update logic here
+    console.log('Updated shipment:', updatedData)
+    setEditDialogOpen(false)
+    setSelectedShipment(null)
+  }
+
   return (
-    <Card className="w-full">
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <CardTitle className="text-2xl font-semibold">Manage Shipments</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Search and Filter */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search shipments..."
-              className="pl-8 text-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="in-transit">In Transit</SelectItem>
-              <SelectItem value="delivered">Delivered</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Mobile Card View */}
-        <div className="block sm:hidden space-y-4">
-          {filteredShipments.length > 0 ? (
-            filteredShipments.map((shipment) => (
-              <Card key={shipment.id} className="p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="font-medium">{shipment.trackingNumber}</div>
-                  {getStatusBadge(shipment.status)}
-                </div>
-                <div className="space-y-2 text-sm">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="text-muted-foreground">Date:</div>
-                    <div>{shipment.date}</div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="text-muted-foreground">Sender:</div>
-                    <div>{shipment.senderName}</div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="text-muted-foreground">Receiver:</div>
-                    <div>{shipment.receiverName}</div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="text-muted-foreground">Route:</div>
-                    <div>{shipment.origin} → {shipment.destination}</div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="text-muted-foreground">Amount:</div>
-                    <div>{shipment.amount}</div>
-                  </div>
-                </div>
-                <div className="flex justify-end mt-4">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem className="flex items-center gap-2">
-                        <Eye className="h-4 w-4" />
-                        View Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="flex items-center gap-2">
-                        <Pencil className="h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="flex items-center gap-2 text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </Card>
-            ))
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No shipments found.
+    <>
+      <Card className="w-full">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <CardTitle className="text-2xl font-semibold">Manage Shipments</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Search and Filter */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search shipments..."
+                className="pl-8 text-sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-          )}
-        </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="in-transit">In Transit</SelectItem>
+                <SelectItem value="delivered">Delivered</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* Desktop Table View */}
-        <div className="hidden sm:block rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tracking #</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Sender</TableHead>
-                <TableHead>Receiver</TableHead>
-                <TableHead>Route</TableHead>
-                <TableHead>Weight</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredShipments.length > 0 ? (
-                filteredShipments.map((shipment) => (
-                  <TableRow key={shipment.id}>
-                    <TableCell className="font-medium">{shipment.trackingNumber}</TableCell>
-                    <TableCell>{shipment.date}</TableCell>
-                    <TableCell>{shipment.senderName}</TableCell>
-                    <TableCell>{shipment.receiverName}</TableCell>
-                    <TableCell>
-                      {shipment.origin} → {shipment.destination}
-                    </TableCell>
-                    <TableCell>{shipment.weight} kg</TableCell>
-                    <TableCell>{shipment.amount}</TableCell>
-                    <TableCell>{getStatusBadge(shipment.status)}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Open menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem className="flex items-center gap-2">
-                            <Eye className="h-4 w-4" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="flex items-center gap-2">
-                            <Pencil className="h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="flex items-center gap-2 text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+          {/* Mobile Card View */}
+          <div className="block sm:hidden space-y-4">
+            {filteredShipments.length > 0 ? (
+              filteredShipments.map((shipment) => (
+                <Card key={shipment.id} className="p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="font-medium">{shipment.tracking_number}</div>
+                    {getStatusBadge(shipment.status)}
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="text-muted-foreground">Date:</div>
+                      <div>{new Date(shipment.created_at).toLocaleDateString()}</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="text-muted-foreground">Sender:</div>
+                      <div>{shipment.sender_name}</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="text-muted-foreground">Receiver:</div>
+                      <div>{shipment.recipient_name}</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="text-muted-foreground">Route:</div>
+                      <div>{shipment.sender_country} → {shipment.recipient_country}</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="text-muted-foreground">Amount:</div>
+                      <div>{shipment.total_cost}</div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end mt-4">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          className="flex items-center gap-2"
+                          onClick={() => handleViewClick(shipment)}
+                        >
+                          <Eye className="h-4 w-4" />
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="flex items-center gap-2"
+                          onClick={() => handleEditClick(shipment)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="flex items-center gap-2 text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </Card>
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No shipments found.
+              </div>
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden sm:block rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tracking #</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Sender</TableHead>
+                  <TableHead>Receiver</TableHead>
+                  <TableHead>Route</TableHead>
+                  <TableHead>Weight</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredShipments.length > 0 ? (
+                  filteredShipments.map((shipment) => (
+                    <TableRow key={shipment.id}>
+                      <TableCell className="font-medium">{shipment.tracking_number}</TableCell>
+                      <TableCell>{new Date(shipment.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell>{shipment.sender_name}</TableCell>
+                      <TableCell>{shipment.recipient_name}</TableCell>
+                      <TableCell>
+                        {shipment.sender_country} → {shipment.recipient_country}
+                      </TableCell>
+                      <TableCell>{shipment.weight} kg</TableCell>
+                      <TableCell>{shipment.total_cost}</TableCell>
+                      <TableCell>{getStatusBadge(shipment.status)}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Open menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              className="flex items-center gap-2"
+                              onClick={() => handleViewClick(shipment)}
+                            >
+                              <Eye className="h-4 w-4" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="flex items-center gap-2"
+                              onClick={() => handleEditClick(shipment)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="flex items-center gap-2 text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={9} className="h-24 text-center">
+                      No shipments found.
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={9} className="h-24 text-center">
-                    No shipments found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                )}
+              </TableBody>
+            </Table>
+          </div>
 
-        {/* Pagination */}
-        <div className="flex justify-center sm:justify-end">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious href="#" />
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#" isActive>
-                  1
-                </PaginationLink>
-              </PaginationItem>
-              <PaginationItem className="hidden sm:block">
-                <PaginationLink href="#">2</PaginationLink>
-              </PaginationItem>
-              <PaginationItem className="hidden sm:block">
-                <PaginationLink href="#">3</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext href="#" />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      </CardContent>
-    </Card>
+          {/* Pagination */}
+          <div className="flex justify-center sm:justify-end">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious href="#" />
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationLink href="#" isActive>
+                    1
+                  </PaginationLink>
+                </PaginationItem>
+                <PaginationItem className="hidden sm:block">
+                  <PaginationLink href="#">2</PaginationLink>
+                </PaginationItem>
+                <PaginationItem className="hidden sm:block">
+                  <PaginationLink href="#">3</PaginationLink>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext href="#" />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Add the Dialog for editing */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-3xl xl:max-w-4xl max-h-[100%] p-0 overflow-y-auto">
+          <ShipmentForm
+            mode="edit"
+            trackingNumber={selectedShipment?.tracking_number}
+            initialData={selectedShipment}
+            onEdit={handleShipmentUpdate}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Add the Dialog for viewing details */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="sm:max-w-3xl xl:max-w-4xl max-h-[100%] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex text-2xl font-semibold">Shipment Details</DialogTitle>
+          </DialogHeader>
+          {selectedShipment && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-muted-foreground">Tracking Number</div>
+                  <div>{selectedShipment.tracking_number}</div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-muted-foreground">Status</div>
+                  <div>{getStatusBadge(selectedShipment.status)}</div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-muted-foreground">Created At</div>
+                  <div>{new Date(selectedShipment.created_at).toLocaleString()}</div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <div className="text font-medium text-muted-foreground mb-2">Payment Details</div>
+                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+                    <div className="text-sm"><span className="text-muted-foreground">COD Amount: </span>{selectedShipment.cod_amount}</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Payment Method: </span>{selectedShipment.payment_method}</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Payment Status: </span>{selectedShipment.payment_status}</div>
+                    {selectedShipment.payment_date && (
+                      <div className="text-sm"><span className="text-muted-foreground">Payment Date: </span>{new Date(selectedShipment.payment_date).toLocaleString()}</div>
+                    )}
+                    {selectedShipment.transaction_id && (
+                      <div className="text-sm"><span className="text-muted-foreground">Transaction ID: </span>{selectedShipment.transaction_id}</div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text font-medium text-muted-foreground mb-2">Sender Details</div>
+                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+                    <div className="text-sm"><span className="text-muted-foreground">Name: </span>{selectedShipment.sender_name}</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Email: </span>{selectedShipment.sender_email}</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Phone: </span>{selectedShipment.sender_phone}</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Address: </span>{selectedShipment.sender_address}</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Country: </span>{selectedShipment.sender_country}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text font-medium text-muted-foreground mb-2">Receiver Details</div>
+                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+                    <div className="text-sm"><span className="text-muted-foreground">Name: </span>{selectedShipment.recipient_name}</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Email: </span>{selectedShipment.recipient_email}</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Phone: </span>{selectedShipment.recipient_phone}</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Address: </span>{selectedShipment.recipient_address}</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Country: </span>{selectedShipment.recipient_country}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text font-medium text-muted-foreground mb-2">Parcel Details</div>
+                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+                    <div className="text-sm"><span className="text-muted-foreground">Package Type: </span>{selectedShipment.package_type}</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Weight: </span>{selectedShipment.weight} kg</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Dimensions: </span>{selectedShipment.length}x{selectedShipment.width}x{selectedShipment.height} cm</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Description: </span>{selectedShipment.description}</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Declared Value: </span>{selectedShipment.declared_value}</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Insurance Required: </span>{selectedShipment.insurance_required ? "Yes" : "No"}</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Signature Required: </span>{selectedShipment.signature_required ? "Yes" : "No"}</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Service Type: </span>{selectedShipment.service_type}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text font-medium text-muted-foreground mb-2">Charges Breakdown</div>
+                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+                    <div className="text-sm"><span className="text-muted-foreground">Base Rate: </span>{selectedShipment.base_rate}</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Per KG Rate: </span>{selectedShipment.per_kg_rate}</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Weight Charge: </span>{selectedShipment.weight_charge}</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Service Charge: </span>{selectedShipment.service_charge}</div>
+                    <div className="text-sm"><span className="text-muted-foreground">Additional Charges: </span>{selectedShipment.total_additional_charges}</div>
+                    <div className="text-sm font-semibold"><span className="text-muted-foreground">Total Cost: </span>{selectedShipment.total_cost}</div>
+                  </div>
+                </div>
+
+                {selectedShipment.tracking_history && selectedShipment.tracking_history.length > 0 && (
+                  <div>
+                    <div className="text font-medium text-muted-foreground mb-2">Tracking History</div>
+                    <div className="space-y-2">
+                      {selectedShipment.tracking_history.map((history, index) => (
+                        <div key={index} className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+                          <div className="text-sm"><span className="text-muted-foreground">Status: </span>{history.status}</div>
+                          <div className="text-sm"><span className="text-muted-foreground">Location: </span>{history.location}</div>
+                          <div className="text-sm"><span className="text-muted-foreground">Time: </span>{new Date(history.timestamp).toLocaleString()}</div>
+                          <div className="text-sm col-span-3"><span className="text-muted-foreground">Description: </span>{history.description}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedShipment.notes && (
+                  <div>
+                    <div className="text font-medium text-muted-foreground mb-2">Notes</div>
+                    <div className="text-sm">{selectedShipment.notes}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
-

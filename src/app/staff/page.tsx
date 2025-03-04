@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/hooks/use-auth'
 import { toast } from '@/hooks/use-toast'
-import { History, MessageSquare, Package, Truck} from 'lucide-react'
+import { History, MessageSquare, Package, Truck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -16,24 +16,84 @@ export default function StaffDashboard() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('createShipment')
   const { user, getUser, loading } = useAuth()
+  const [shipments, setShipments] = useState([])
+  const [users,setUsers] = useState([])
 
   useEffect(() => {
-    if (!loading) {  // Only run if not loading
-      getUser()
+    getUser()
       .then((user) => {
-        if (user?.user_type !== 'WALK_IN') {
-          router.push('/')
-          toast({
-            title: 'Unauthorized',
-            description: 'You are not authorized to access this page',
+        if (user) {
+          // Fetch shipments for the logged-in staff
+          const token = localStorage.getItem('auth_token')
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/shipments/staff-shipments/${user.id}/`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
           })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              return response.json();
+            })
+            .then(data => {
+              setShipments(data)
+            })
+            .catch(error => {
+              console.error('Failed to fetch shipments:', error)
+              toast({
+                title: 'Error',
+                description: 'Failed to fetch shipments',
+                variant: 'destructive',
+              })
+            })
         }
+
       })
       .catch((error) => {
         console.error('Failed to get user:', error)
       })
-    }
-  }, []) // Remove loading from dependencies
+  }, [])
+
+  useEffect(() => {
+    getUser()
+      .then((user) => {
+        if (user) {
+          // Fetch WALK_IN users
+          const token = localStorage.getItem('auth_token')
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/accounts/users/?user_type=WALK_IN/`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              return response.json();
+            })
+            .then(data => {
+             setUsers(data.results)
+             console.log(data.results)
+            })
+            .catch(error => {
+              console.error('Failed to fetch users:', error)
+              toast({
+                title: 'Error',
+                description: 'Failed to fetch users',
+                variant: 'destructive',
+              })
+            })
+        }
+
+      })
+      .catch((error) => {
+        console.error('Failed to get user:', error)
+      })
+  }, [])
+
 
   if (loading) {
     return (
@@ -50,7 +110,7 @@ export default function StaffDashboard() {
           heading="Shipping Staff Dashboard"
           text="Manage all shipments and track your packages"
         />
-        
+
         <div className="grid gap-6">
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
@@ -114,10 +174,10 @@ export default function StaffDashboard() {
             {/* Tab Content */}
             <div className="mt-4 sm:mt-6">
               <TabsContent value="createShipment" className="space-y-4">
-                <ShipmentForm />
+                <ShipmentForm users={users} />
               </TabsContent>
               <TabsContent value="manageShipments" className="space-y-4">
-                <ManageShipment />
+                <ManageShipment shipments={shipments} />
               </TabsContent>
             </div>
           </Tabs>
