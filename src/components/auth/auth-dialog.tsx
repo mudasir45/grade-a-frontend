@@ -29,7 +29,7 @@ const isValidPhoneNumber = (phone: string) => {
   // Remove any non-digit characters
   const digitsOnly = phone.replace(/\D/g, "");
   // Check if it's exactly 10 digits
-  return digitsOnly.length === 10;
+  return digitsOnly.length === 12;
 };
 
 export function AuthDialog() {
@@ -103,12 +103,12 @@ export function AuthDialog() {
 
       if (id === "phone") {
         // Allow only numbers and limit to 10 digits
-        const digitsOnly = value.replace(/\D/g, "").slice(0, 10);
+        const digitsOnly = value.replace(/\D/g, "").slice(0, 12);
 
         // Validate phone number
         if (digitsOnly.length > 0) {
-          if (digitsOnly.length !== 10) {
-            setPhoneError("Phone number must be 10 digits");
+          if (digitsOnly.length !== 12) {
+            setPhoneError("Phone number must be 12 digits");
           } else {
             setPhoneError("");
           }
@@ -234,9 +234,10 @@ export function AuthDialog() {
               required
               value={formData.phone}
               onChange={handleInputChange}
-              placeholder="Enter your 10-digit phone number"
+              placeholder="Enter your 12-digit phone number (without country code)"
               autoComplete="tel"
               className={phoneError ? "border-red-500" : ""}
+              maxLength={12}
             />
             {phoneError && (
               <p className="text-sm text-red-500 mt-1">{phoneError}</p>

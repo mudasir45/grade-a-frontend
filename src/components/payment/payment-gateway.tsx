@@ -1,19 +1,19 @@
 // app/components/PaymentForm.tsx
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { usePayment } from '@/contexts/payment-context';
-import { FormEvent, useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { usePayment } from "@/contexts/payment-context";
+import { FormEvent, useEffect, useState } from "react";
 
 interface PaymentFormProps {
-  amount: string
-  orderId?: string
-  shippingAddress?: string
-  paymentType: 'buy4me' | 'shipping'
-  metadata?: Record<string, any>
+  amount: string;
+  orderId?: string;
+  shippingAddress?: string;
+  paymentType: "buy4me" | "shipping";
+  metadata?: Record<string, any>;
 }
 
 const PaymentForm: React.FC<PaymentFormProps> = ({
@@ -21,43 +21,47 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   orderId,
   shippingAddress,
   paymentType,
-  metadata
+  metadata,
 }) => {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string>('')
-  const { setPaymentData } = usePayment()
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>("");
+  const { setPaymentData } = usePayment();
+
+  useEffect(() => {
+    console.log(metadata);
+  }, [metadata]);
 
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-    
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
     try {
-      const finalOrderId = orderId || crypto.randomUUID()
-      
+      const finalOrderId = orderId || crypto.randomUUID();
+
       // Store payment data in context for confirmation page
       setPaymentData({
         amount,
         orderId: finalOrderId,
         shippingAddress,
         paymentType,
-        metadata
-      })
+        metadata,
+      });
       const paymentData = {
         amount,
         orderId: finalOrderId,
         shippingAddress,
         paymentType,
-        metadata
-      }
-      localStorage.setItem('paymentData', JSON.stringify(paymentData))
+        metadata,
+      };
+      localStorage.setItem("paymentData", JSON.stringify(paymentData));
 
-      const res = await fetch('/api/bizapay', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/bizapay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           payerName: name,
           payerEmail: email,
@@ -67,23 +71,25 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
           orderId: finalOrderId,
           amount,
           paymentType,
-          metadata
+          metadata,
         }),
-      })
+      });
 
-      const data = await res.json()
+      const data = await res.json();
       if (data.url) {
-        window.location.href = data.url
+        window.location.href = data.url;
       } else {
-        setError(data.msg || 'Payment initiation failed: No redirect URL provided.')
+        setError(
+          data.msg || "Payment initiation failed: No redirect URL provided."
+        );
       }
     } catch (err: any) {
-      console.error('Payment error:', err)
-      setError('Payment error occurred.')
+      console.error("Payment error:", err);
+      setError("Payment error occurred.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <Card className="max-w-md mx-auto">
@@ -101,7 +107,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
               onChange={(e) => setName(e.target.value)}
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -112,7 +118,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="phone">Phone</Label>
             <Input
@@ -124,14 +130,14 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
           </div>
 
           {error && <p className="text-red-500">{error}</p>}
-          
+
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Processing...' : `Pay ${amount} MYR`}
+            {loading ? "Processing..." : `Pay ${amount} MYR`}
           </Button>
         </form>
       </CardContent>
     </Card>
-  )
-}
+  );
+};
 
-export default PaymentForm
+export default PaymentForm;
