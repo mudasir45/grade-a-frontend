@@ -1,5 +1,5 @@
 "use client"
-
+import { useToast } from '@/hooks/use-toast'
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,7 +17,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { Eye, Pencil, Trash2, MoreHorizontal, Search, FileDown, Plus } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { ShipmentForm } from "./shipment-form"
 // Update the imports and add interface for shipment type
 interface Shipment {
@@ -76,12 +76,15 @@ interface ManageShipmentProps {
 }
 
 export function ManageShipment({ shipments }: ManageShipmentProps) {
+  const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null)
-
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const token = localStorage.getItem('auth_token')
+  console.log(selectedShipment)
   // Filter shipments based on search term and status filter
   const filteredShipments = shipments.filter((shipment) => {
     const matchesSearch =
@@ -103,6 +106,10 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
         return <Badge className="bg-blue-500">In Transit</Badge>
       case "pending":
         return <Badge className="bg-yellow-500">Pending</Badge>
+      case "processing":
+        return <Badge className="bg-cyan-500">Processing</Badge>
+      case "cancelled":
+        return <Badge className="bg-red-500">Cancelled</Badge>
       default:
         return <Badge className="bg-gray-500">{status}</Badge>
     }
@@ -121,11 +128,94 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
   }
 
   // Function to handle shipment update
-  const handleShipmentUpdate = (updatedData: any) => {
-    // Handle the update logic here
-    console.log('Updated shipment:', updatedData)
-    setEditDialogOpen(false)
-    setSelectedShipment(null)
+  const handleShipmentUpdate = async (updatedData: Shipment) => {
+    console.log(updatedData);
+  
+    const payload = {
+      payment_method: updatedData.payment_method,
+      sender_name: updatedData.sender_name,
+      sender_email: updatedData.sender_email,
+      sender_phone: updatedData.sender_phone,
+      sender_address: updatedData.sender_address,
+      recipient_name: updatedData.recipient_name,
+      recipient_email: updatedData.recipient_email,
+      recipient_phone: updatedData.recipient_phone,
+      recipient_address: updatedData.recipient_address,
+      package_type: updatedData.package_type,
+      weight: updatedData.weight,
+      length: updatedData.length,
+      width: updatedData.width,
+      height: updatedData.height,
+      description: updatedData.description,
+      declared_value: updatedData.declared_value,
+      service_charge: updatedData.service_charge,
+      sender_country: updatedData.sender_country,
+      recipient_country: updatedData.recipient_country,
+      service_type: updatedData.service_type,
+    };
+  
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/shipments/staff-shipment/${updatedData.id}/`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update shipment");
+      }
+  
+      return true; // Return success
+    } catch (error) {
+      console.error("Error updating shipment:", error);
+      return false; // Return failure
+    }
+  };
+  
+
+  // Function to handle delete click
+  const handleDeleteClick = (shipment: Shipment) => {
+    setSelectedShipment(shipment)
+    setDeleteDialogOpen(true)
+  }
+
+  // Function to handle shipment deletion
+  const handleDeleteConfirm = async () => {
+    if (!selectedShipment) return
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/shipments/staff-shipment/${selectedShipment.id}/`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete shipment');
+      }
+
+      toast({
+        title: "Success",
+        description: "Shipment deleted successfully",
+      });
+
+      setDeleteDialogOpen(false)
+      // You might want to refresh the shipments list here
+      
+    } catch (error) {
+      console.error('Error deleting shipment:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to delete shipment',
+        variant: 'destructive'
+      })
+    }
   }
 
   return (
@@ -155,12 +245,14 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="in-transit">In Transit</SelectItem>
                 <SelectItem value="delivered">Delivered</SelectItem>
+                <SelectItem value="processing">Processing</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Mobile Card View */}
-          <div className="block sm:hidden space-y-4">
+          {/* Mobile/Tablet Card View */}
+          <div className="block lg:hidden space-y-4">
             {filteredShipments.length > 0 ? (
               filteredShipments.map((shipment) => (
                 <Card key={shipment.id} className="p-4">
@@ -212,7 +304,10 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
                           <Pencil className="h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="flex items-center gap-2 text-destructive">
+                        <DropdownMenuItem 
+                          className="flex items-center gap-2 text-destructive"
+                          onClick={() => handleDeleteClick(shipment)}
+                        >
                           <Trash2 className="h-4 w-4" />
                           Delete
                         </DropdownMenuItem>
@@ -229,7 +324,7 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
           </div>
 
           {/* Desktop Table View */}
-          <div className="hidden sm:block rounded-md border">
+          <div className="hidden lg:block rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -281,7 +376,10 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
                               <Pencil className="h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="flex items-center gap-2 text-destructive">
+                            <DropdownMenuItem 
+                              className="flex items-center gap-2 text-destructive"
+                              onClick={() => handleDeleteClick(shipment)}
+                            >
                               <Trash2 className="h-4 w-4" />
                               Delete
                             </DropdownMenuItem>
@@ -330,12 +428,14 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
 
       {/* Add the Dialog for editing */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-3xl xl:max-w-4xl max-h-[100%] p-0 overflow-y-auto">
+        <DialogContent className="sm:max-w-3xl xl:max-w-4xl max-h-[100%] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex text-2xl font-semibold ">Update Shipment</DialogTitle>
+          </DialogHeader>
           <ShipmentForm
             mode="edit"
-            trackingNumber={selectedShipment?.tracking_number}
             initialData={selectedShipment}
-            onEdit={handleShipmentUpdate}
+            onUpdate={handleShipmentUpdate}
           />
         </DialogContent>
       </Dialog>
@@ -452,6 +552,26 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add the Dialog for delete confirmation */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this shipment? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter >
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button className='mb-3 sm:mb-0' variant="destructive" onClick={handleDeleteConfirm}>
+              Delete
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

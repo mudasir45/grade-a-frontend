@@ -10,14 +10,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from 'lucide-react'
 import { motion } from "framer-motion";
 import { LogIn } from "lucide-react";
 import { useCallback, useState } from "react";
-
 const INITIAL_FORM_STATE = {
     phone: "",
+    email: "",
     password: "",
     name: "",
     country: "",
@@ -85,14 +85,45 @@ export function CreateCustomerDialog({
             });
             return;
         }
-
+        if (!formData.name.trim()) {
+            throw new Error("Please enter your full name");
+        }
         setLoading(true);
 
         try {
-            if (!formData.name.trim()) {
-                throw new Error("Please enter your full name");
+
+            const [firstName, ...lastNameParts] = formData.name.split(' ');
+            const lastName = lastNameParts.join(' ');
+
+            //Create new user
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/accounts/signup/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: formData.phone,
+                    phone_number: formData.phone,
+                    email: formData.email,
+                    password: formData.password,
+                    first_name: firstName,
+                    last_name: lastName,
+                    user_type: "WALK_IN"
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to create user');
             }
-            // Write logic here
+
+            const result = await response.json();
+            toast({
+                title: "Success",
+                description: "User created successfully",
+
+            });
+            // Reset form after successful creation
+            setFormData(INITIAL_FORM_STATE);
         } catch (error: any) {
             toast({
                 title: 'Error',
@@ -131,7 +162,18 @@ export function CreateCustomerDialog({
                             <p className="text-sm text-red-500 mt-1">{phoneError}</p>
                         )}
                     </div>
-
+                    <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                            id="email"
+                            type="email"
+                            required
+                            value={formData.email}
+                            onChange={handleInputChange}
+                            placeholder="Enter your email"
+                            autoComplete="email"
+                        />
+                    </div>
                     <div className="space-y-2">
                         <Label htmlFor="password">Password</Label>
                         <Input
@@ -164,8 +206,18 @@ export function CreateCustomerDialog({
                         disabled={loading}
                         aria-busy={loading}
                     >
-                        <LogIn className="mr-2 h-4 w-4" />
-                        {loading ? "Creating Account..." : "Create Account"}
+                        {loading ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Creating..."
+                            </>
+                        ) : (
+                            <>
+                                <LogIn className="mr-2 h-4 w-4" />
+                                Create Account
+                            </>
+                        )}
+
                     </Button>
                 </form>
             </DialogContent>

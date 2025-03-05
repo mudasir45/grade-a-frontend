@@ -11,14 +11,13 @@ import { toast } from '@/hooks/use-toast'
 import { History, MessageSquare, Package, Truck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-
 export default function StaffDashboard() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('createShipment')
   const { user, getUser, loading } = useAuth()
   const [shipments, setShipments] = useState([])
   const [users,setUsers] = useState([])
-
+ 
   useEffect(() => {
     getUser()
       .then((user) => {
@@ -40,14 +39,14 @@ export default function StaffDashboard() {
             .then(data => {
               setShipments(data)
             })
-            .catch(error => {
-              console.error('Failed to fetch shipments:', error)
-              toast({
-                title: 'Error',
-                description: 'Failed to fetch shipments',
-                variant: 'destructive',
-              })
-            })
+            // .catch(error => {
+            //   console.error('Failed to fetch shipments:', error)
+            //   toast({
+            //     title: 'Error',
+            //     description: 'Failed to fetch shipments',
+            //     variant: 'destructive',
+            //   })
+            // })
         }
 
       })
@@ -78,14 +77,14 @@ export default function StaffDashboard() {
              setUsers(data.results)
              console.log(data.results)
             })
-            .catch(error => {
-              console.error('Failed to fetch users:', error)
-              toast({
-                title: 'Error',
-                description: 'Failed to fetch users',
-                variant: 'destructive',
-              })
-            })
+            // .catch(error => {
+            //   console.error('Failed to fetch users:', error)
+            //   toast({
+            //     title: 'Error',
+            //     description: 'Failed to fetch users',
+            //     variant: 'destructive',
+            //   })
+            // })
         }
 
       })

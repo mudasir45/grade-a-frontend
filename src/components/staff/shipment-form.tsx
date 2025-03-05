@@ -1,7 +1,7 @@
 'use client'
 
 import { useToast } from '@/hooks/use-toast'
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -18,7 +18,6 @@ import { z } from 'zod'
 import { ShippingAPI } from '@/lib/api/shipping'
 import type { ShippingRate } from '@/lib/types/shipping'
 import { Loader2 } from 'lucide-react'
-import { ShippingSuccess } from '@/components/shipping/shipping-success'
 import { CreateCustomerDialog } from "@/components/staff/create-customer-dialog"
 
 interface FormErrors {
@@ -41,9 +40,8 @@ const phoneSchema = z.string().regex(
 
 interface ShipmentFormProps {
     mode?: 'create' | 'edit'
-    trackingNumber?: string
     initialData?: any // Type this properly based on your data structure
-    onEdit?: (data: any) => void
+    onUpdate?: (data: any) => Promise<boolean>
     users?: any[]
 }
 
@@ -72,9 +70,9 @@ interface FormData {
     signature_required: boolean
     packaging_rm: number
     delivery_rm: number
-   total_rm: number
+    total_rm: number
     total_naira: number
-     send_via: string
+    send_via: string
     additional_charges: {
         food: boolean
         creams: boolean
@@ -83,9 +81,11 @@ interface FormData {
         documents: boolean
         medications: boolean
     }
+    status?: string
+    tracking_number?: string
 }
 
-export function ShipmentForm({ mode = 'create', trackingNumber, initialData, onEdit, users }: ShipmentFormProps) {
+export function ShipmentForm({ mode = 'create', initialData, onUpdate, users }: ShipmentFormProps) {
     const { toast } = useToast()
     const [fieldErrors, setFieldErrors] = useState<FieldError[]>([])
     const [errors, setErrors] = useState<FormErrors>({
@@ -107,9 +107,8 @@ export function ShipmentForm({ mode = 'create', trackingNumber, initialData, onE
     const defaultServiceType = serviceTypes[0]?.id
     const [searchCustomerId, setSearchCustomerId] = useState('')
     const [showCreateCustomerDialog, setShowCreateCustomerDialog] = useState(false)
-     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [showSuccess, setShowSuccess] = useState(false)
-    const [shipmentData, setShipmentData] = useState<any>(null)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const token = localStorage.getItem('auth_token')
     // Initialize form data with default values
     const defaultFormData: FormData = {
         sender_name: '',
@@ -135,9 +134,9 @@ export function ShipmentForm({ mode = 'create', trackingNumber, initialData, onE
         signature_required: false,
         packaging_rm: 0,
         delivery_rm: 0,
-       total_rm: 0,
+        total_rm: 0,
         total_naira: 0,
-         send_via: '',
+        send_via: '',
         additional_charges: {
             food: false,
             creams: false,
@@ -148,7 +147,16 @@ export function ShipmentForm({ mode = 'create', trackingNumber, initialData, onE
         },
     }
 
-    const [formData, setFormData] = useState<FormData>(defaultFormData)
+    const [formData, setFormData] = useState<FormData>(
+        mode === 'edit' && initialData ? {
+            ...defaultFormData,
+            ...initialData,
+            additional_charges: {
+                ...defaultFormData.additional_charges,
+                ...(initialData.additional_charges || {})
+            }
+        } : defaultFormData
+    )
 
     const additional_charges = [
         { id: "food", label: "Food stuff" },
@@ -277,13 +285,12 @@ export function ShipmentForm({ mode = 'create', trackingNumber, initialData, onE
                 })
 
                 setShippingRate(rate)
-
                 // Update the delivery and total bill amounts
                 setFormData(prev => ({
                     ...prev,
-                    delivery_rm: rate.cost_breakdown.total_cost,
-                   total_rm: rate.cost_breakdown.total_cost + prev.packaging_rm,
-                    total_naira: (rate.cost_breakdown.total_cost + prev.packaging_rm) * 100 // Assuming 1 RM = 100 Naira
+                    delivery_rm: rate.cost_breakdown.service_price,
+                    total_rm: rate.cost_breakdown.total_cost,
+                    total_naira: rate.cost_breakdown.total_cost
                 }))
             } catch (error) {
                 console.error('Rate calculation error:', error)
@@ -315,9 +322,9 @@ export function ShipmentForm({ mode = 'create', trackingNumber, initialData, onE
         formData.packaging_rm
     ])
 
-   
 
-    const createShipment = async () => {
+
+    const handleCreateShipment = async () => {
         if (!searchCustomerId) {
             toast({
                 title: 'Error',
@@ -330,7 +337,6 @@ export function ShipmentForm({ mode = 'create', trackingNumber, initialData, onE
         setIsSubmitting(true)
         console.log(searchCustomerId)
         try {
-            const token = localStorage.getItem('auth_token')
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/shipments/create-shipment/${searchCustomerId}/`, {
                 method: 'POST',
                 headers: {
@@ -339,14 +345,17 @@ export function ShipmentForm({ mode = 'create', trackingNumber, initialData, onE
                 },
                 body: JSON.stringify(formData)
             })
-
             if (!response.ok) {
-                throw new Error('Response is not ok')
+                throw new Error('Failed to create shipment');
             }
-
             const data = await response.json()
-            setShipmentData(data)
-            setShowSuccess(true)
+
+            toast({
+                title: 'Success',
+                description: 'Shipment created successfully',
+
+            })
+
         } catch (error) {
             console.error('Error creating shipment:', error)
             toast({
@@ -405,35 +414,45 @@ export function ShipmentForm({ mode = 'create', trackingNumber, initialData, onE
             })
             return
         }
-
-        await createShipment()
-    }
-
-    // Update the form title and button text based on mode
-    const formTitle = mode === 'create' ? 'Create New Shipment' : 'Update Shipment'
-    const submitButtonText = mode === 'create' ? 'Create Shipment' : 'Update Shipment'
-
-    // Update form data when initialData is provided
-    useEffect(() => {
-        if (mode === 'edit' && initialData) {
-            // Merge initialData with default values to ensure all properties exist
-            setFormData({
-                ...defaultFormData,
-                ...initialData,
-                additional_charges: {
-                    ...defaultFormData.additional_charges,
-                    ...(initialData.additional_charges || {})
-                }
-            })
+        if (mode === 'create') {
+            await handleCreateShipment()
+        } else if (mode === 'edit') {
+            handleUpdateShipment()
         }
-    }, [mode, initialData])
 
-    // Add new function to fetch last shipment
+    }
+    // call the (manage-shipment) onUpdate function to update the shipments
+    const handleUpdateShipment = async () => {
+        if (onUpdate && typeof onUpdate === "function") {
+            setIsSubmitting(true);
+            const success = await onUpdate(formData); // Await the function
+            setIsSubmitting(false);
+            if (success) {
+                toast({
+                    title: "Success",
+                    description: "Shipment updated successfully",
+                });
+            } else {
+                toast({
+                    title: "Error",
+                    description: "Failed to update shipment",
+                    variant: "destructive",
+                });
+            }
+        }
+    };
+    // function to fetch last shipment data of selected customer
     const fetchLastShipment = async (userId: string) => {
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/shipments/last-shipment/${userId}/`)
             if (!response.ok) {
-                throw new Error('Failed to fetch last shipment')
+                setFormData(defaultFormData)
+                // throw new Error('No shipment is associated with this user')
+                toast({
+                    title: 'Not Found',
+                    description: 'No shipment is associated with this user',
+                })
+                return
             }
             const data = await response.json()
 
@@ -467,18 +486,12 @@ export function ShipmentForm({ mode = 'create', trackingNumber, initialData, onE
         fetchLastShipment(userId)
     }
 
-   
-   
-
-    if (showSuccess && shipmentData) {
-        return <ShippingSuccess shipment={shipmentData} />
-    }
 
     return (
         <form className="space-y-6 flex">
             <Card className="w-full max-w-4xl mx-auto">
                 <CardHeader>
-                    <CardTitle className="text-2xl font-semibold">{formTitle}</CardTitle>
+                    <CardTitle className={`${mode === 'edit' ? "hidden" : "text-2xl font-semibold"}`}>Create New Shipment</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     {/* Customer Search / Tracking Number */}
@@ -490,7 +503,7 @@ export function ShipmentForm({ mode = 'create', trackingNumber, initialData, onE
                                     value={searchCustomerId}
                                     onValueChange={handleCustomerSelect}
                                 >
-                                    <SelectTrigger id="search-customer">
+                                    <SelectTrigger id="search-customer" >
                                         <SelectValue placeholder="Search customer by username" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -504,8 +517,8 @@ export function ShipmentForm({ mode = 'create', trackingNumber, initialData, onE
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <Button 
-                                type='button' 
+                            <Button
+                                type='button'
                                 variant="secondary"
                                 onClick={() => setShowCreateCustomerDialog(true)}
                             >
@@ -513,573 +526,547 @@ export function ShipmentForm({ mode = 'create', trackingNumber, initialData, onE
                             </Button>
                         </div>
                     ) : (
-                        <div className="flex gap-4 flex-row sm:items-end">
+                        <div className="flex gap-4 flex-col sm:flex-row sm:items-end">
                             <div className="flex-1 space-y-2">
                                 <Label htmlFor="tracking-number">Tracking Number</Label>
                                 <Input
                                     id="tracking-number"
-                                    value={trackingNumber}
+                                    value={formData.tracking_number}
                                     readOnly
                                     className="bg-muted"
                                 />
                             </div>
-                            <div className="w-full sm:w-1/4 space-y-2">
-                                <Label htmlFor="status">Status</Label>
-                                <Select>
-                                    <SelectTrigger id="status">
-                                        <SelectValue placeholder="Status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Status</SelectItem>
-                                        <SelectItem value="pending">Pending</SelectItem>
-                                        <SelectItem value="in-transit">In Transit</SelectItem>
-                                        <SelectItem value="delivered">Delivered</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
                         </div>
                     )}
 
-                    <div className="grid md:grid-cols-2 gap-4 md:gap-8">
-                        {/* Sender Information */}
-                        <div className="space-y-4">
-                            <h3 className="font-medium">Sender Details</h3>
-                            {renderErrors(errors.sender)}
-                            <div className="space-y-2">
-                                <Label htmlFor="sender-name">Sender Name</Label>
-                                <Input
-                                    id="sender-name"
-                                    placeholder="Enter sender name"
-                                    value={formData.sender_name}
-                                    onChange={(e) => handleFieldChange('sender_name', e.target.value)}
-                                    className={cn(
-                                        "w-full",
-                                        getFieldError('sender_name') && "border-red-500 focus-visible:ring-red-500"
-                                    )}
-                                />
-                                {getFieldError('sender_name') && (
-                                    <p className="text-xs text-red-500 mt-1">{getFieldError('sender_name')}</p>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="sender-number">Sender Phone</Label>
-                                <Input
-                                    id="sender-number"
-                                    type="tel"
-                                    placeholder="Enter phone number"
-                                    value={formData.sender_phone}
-                                    onChange={(e) => handleFieldChange('sender_phone', e.target.value)}
-                                    className={cn(
-                                        "w-full",
-                                        getFieldError('sender_phone') && "border-red-500 focus-visible:ring-red-500"
-                                    )}
-                                />
-                                {getFieldError('sender_phone') && (
-                                    <p className="text-xs text-red-500 mt-1">{getFieldError('sender_phone')}</p>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="sender-email">Sender Email</Label>
-                                <Input
-                                    id="sender-email"
-                                    type="email"
-                                    placeholder="Enter email"
-                                    value={formData.sender_email}
-                                    onChange={(e) => handleFieldChange('sender_email', e.target.value)}
-                                    className={cn(
-                                        "w-full",
-                                        getFieldError('sender_email') && "border-red-500 focus-visible:ring-red-500"
-                                    )}
-                                />
-                                {getFieldError('sender_email') && (
-                                    <p className="text-xs text-red-500 mt-1">{getFieldError('sender_email')}</p>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="sender-city">Sender Country</Label>
-                                <Select
-                                    value={formData.sender_country}
-                                    onValueChange={(value) => setFormData({ ...formData, sender_country: value })}
-                                >
-                                    <SelectTrigger id="sender-city">
-                                        <SelectValue placeholder="Select country" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {departureCountries.map((country) => (
-                                            <SelectItem key={country.code} value={country.id}>
-                                                <span className="flex items-center gap-2">
-                                                    <span>{country.name}</span>
-                                                </span>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="sender-address">Sender Address</Label>
-                                <Textarea
-                                    id="sender-address"
-                                    placeholder="Enter complete address"
-                                    value={formData.sender_address}
-                                    onChange={(e) => setFormData({ ...formData, sender_address: e.target.value })}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Receiver Information */}
-                        <div className="space-y-4">
-                            <h3 className="font-medium">Receiver Details</h3>
-                            {renderErrors(errors.recipient)}
-                            <div className="space-y-2">
-                                <Label htmlFor="receiver-name">Receiver Name</Label>
-                                <Input
-                                    id="receiver-name"
-                                    placeholder="Enter receiver name"
-                                    value={formData.recipient_name}
-                                    onChange={(e) => handleFieldChange('recipient_name', e.target.value)}
-                                    className={cn(
-                                        "w-full",
-                                        getFieldError('recipient_name') && "border-red-500 focus-visible:ring-red-500"
-                                    )}
-                                />
-                                {getFieldError('recipient_name') && (
-                                    <p className="text-xs text-red-500 mt-1">{getFieldError('recipient_name')}</p>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="receiver-number">Receiver Phone</Label>
-                                <Input
-                                    id="receiver-number"
-                                    type="tel"
-                                    placeholder="Enter phone number"
-                                    value={formData.recipient_phone}
-                                    onChange={(e) => handleFieldChange('recipient_phone', e.target.value)}
-                                    className={cn(
-                                        "w-full",
-                                        getFieldError('recipient_phone') && "border-red-500 focus-visible:ring-red-500"
-                                    )}
-                                />
-                                {getFieldError('recipient_phone') && (
-                                    <p className="text-xs text-red-500 mt-1">{getFieldError('recipient_phone')}</p>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="receiver-email">Receiver Email</Label>
-                                <Input
-                                    id="receiver-email"
-                                    type="email"
-                                    placeholder="Enter email"
-                                    value={formData.recipient_email}
-                                    onChange={(e) => handleFieldChange('recipient_email', e.target.value)}
-                                    className={cn(
-                                        "w-full",
-                                        getFieldError('recipient_email') && "border-red-500 focus-visible:ring-red-500"
-                                    )}
-                                />
-                                {getFieldError('recipient_email') && (
-                                    <p className="text-xs text-red-500 mt-1">{getFieldError('recipient_email')}</p>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="receiver-city">Receiver Country</Label>
-                                <Select
-                                    value={formData.recipient_country}
-                                    onValueChange={(value) => handleFieldChange('recipient_country', value)}
-                                >
-                                    <SelectTrigger id="receiver-city" className={cn(
-                                        getFieldError('recipient_country') && "border-red-500 focus-visible:ring-red-500"
-                                    )}>
-                                        <SelectValue placeholder="Select country" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {destinationCountries.map((country) => (
-                                            <SelectItem key={country.code} value={country.id}>
-                                                <span className="flex items-center gap-2">
-                                                    <span>{country.name}</span>
-                                                </span>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {getFieldError('recipient_country') && (
-                                    <p className="text-xs text-red-500 mt-1">{getFieldError('recipient_country')}</p>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="receiver-address">Receiver Address</Label>
-                                <Textarea
-                                    id="receiver-address"
-                                    placeholder="Enter complete address"
-                                    value={formData.recipient_address}
-                                    onChange={(e) => handleFieldChange('recipient_address', e.target.value)}
-                                    className={cn(
-                                        getFieldError('recipient_address') && "border-red-500 focus-visible:ring-red-500"
-                                    )}
-                                />
-                                {getFieldError('recipient_address') && (
-                                    <p className="text-xs text-red-500 mt-1">{getFieldError('recipient_address')}</p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Parcel Details */}
-                    <div className="space-y-4">
-                        <h3 className="font-medium">Parcel Details</h3>
-                        {renderErrors(errors.package)}
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <Label htmlFor="package_type">Package Type</Label>
-                                <Select
-                                    value={formData.package_type}
-                                    onValueChange={(value) => handleFieldChange('package_type', value)}
-                                >
-                                    <SelectTrigger className={cn(
-                                        "w-full",
-                                        getFieldError('package_type') && "border-red-500 focus-visible:ring-red-500"
-                                    )}>
-                                        <SelectValue placeholder="Select package type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {[
-                                            { id: 'document', name: 'Document' },
-                                            { id: 'parcel', name: 'Parcel' },
-                                            { id: 'box', name: 'Box' },
-                                            { id: 'pallet', name: 'Pallet' }
-                                        ].map((type) => (
-                                            <SelectItem key={type.id} value={type.id}>
-                                                {type.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {getFieldError('package_type') && (
-                                    <p className="text-xs text-red-500 mt-1">{getFieldError('package_type')}</p>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="weight">Weight (kg)</Label>
-                                <Input
-                                    id="weight"
-                                    type="number"
-                                    min="0.1"
-                                    step="0.1"
-                                    placeholder="Enter weight"
-                                    value={formData.weight}
-                                    onChange={(e) => handleFieldChange('weight', parseFloat(e.target.value))}
-                                    className={cn(
-                                        "w-full",
-                                        getFieldError('weight') && "border-red-500 focus-visible:ring-red-500"
-                                    )}
-                                />
-                                {getFieldError('weight') && (
-                                    <p className="text-xs text-red-500 mt-1">{getFieldError('weight')}</p>
-                                )}
-                            </div>
-                            <div className="sm:col-span-2 space-y-2">
-                                <Label>Dimensions (cm)</Label>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                    <div>
-                                        <Input
-                                            placeholder="Length"
-                                            type="number"
-                                            value={formData.length}
-                                            onChange={(e) => handleFieldChange('length', parseFloat(e.target.value))}
-                                            className={cn(
-                                                "w-full",
-                                                getFieldError('length') && "border-red-500 focus-visible:ring-red-500"
-                                            )}
-                                        />
-                                        <span className="text-xs text-muted-foreground mt-1">Length</span>
-                                        {getFieldError('length') && (
-                                            <p className="text-xs text-red-500 mt-1">{getFieldError('length')}</p>
+                    {/* Show only when customer selcted */}
+                    <div className={`${!searchCustomerId ? mode === 'create' ? "hidden" : "" : ""}`}>
+                        <div className="grid md:grid-cols-2 gap-4 md:gap-8">
+                            {/* Sender Information */}
+                            <div className="space-y-4">
+                                <h3 className="font-medium">Sender Details</h3>
+                                {renderErrors(errors.sender)}
+                                <div className="space-y-2">
+                                    <Label htmlFor="sender-name">Sender Name</Label>
+                                    <Input
+                                        id="sender-name"
+                                        placeholder="Enter sender name"
+                                        value={formData.sender_name}
+                                        onChange={(e) => handleFieldChange('sender_name', e.target.value)}
+                                        className={cn(
+                                            "w-full",
+                                            getFieldError('sender_name') && "border-red-500 focus-visible:ring-red-500"
                                         )}
-                                    </div>
-                                    <div>
-                                        <Input
-                                            placeholder="Width"
-                                            type="number"
-                                            value={formData.width}
-                                            onChange={(e) => handleFieldChange('width', parseFloat(e.target.value))}
-                                            className={cn(
-                                                "w-full",
-                                                getFieldError('width') && "border-red-500 focus-visible:ring-red-500"
-                                            )}
-                                        />
-                                        <span className="text-xs text-muted-foreground mt-1">Width</span>
-                                        {getFieldError('width') && (
-                                            <p className="text-xs text-red-500 mt-1">{getFieldError('width')}</p>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <Input
-                                            placeholder="Height"
-                                            type="number"
-                                            value={formData.height}
-                                            onChange={(e) => handleFieldChange('height', parseFloat(e.target.value))}
-                                            className={cn(
-                                                "w-full",
-                                                getFieldError('height') && "border-red-500 focus-visible:ring-red-500"
-                                            )}
-                                        />
-                                        <span className="text-xs text-muted-foreground mt-1">Height</span>
-                                        {getFieldError('height') && (
-                                            <p className="text-xs text-red-500 mt-1">{getFieldError('height')}</p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="base-rate">Base Rate</Label>
-                                <Select
-                                    value={formData.base_rate}
-                                    onValueChange={(value) => setFormData({ ...formData, base_rate: value })}
-                                >
-                                    <SelectTrigger id="base-rate">
-                                        <SelectValue placeholder="Select base rate" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="17">17</SelectItem>
-                                        <SelectItem value="19">19</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="packaging">Packaging (RM)</Label>
-                                <Input
-                                    id="packaging"
-                                    type="number"
-                                    min="0"
-                                    placeholder="Enter the cost of packing"
-                                    value={formData.packaging_rm}
-                                    onChange={(e) => setFormData({ ...formData, packaging_rm: parseFloat(e.target.value) })}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="declared_value">Declared Value (USD)</Label>
-                                <Input
-                                    id="declared_value"
-                                    type="number"
-                                    min="0"
-                                    value={formData.declared_value}
-                                    onChange={(e) => setFormData({ ...formData, declared_value: parseFloat(e.target.value) })}
-                                    className="w-full"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="service_type">Service Type</Label>
-                                <Select
-                                    value={formData.service_type}
-                                    onValueChange={(value) => setFormData({ ...formData, service_type: value })}
-                                >
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Select service type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {serviceTypes.map((type) => (
-                                            <SelectItem key={type.id} value={type.id}>
-                                                {type.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="sm:col-span-2 space-y-2">
-                                <Label htmlFor="description">Package Description</Label>
-                                <Textarea
-                                    id="description"
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    className="min-h-[100px]"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Additional Charges */}
-                    <div className="space-y-4">
-                        <h3 className="font-medium">Additional Charges</h3>
-                        <div className="grid gap-2">
-                            {additional_charges.map((item) => (
-                                <div key={item.id} className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id={item.id}
-                                        checked={formData.additional_charges[item.id as keyof typeof formData.additional_charges]}
-                                        onCheckedChange={(checked) =>
-                                            setFormData({
-                                                ...formData,
-                                                additional_charges: {
-                                                    ...formData.additional_charges,
-                                                    [item.id]: checked
-                                                }
-                                            })
-                                        }
                                     />
-                                    <Label htmlFor={item.id}>{item.label}</Label>
+                                    {getFieldError('sender_name') && (
+                                        <p className="text-xs text-red-500 mt-1">{getFieldError('sender_name')}</p>
+                                    )}
                                 </div>
-                            ))}
-                        </div>
-                    </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="sender-number">Sender Phone</Label>
+                                    <Input
+                                        id="sender-number"
+                                        type="tel"
+                                        placeholder="Enter phone number"
+                                        value={formData.sender_phone}
+                                        onChange={(e) => handleFieldChange('sender_phone', e.target.value)}
+                                        className={cn(
+                                            "w-full",
+                                            getFieldError('sender_phone') && "border-red-500 focus-visible:ring-red-500"
+                                        )}
+                                    />
+                                    {getFieldError('sender_phone') && (
+                                        <p className="text-xs text-red-500 mt-1">{getFieldError('sender_phone')}</p>
+                                    )}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="sender-email">Sender Email</Label>
+                                    <Input
+                                        id="sender-email"
+                                        type="email"
+                                        placeholder="Enter email"
+                                        value={formData.sender_email}
+                                        onChange={(e) => handleFieldChange('sender_email', e.target.value)}
+                                        className={cn(
+                                            "w-full",
+                                            getFieldError('sender_email') && "border-red-500 focus-visible:ring-red-500"
+                                        )}
+                                    />
+                                    {getFieldError('sender_email') && (
+                                        <p className="text-xs text-red-500 mt-1">{getFieldError('sender_email')}</p>
+                                    )}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="sender-city">Sender Country</Label>
+                                    <Select
+                                        value={formData.sender_country}
+                                        onValueChange={(value) => setFormData({ ...formData, sender_country: value })}
+                                    >
+                                        <SelectTrigger id="sender-city">
+                                            <SelectValue placeholder="Select country" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {departureCountries.map((country) => (
+                                                <SelectItem key={country.code} value={country.id}>
+                                                    <span className="flex items-center gap-2">
+                                                        <span>{country.name}</span>
+                                                    </span>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="sender-address">Sender Address</Label>
+                                    <Textarea
+                                        id="sender-address"
+                                        placeholder="Enter complete address"
+                                        value={formData.sender_address}
+                                        onChange={(e) => setFormData({ ...formData, sender_address: e.target.value })}
+                                    />
+                                </div>
+                            </div>
 
-                    {/* Total Bill */}
-                    <div className="space-y-4">
-                        <div className="grid md:grid-cols-3 gap-6">
-                            <div className="space-y-2">
-                                <Label htmlFor="delivery_rm">Delivery(RM)</Label>
-                                <Input
-                                    id="delivery_rm"
-                                    type="number"
-                                    value={formData.delivery_rm}
-                                    readOnly
-                                    className="bg-muted"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="total_rm">Total Bill (RM)</Label>
-                                <Input
-                                    id="total_rm"
-                                    type="number"
-                                    value={formData.total_rm}
-                                    readOnly
-                                    className="bg-muted"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="total_naira">Total Bill (Naira)</Label>
-                                <Input
-                                    id="total_naira"
-                                    type="number"
-                                    value={formData.total_naira}
-                                    readOnly
-                                    className="bg-muted"
-                                />
+                            {/* Receiver Information */}
+                            <div className="space-y-4">
+                                <h3 className="font-medium">Receiver Details</h3>
+                                {renderErrors(errors.recipient)}
+                                <div className="space-y-2">
+                                    <Label htmlFor="receiver-name">Receiver Name</Label>
+                                    <Input
+                                        id="receiver-name"
+                                        placeholder="Enter receiver name"
+                                        value={formData.recipient_name}
+                                        onChange={(e) => handleFieldChange('recipient_name', e.target.value)}
+                                        className={cn(
+                                            "w-full",
+                                            getFieldError('recipient_name') && "border-red-500 focus-visible:ring-red-500"
+                                        )}
+                                    />
+                                    {getFieldError('recipient_name') && (
+                                        <p className="text-xs text-red-500 mt-1">{getFieldError('recipient_name')}</p>
+                                    )}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="receiver-number">Receiver Phone</Label>
+                                    <Input
+                                        id="receiver-number"
+                                        type="tel"
+                                        placeholder="Enter phone number"
+                                        value={formData.recipient_phone}
+                                        onChange={(e) => handleFieldChange('recipient_phone', e.target.value)}
+                                        className={cn(
+                                            "w-full",
+                                            getFieldError('recipient_phone') && "border-red-500 focus-visible:ring-red-500"
+                                        )}
+                                    />
+                                    {getFieldError('recipient_phone') && (
+                                        <p className="text-xs text-red-500 mt-1">{getFieldError('recipient_phone')}</p>
+                                    )}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="receiver-email">Receiver Email</Label>
+                                    <Input
+                                        id="receiver-email"
+                                        type="email"
+                                        placeholder="Enter email"
+                                        value={formData.recipient_email}
+                                        onChange={(e) => handleFieldChange('recipient_email', e.target.value)}
+                                        className={cn(
+                                            "w-full",
+                                            getFieldError('recipient_email') && "border-red-500 focus-visible:ring-red-500"
+                                        )}
+                                    />
+                                    {getFieldError('recipient_email') && (
+                                        <p className="text-xs text-red-500 mt-1">{getFieldError('recipient_email')}</p>
+                                    )}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="receiver-city">Receiver Country</Label>
+                                    <Select
+                                        value={formData.recipient_country}
+                                        onValueChange={(value) => handleFieldChange('recipient_country', value)}
+                                    >
+                                        <SelectTrigger id="receiver-city" className={cn(
+                                            getFieldError('recipient_country') && "border-red-500 focus-visible:ring-red-500"
+                                        )}>
+                                            <SelectValue placeholder="Select country" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {destinationCountries.map((country) => (
+                                                <SelectItem key={country.code} value={country.id}>
+                                                    <span className="flex items-center gap-2">
+                                                        <span>{country.name}</span>
+                                                    </span>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {getFieldError('recipient_country') && (
+                                        <p className="text-xs text-red-500 mt-1">{getFieldError('recipient_country')}</p>
+                                    )}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="receiver-address">Receiver Address</Label>
+                                    <Textarea
+                                        id="receiver-address"
+                                        placeholder="Enter complete address"
+                                        value={formData.recipient_address}
+                                        onChange={(e) => handleFieldChange('recipient_address', e.target.value)}
+                                        className={cn(
+                                            getFieldError('recipient_address') && "border-red-500 focus-visible:ring-red-500"
+                                        )}
+                                    />
+                                    {getFieldError('recipient_address') && (
+                                        <p className="text-xs text-red-500 mt-1">{getFieldError('recipient_address')}</p>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* optional checkbox */}
-                    <div className="sm:col-span-2 space-y-4">
-                        <div className="flex items-center space-x-2">
-                            <Checkbox
-                                id="insurance_required"
-                                checked={formData.insurance_required}
-                                onCheckedChange={(checked) =>
-                                    setFormData({ ...formData, insurance_required: checked as boolean })
-                                }
-                            />
-                            <Label htmlFor="insurance_required" className="text-sm text-muted-foreground">
-                                Add Insurance (Optional)
-                            </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <Checkbox
-                                id="signature_required"
-                                checked={formData.signature_required}
-                                onCheckedChange={(checked) =>
-                                    setFormData({ ...formData, signature_required: checked as boolean })
-                                }
-                            />
-                            <Label htmlFor="signature_required" className="text-sm text-muted-foreground">
-                                Require Signature (Optional)
-                            </Label>
-                        </div>
-                    </div>
+                        <Separator />
 
-                    {/* send bill */}
-                    <div className="space-y-4">
-                        <h3 className="font-medium">Send Bill Via</h3>
-                        <RadioGroup
-                            value={formData.send_via}
-                            onValueChange={(value) => setFormData({ ...formData,  send_via: value })}
-                            className="flex gap-4"
-                        >
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="whatsapp" id="whatsapp" />
-                                <Label htmlFor="whatsapp">WhatsApp</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="sms" id="sms" />
-                                <Label htmlFor="sms">SMS</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="both" id="both" />
-                                <Label htmlFor="both">Both</Label>
-                            </div>
-                        </RadioGroup>
-                        <Button type="button">Send</Button>
-                    </div>
-
-                    {calculating && (
-                        <div className="flex items-center justify-center space-x-2 text-muted-foreground">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <span>Calculating shipping rate...</span>
-                        </div>
-                    )}
-
-                    {shippingRate && (
-                        <Card className="mt-6">
-                            <CardHeader>
-                                <CardTitle className="text-lg">Shipping Cost Breakdown</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-2">
-                                <div className="grid gap-2 text-sm sm:text-base">
-                                    <div className="flex justify-between">
-                                        <span>Base Rate:</span>
-                                        <span>${shippingRate.rate_details.base_rate}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span>Weight Charge:</span>
-                                        <span>${shippingRate.rate_details.weight_charge}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span>Service Charge:</span>
-                                        <span>${shippingRate.cost_breakdown.service_price}</span>
-                                    </div>
-                                    {shippingRate.cost_breakdown.additional_charges.map(charge => (
-                                        <div key={charge.name} className="flex justify-between">
-                                            <span>{charge.name}:</span>
-                                            <span>${charge.amount}</span>
+                        {/* Parcel Details */}
+                        <div className="space-y-4">
+                            <h3 className="font-medium">Parcel Details</h3>
+                            {renderErrors(errors.package)}
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <div className="space-y-2 col-span-full">
+                                    <Label htmlFor="service_type">Service Type</Label>
+                                    <Select
+                                        value={formData.service_type}
+                                        onValueChange={(value) => setFormData({ ...formData, service_type: value })}
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="Select service type" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {serviceTypes.map((type) => (
+                                                <SelectItem key={type.id} value={type.id}>
+                                                    {type.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="package_type">Package Type</Label>
+                                    <Select
+                                        value={formData.package_type}
+                                        onValueChange={(value) => handleFieldChange('package_type', value)}
+                                    >
+                                        <SelectTrigger className={cn(
+                                            "w-full",
+                                            getFieldError('package_type') && "border-red-500 focus-visible:ring-red-500"
+                                        )}>
+                                            <SelectValue placeholder="Select package type" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {[
+                                                { id: 'document', name: 'Document' },
+                                                { id: 'parcel', name: 'Parcel' },
+                                                { id: 'box', name: 'Box' },
+                                                { id: 'pallet', name: 'Pallet' }
+                                            ].map((type) => (
+                                                <SelectItem key={type.id} value={type.id}>
+                                                    {type.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {getFieldError('package_type') && (
+                                        <p className="text-xs text-red-500 mt-1">{getFieldError('package_type')}</p>
+                                    )}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="weight">Weight (kg)</Label>
+                                    <Input
+                                        id="weight"
+                                        type="number"
+                                        min="0.1"
+                                        step="0.1"
+                                        placeholder="Enter weight"
+                                        value={formData.weight}
+                                        onChange={(e) => handleFieldChange('weight', parseFloat(e.target.value))}
+                                        className={cn(
+                                            "w-full",
+                                            getFieldError('weight') && "border-red-500 focus-visible:ring-red-500"
+                                        )}
+                                    />
+                                    {getFieldError('weight') && (
+                                        <p className="text-xs text-red-500 mt-1">{getFieldError('weight')}</p>
+                                    )}
+                                </div>
+                                <div className="sm:col-span-2 space-y-2">
+                                    <Label>Dimensions (cm)</Label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                        <div>
+                                            <Input
+                                                placeholder="Length"
+                                                type="number"
+                                                value={formData.length}
+                                                onChange={(e) => handleFieldChange('length', parseFloat(e.target.value))}
+                                                className={cn(
+                                                    "w-full",
+                                                    getFieldError('length') && "border-red-500 focus-visible:ring-red-500"
+                                                )}
+                                            />
+                                            <span className="text-xs text-muted-foreground mt-1">Length</span>
+                                            {getFieldError('length') && (
+                                                <p className="text-xs text-red-500 mt-1">{getFieldError('length')}</p>
+                                            )}
                                         </div>
-                                    ))}
-                                    <div className="border-t pt-2 flex justify-between font-bold">
-                                        <span>Total:</span>
-                                        <span>${shippingRate.cost_breakdown.total_cost}</span>
+                                        <div>
+                                            <Input
+                                                placeholder="Width"
+                                                type="number"
+                                                value={formData.width}
+                                                onChange={(e) => handleFieldChange('width', parseFloat(e.target.value))}
+                                                className={cn(
+                                                    "w-full",
+                                                    getFieldError('width') && "border-red-500 focus-visible:ring-red-500"
+                                                )}
+                                            />
+                                            <span className="text-xs text-muted-foreground mt-1">Width</span>
+                                            {getFieldError('width') && (
+                                                <p className="text-xs text-red-500 mt-1">{getFieldError('width')}</p>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <Input
+                                                placeholder="Height"
+                                                type="number"
+                                                value={formData.height}
+                                                onChange={(e) => handleFieldChange('height', parseFloat(e.target.value))}
+                                                className={cn(
+                                                    "w-full",
+                                                    getFieldError('height') && "border-red-500 focus-visible:ring-red-500"
+                                                )}
+                                            />
+                                            <span className="text-xs text-muted-foreground mt-1">Height</span>
+                                            {getFieldError('height') && (
+                                                <p className="text-xs text-red-500 mt-1">{getFieldError('height')}</p>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </CardContent>
-                        </Card>
-                    )}
 
-                    <div className="flex flex-col sm:flex-row gap-4 sm:justify-end">
-                        <Button 
-                            type="button" 
-                            variant="outline" 
-                            disabled={isSubmitting}
-                        >
-                            Print AWB
-                        </Button>
-                        <Button 
-                            type="submit" 
-                            disabled={isSubmitting}
-                            onClick={handleSubmit}
-                        >
-                            {isSubmitting ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Creating...
-                                </>
-                            ) : (
-                                submitButtonText
-                            )}
-                        </Button>
+                                <div className="space-y-2">
+                                    <Label htmlFor="packaging">Packaging (RM)</Label>
+                                    <Input
+                                        id="packaging"
+                                        type="number"
+                                        min="0"
+                                        placeholder="Enter the cost of packing"
+                                        value={formData.packaging_rm}
+                                        onChange={(e) => setFormData({ ...formData, packaging_rm: parseFloat(e.target.value) })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="declared_value">Declared Value (USD)</Label>
+                                    <Input
+                                        id="declared_value"
+                                        type="number"
+                                        min="0"
+                                        value={formData.declared_value}
+                                        onChange={(e) => setFormData({ ...formData, declared_value: parseFloat(e.target.value) })}
+                                        className="w-full"
+                                    />
+                                </div>
+
+                                <div className="sm:col-span-2 space-y-2">
+                                    <Label htmlFor="description">Package Description</Label>
+                                    <Textarea
+                                        id="description"
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        className="min-h-[100px]"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Additional Charges */}
+                        <div className="space-y-4">
+                            <h3 className="font-medium">Additional Charges</h3>
+                            <div className="grid gap-2">
+                                {additional_charges.map((item) => (
+                                    <div key={item.id} className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id={item.id}
+                                            checked={formData.additional_charges[item.id as keyof typeof formData.additional_charges]}
+                                            onCheckedChange={(checked) =>
+                                                setFormData({
+                                                    ...formData,
+                                                    additional_charges: {
+                                                        ...formData.additional_charges,
+                                                        [item.id]: checked
+                                                    }
+                                                })
+                                            }
+                                        />
+                                        <Label htmlFor={item.id}>{item.label}</Label>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Total Bill */}
+                        <div className="space-y-4">
+                            <div className="grid md:grid-cols-3 gap-6">
+                                <div className="space-y-2">
+                                    <Label htmlFor="delivery_rm">Delivery(RM)</Label>
+                                    <Input
+                                        id="delivery_rm"
+                                        type="number"
+                                        value={formData.delivery_rm}
+                                        readOnly
+                                        className="bg-muted"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="total_rm">Total Bill (RM)</Label>
+                                    <Input
+                                        id="total_rm"
+                                        type="number"
+                                        value={formData.total_rm}
+                                        readOnly
+                                        className="bg-muted"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="total_naira">Total Bill (Naira)</Label>
+                                    <Input
+                                        id="total_naira"
+                                        type="number"
+                                        value={formData.total_naira}
+                                        readOnly
+                                        className="bg-muted"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* optional checkbox */}
+                        <div className="sm:col-span-2 space-y-4">
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="insurance_required"
+                                    checked={formData.insurance_required}
+                                    onCheckedChange={(checked) =>
+                                        setFormData({ ...formData, insurance_required: checked as boolean })
+                                    }
+                                />
+                                <Label htmlFor="insurance_required" className="text-sm text-muted-foreground">
+                                    Add Insurance (Optional)
+                                </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="signature_required"
+                                    checked={formData.signature_required}
+                                    onCheckedChange={(checked) =>
+                                        setFormData({ ...formData, signature_required: checked as boolean })
+                                    }
+                                />
+                                <Label htmlFor="signature_required" className="text-sm text-muted-foreground">
+                                    Require Signature (Optional)
+                                </Label>
+                            </div>
+                        </div>
+
+                        {/* send bill */}
+                        <div className="space-y-4">
+                            <h3 className="font-medium">Send Bill Via</h3>
+                            <RadioGroup
+                                value={formData.send_via}
+                                onValueChange={(value) => setFormData({ ...formData, send_via: value })}
+                                className="flex gap-4"
+                            >
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="whatsapp" id="whatsapp" />
+                                    <Label htmlFor="whatsapp">WhatsApp</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="sms" id="sms" />
+                                    <Label htmlFor="sms">SMS</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="both" id="both" />
+                                    <Label htmlFor="both">Both</Label>
+                                </div>
+                            </RadioGroup>
+                            <Button type="button">Send</Button>
+                        </div>
+
+                        {calculating && (
+                            <div className="flex items-center justify-center space-x-2 text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>Calculating shipping rate...</span>
+                            </div>
+                        )}
+
+                        {shippingRate && (
+                            <Card className="mt-6">
+                                <CardHeader>
+                                    <CardTitle className="text-lg">Shipping Cost Breakdown</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                    <div className="grid gap-2 text-sm sm:text-base">
+                                        <div className="flex justify-between">
+                                            <span>Base Rate:</span>
+                                            <span>${shippingRate.rate_details.base_rate}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Weight Charge:</span>
+                                            <span>${shippingRate.rate_details.weight_charge}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Service Charge:</span>
+                                            <span>${shippingRate.cost_breakdown.service_price}</span>
+                                        </div>
+                                        {shippingRate.cost_breakdown.additional_charges.map(charge => (
+                                            <div key={charge.name} className="flex justify-between">
+                                                <span>{charge.name}:</span>
+                                                <span>${charge.amount}</span>
+                                            </div>
+                                        ))}
+                                        <div className="border-t pt-2 flex justify-between font-bold">
+                                            <span>Total:</span>
+                                            <span>${shippingRate.cost_breakdown.total_cost}</span>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        <div className="flex flex-col sm:flex-row gap-4 sm:justify-end mt-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={isSubmitting}
+                            >
+                                Print AWB
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={isSubmitting}
+                                onClick={handleSubmit}
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        {mode === 'create' ? "Creating..." : "Updating..."}
+                                    </>
+                                ) : (
+                                    mode === 'edit' ? "Update" : "Create"
+                                )}
+                            </Button>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
-            <CreateCustomerDialog 
+            <CreateCustomerDialog
                 open={showCreateCustomerDialog}
                 onOpenChange={setShowCreateCustomerDialog}
             />
