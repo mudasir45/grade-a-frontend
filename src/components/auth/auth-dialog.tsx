@@ -167,7 +167,7 @@ export function AuthDialog() {
     if (!isValidPhoneNumber(formData.phone)) {
       toast({
         title: "Invalid Phone Number",
-        description: "Please enter a valid 10-digit phone number",
+        description: "Please enter a valid 12-digit phone number",
         variant: "destructive",
       });
       return;

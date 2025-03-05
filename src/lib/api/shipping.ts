@@ -245,4 +245,25 @@ export class ShippingAPI {
         : new Error("Failed to update shipment status");
     }
   }
+
+  static async getShipmentStats() {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/accounts/users/dashboard/`,
+        {
+          headers: this.getHeaders(),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch shipment stats");
+      }
+
+      return response.json();
+    } catch (error) {
+      throw error instanceof Error
+        ? error
+        : new Error("Failed to fetch shipment stats");
+    }
+  }
 }

@@ -1,64 +1,63 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card'
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { useToast } from '@/hooks/use-toast'
-import { MessageSquare, Phone, Mail, Send } from 'lucide-react'
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { Mail, MessageSquare, Phone, Send } from "lucide-react";
+import { useState } from "react";
 
 export function CustomerSupport() {
-  const { toast } = useToast()
-  const [loading, setLoading] = useState(false)
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    subject: '',
-    category: '',
-    message: '',
-  })
+    subject: "",
+    category: "",
+    message: "",
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
 
     try {
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       toast({
-        title: 'Support Ticket Created',
-        description: 'We will respond to your inquiry shortly.',
-      })
+        title: "Support Ticket Created",
+        description: "We will respond to your inquiry shortly.",
+      });
 
       setFormData({
-        subject: '',
-        category: '',
-        message: '',
-      })
+        subject: "",
+        category: "",
+        message: "",
+      });
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to create support ticket. Please try again.',
-        variant: 'destructive',
-      })
+        title: "Error",
+        description: "Failed to create support ticket. Please try again.",
+        variant: "destructive",
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
@@ -67,7 +66,8 @@ export function CustomerSupport() {
           <CardHeader>
             <CardTitle>Contact Support</CardTitle>
             <CardDescription>
-              Submit a support ticket and we'll get back to you as soon as possible
+              Submit a support ticket and we'll get back to you as soon as
+              possible
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -77,7 +77,9 @@ export function CustomerSupport() {
                 <Input
                   required
                   value={formData.subject}
-                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, subject: e.target.value })
+                  }
                   placeholder="Brief description of your issue"
                 />
               </div>
@@ -86,7 +88,9 @@ export function CustomerSupport() {
                 <label className="text-sm font-medium">Category</label>
                 <Select
                   value={formData.category}
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, category: value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
@@ -105,7 +109,9 @@ export function CustomerSupport() {
                 <Textarea
                   required
                   value={formData.message}
-                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, message: e.target.value })
+                  }
                   placeholder="Describe your issue in detail"
                   rows={5}
                 />
@@ -113,7 +119,7 @@ export function CustomerSupport() {
 
               <Button type="submit" className="w-full" disabled={loading}>
                 <Send className="mr-2 h-4 w-4" />
-                {loading ? 'Submitting...' : 'Submit Ticket'}
+                {loading ? "Submitting..." : "Submit Ticket"}
               </Button>
             </form>
           </CardContent>
@@ -165,9 +171,7 @@ export function CustomerSupport() {
               </div>
               <div>
                 <h3 className="font-medium">Live Chat</h3>
-                <p className="text-sm text-muted-foreground">
-                  Available 24/7
-                </p>
+                <p className="text-sm text-muted-foreground">Available 24/7</p>
                 <Button variant="link" className="h-auto p-0">
                   Start Chat
                 </Button>
@@ -179,32 +183,33 @@ export function CustomerSupport() {
         <Card>
           <CardHeader>
             <CardTitle>FAQs</CardTitle>
-            <CardDescription>
-              Common questions and answers
-            </CardDescription>
+            <CardDescription>Common questions and answers</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <h3 className="font-medium">How do I track my shipment?</h3>
               <p className="text-sm text-muted-foreground">
-                You can track your shipment using the tracking number provided in your shipping confirmation email.
+                You can track your shipment using the tracking number provided
+                in your shipping confirmation email.
               </p>
             </div>
             <div className="space-y-2">
               <h3 className="font-medium">What are your shipping rates?</h3>
               <p className="text-sm text-muted-foreground">
-                Our shipping rates vary based on package weight, dimensions, and destination. Use our shipping calculator for an estimate.
+                Our shipping rates vary based on package weight, dimensions, and
+                destination. Use our shipping calculator for an estimate.
               </p>
             </div>
             <div className="space-y-2">
               <h3 className="font-medium">How long does shipping take?</h3>
               <p className="text-sm text-muted-foreground">
-                Delivery times vary by destination and service level chosen. Standard shipping typically takes 5-7 business days.
+                Delivery times vary by destination and service level chosen.
+                Standard shipping typically takes 5-7 business days.
               </p>
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }

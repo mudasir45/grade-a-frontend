@@ -1,9 +1,9 @@
-'use client'
+"use client";
 
 interface ShippingHeaderProps {
-  heading: string
-  text?: string
-  children?: React.ReactNode
+  heading: string;
+  text?: string;
+  children?: React.ReactNode;
 }
 
 export function ShippingHeader({
@@ -19,5 +19,5 @@ export function ShippingHeader({
       </div>
       {children}
     </div>
-  )
+  );
 }
