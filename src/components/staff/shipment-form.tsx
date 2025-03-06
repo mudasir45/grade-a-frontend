@@ -490,53 +490,53 @@ export function ShipmentForm({ mode = 'create', initialData, onUpdate, users }: 
     return (
         <form className="space-y-6 flex">
             <Card className="w-full max-w-4xl mx-auto">
-                <CardHeader>
-                    <CardTitle className={`${mode === 'edit' ? "hidden" : "text-2xl font-semibold"}`}>Create New Shipment</CardTitle>
+                <CardHeader className='flex flex-col sm:flex-row sm:justify-between sm:items-center'>
+                    <CardTitle className={`${mode === 'edit' ? "hidden" : "text-2xl font-semibold"} mb-3 sm:mb-0`}>Create New Shipment</CardTitle>
+                    <Button
+                        className={`${mode === 'create' ? 'w-fit' : 'hidden'}`}
+                        type='button'
+                        variant="secondary"
+                        onClick={() => setShowCreateCustomerDialog(true)}
+                    >
+                        Create New Customer
+                    </Button>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     {/* Customer Search / Tracking Number */}
                     {mode === 'create' ? (
-                        <div className="flex gap-4 flex-col sm:flex-row sm:items-end">
-                            <div className="flex-1 space-y-2">
-                                <Label htmlFor="customer-search">Search customer</Label>
-                                <Select
-                                    value={searchCustomerId}
-                                    onValueChange={handleCustomerSelect}
-                                >
-                                    <SelectTrigger id="search-customer" >
-                                        <SelectValue placeholder="Search customer by username" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {users && users.map((user) => (
-                                            <SelectItem key={user.id} value={user.id}>
-                                                <span className="flex items-center gap-2">
-                                                    <span>{user.username}</span>
-                                                </span>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <Button
-                                type='button'
-                                variant="secondary"
-                                onClick={() => setShowCreateCustomerDialog(true)}
+
+                        <div className="flex-1 space-y-2">
+                            <Label htmlFor="customer-search">Search customer</Label>
+                            <Select
+                                value={searchCustomerId}
+                                onValueChange={handleCustomerSelect}
                             >
-                                Create New Customer
-                            </Button>
+                                <SelectTrigger id="search-customer" >
+                                    <SelectValue placeholder="Search customer by username" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {users && users.map((user) => (
+                                        <SelectItem key={user.id} value={user.id}>
+                                            <span className="flex items-center gap-2">
+                                                <span>{user.username}</span>
+                                            </span>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     ) : (
-                        <div className="flex gap-4 flex-col sm:flex-row sm:items-end">
-                            <div className="flex-1 space-y-2">
-                                <Label htmlFor="tracking-number">Tracking Number</Label>
-                                <Input
-                                    id="tracking-number"
-                                    value={formData.tracking_number}
-                                    readOnly
-                                    className="bg-muted"
-                                />
-                            </div>
+
+                        <div className="flex-1 space-y-2">
+                            <Label htmlFor="tracking-number">Tracking Number</Label>
+                            <Input
+                                id="tracking-number"
+                                value={formData.tracking_number}
+                                readOnly
+                                className="bg-muted"
+                            />
                         </div>
+
                     )}
 
                     {/* Show only when customer selcted */}
