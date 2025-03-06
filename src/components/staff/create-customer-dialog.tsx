@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react'
-import { motion } from "framer-motion";
 import { LogIn } from "lucide-react";
 import { useCallback, useState } from "react";
 const INITIAL_FORM_STATE = {
@@ -124,6 +123,7 @@ export function CreateCustomerDialog({
             });
             // Reset form after successful creation
             setFormData(INITIAL_FORM_STATE);
+            onOpenChange(false)
         } catch (error: any) {
             toast({
                 title: 'Error',

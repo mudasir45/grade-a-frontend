@@ -16,11 +16,12 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { Eye, Pencil, Trash2, MoreHorizontal, Search, FileDown, Plus } from "lucide-react"
+import { Eye, Pencil, Trash2, MoreHorizontal, Search, RefreshCcw } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { ShipmentForm } from "./shipment-form"
+import { UpdateStatusDialog } from './update-status-dialog'
 // Update the imports and add interface for shipment type
-interface Shipment {
+export interface ShipmentProps {
   id: string
   user: string
   cod_amount: string
@@ -72,7 +73,7 @@ interface Shipment {
 }
 
 interface ManageShipmentProps {
-  shipments: Shipment[]
+  shipments: ShipmentProps[]
 }
 
 export function ManageShipment({ shipments }: ManageShipmentProps) {
@@ -81,8 +82,9 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
   const [statusFilter, setStatusFilter] = useState("all")
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
-  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null)
+  const [selectedShipment, setSelectedShipment] = useState<ShipmentProps | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false)
   const token = localStorage.getItem('auth_token')
   console.log(selectedShipment)
   // Filter shipments based on search term and status filter
@@ -100,16 +102,14 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
   // Function to get the appropriate badge color based on status
   const getStatusBadge = (status: any) => {
     switch (status) {
-      case "delivered":
-        return <Badge className="bg-green-500">Delivered</Badge>
-      case "in-transit":
-        return <Badge className="bg-blue-500">In Transit</Badge>
-      case "pending":
-        return <Badge className="bg-yellow-500">Pending</Badge>
-      case "processing":
-        return <Badge className="bg-cyan-500">Processing</Badge>
-      case "cancelled":
-        return <Badge className="bg-red-500">Cancelled</Badge>
+      case "DELIVERED":
+        return <Badge className="bg-green-500">{status}</Badge>
+      case "PENDING":
+        return <Badge className="bg-yellow-500">{status}</Badge>
+      case "PROCESSING":
+        return <Badge className="bg-blue-500">{status}</Badge>
+      case "CANCELLED":
+        return <Badge className="bg-red-500">{status}</Badge>
       default:
         return <Badge className="bg-gray-500">{status}</Badge>
     }
@@ -126,11 +126,14 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
     setSelectedShipment(shipment)
     setViewDialogOpen(true)
   }
-
+// Function to handle view click
+const handleUpdateStatusClick = (shipment: any) => {
+  setSelectedShipment(shipment)
+  setStatusDialogOpen(true)
+}
   // Function to handle shipment update
-  const handleShipmentUpdate = async (updatedData: Shipment) => {
-    console.log(updatedData);
-  
+  const handleShipmentUpdate = async (updatedData: ShipmentProps) => {
+
     const payload = {
       payment_method: updatedData.payment_method,
       sender_name: updatedData.sender_name,
@@ -153,7 +156,7 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
       recipient_country: updatedData.recipient_country,
       service_type: updatedData.service_type,
     };
-  
+
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/shipments/staff-shipment/${updatedData.id}/`, {
         method: "PUT",
@@ -163,22 +166,22 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
         },
         body: JSON.stringify(payload),
       });
-  
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to update shipment");
       }
-  
+
       return true; // Return success
     } catch (error) {
       console.error("Error updating shipment:", error);
       return false; // Return failure
     }
   };
-  
+
 
   // Function to handle delete click
-  const handleDeleteClick = (shipment: Shipment) => {
+  const handleDeleteClick = (shipment: ShipmentProps) => {
     setSelectedShipment(shipment)
     setDeleteDialogOpen(true)
   }
@@ -207,7 +210,7 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
 
       setDeleteDialogOpen(false)
       // You might want to refresh the shipments list here
-      
+
     } catch (error) {
       console.error('Error deleting shipment:', error);
       toast({
@@ -292,6 +295,13 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
                           className="flex items-center gap-2"
+                          onClick={() => handleUpdateStatusClick(shipment)}
+                        >
+                          <RefreshCcw className="h-4 w-4" />
+                          Update Status
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="flex items-center gap-2"
                           onClick={() => handleViewClick(shipment)}
                         >
                           <Eye className="h-4 w-4" />
@@ -304,7 +314,7 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
                           <Pencil className="h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           className="flex items-center gap-2 text-destructive"
                           onClick={() => handleDeleteClick(shipment)}
                         >
@@ -364,6 +374,13 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
                               className="flex items-center gap-2"
+                              onClick={() => handleUpdateStatusClick(shipment)}
+                            >
+                              <RefreshCcw className="h-4 w-4" />
+                              Update Status
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="flex items-center gap-2"
                               onClick={() => handleViewClick(shipment)}
                             >
                               <Eye className="h-4 w-4" />
@@ -376,7 +393,7 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
                               <Pencil className="h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               className="flex items-center gap-2 text-destructive"
                               onClick={() => handleDeleteClick(shipment)}
                             >
@@ -437,6 +454,19 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
             initialData={selectedShipment}
             onUpdate={handleShipmentUpdate}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Add the Dialog for updating status */}
+      <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
+        <DialogContent className="sm:max-w-xl max-h-[100%] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex text-xl font-semibold ">Update Status</DialogTitle>
+          </DialogHeader>
+          <UpdateStatusDialog 
+          shipmentId={selectedShipment?.id} 
+          currentStatus={selectedShipment?.status} 
+          setStatusDialogOpen={setStatusDialogOpen}/>
         </DialogContent>
       </Dialog>
 

@@ -506,7 +506,7 @@ export function ShipmentForm({ mode = 'create', initialData, onUpdate, users }: 
                     {mode === 'create' ? (
 
                         <div className="flex-1 space-y-2">
-                            <Label htmlFor="customer-search">Search customer</Label>
+                            <Label htmlFor="search-customer">Search customer</Label>
                             <Select
                                 value={searchCustomerId}
                                 onValueChange={handleCustomerSelect}
@@ -514,7 +514,7 @@ export function ShipmentForm({ mode = 'create', initialData, onUpdate, users }: 
                                 <SelectTrigger id="search-customer" >
                                     <SelectValue placeholder="Search customer by username" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="max-h-60 overflow-y-auto">
                                     {users && users.map((user) => (
                                         <SelectItem key={user.id} value={user.id}>
                                             <span className="flex items-center gap-2">
