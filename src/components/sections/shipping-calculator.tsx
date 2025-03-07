@@ -1,97 +1,109 @@
-'use client'
+"use client";
 
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/components/ui/tooltip'
-import useShippingData from '@/hooks/use-shipping-data'
-import { useToast } from '@/hooks/use-toast'
-import { ShippingAPI } from '@/lib/api/shipping'
-import { cn } from '@/lib/utils'
-import { motion } from 'framer-motion'
-import { AlertCircle, Calculator, Info, Loader2, Package, Plane, Ship, Truck } from 'lucide-react'
-import { useState } from 'react'
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import useShippingData from "@/hooks/use-shipping-data";
+import { useToast } from "@/hooks/use-toast";
+import { ShippingAPI } from "@/lib/api/shipping";
+import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
+import {
+  AlertCircle,
+  Calculator,
+  Info,
+  Loader2,
+  Package,
+  Plane,
+  Ship,
+  Truck,
+} from "lucide-react";
+import { useState } from "react";
 
 const serviceIcons = {
-  'economy': <Ship className="h-5 w-5" />,
-  'regular': <Truck className="h-5 w-5" />,
-  'express': <Plane className="h-5 w-5" />
-}
+  economy: <Ship className="h-5 w-5" />,
+  regular: <Truck className="h-5 w-5" />,
+  express: <Plane className="h-5 w-5" />,
+};
 
 export function ShippingCalculator() {
-  const { toast } = useToast()
+  const { toast } = useToast();
   const {
     departureCountries,
     destinationCountries,
     serviceTypes,
     isLoading: dataLoading,
     error: dataError,
-    refetch
-  } = useShippingData()
+    refetch,
+  } = useShippingData();
 
   const [formData, setFormData] = useState({
-    fromCountry: '',
-    toCountry: '',
-    weight: '',
-    method: ''
-  })
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<{ price: number; currency: string } | null>(null)
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+    fromCountry: "",
+    toCountry: "",
+    weight: "",
+    method: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{
+    price: number;
+    currency: string;
+  } | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const validateForm = () => {
-    const errors: Record<string, string> = {}
+    const errors: Record<string, string> = {};
 
     if (!formData.fromCountry) {
-      errors.fromCountry = 'Please select origin country'
+      errors.fromCountry = "Please select origin country";
     }
     if (!formData.toCountry) {
-      errors.toCountry = 'Please select destination country'
+      errors.toCountry = "Please select destination country";
     }
     if (!formData.weight) {
-      errors.weight = 'Please enter package weight'
+      errors.weight = "Please enter package weight";
     } else {
-      const weightNum = parseFloat(formData.weight)
+      const weightNum = parseFloat(formData.weight);
       if (isNaN(weightNum) || weightNum <= 0) {
-        errors.weight = 'Weight must be greater than 0'
+        errors.weight = "Weight must be greater than 0";
       }
       if (weightNum > 1000) {
-        errors.weight = 'Weight cannot exceed 1000 kg'
+        errors.weight = "Weight cannot exceed 1000 kg";
       }
     }
     if (!formData.method) {
-      errors.method = 'Please select shipping method'
+      errors.method = "Please select shipping method";
     }
 
-    setFormErrors(errors)
-    return Object.keys(errors).length === 0
-  }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleCalculate = async () => {
     if (!validateForm()) {
       toast({
-        title: 'Validation Error',
-        description: 'Please check all required fields.',
-        variant: 'destructive',
-      })
-      return
+        title: "Validation Error",
+        description: "Please check all required fields.",
+        variant: "destructive",
+      });
+      return;
     }
 
     try {
-      setLoading(true)
-      setResult(null)
+      setLoading(true);
+      setResult(null);
 
       const rate = await ShippingAPI.calculateRate({
         origin_country: formData.fromCountry,
@@ -101,28 +113,31 @@ export function ShippingCalculator() {
         width: 0,
         height: 0,
         service_type: formData.method,
-      })
+      });
 
       setResult({
         price: rate.cost_breakdown.total_cost,
-        currency: "MYR"
-      })
+        currency: "MYR",
+      });
 
       toast({
-        title: 'Rate Calculated',
-        description: 'Your shipping rate has been calculated successfully.',
-      })
+        title: "Rate Calculated",
+        description: "Your shipping rate has been calculated successfully.",
+      });
     } catch (err) {
-      console.error('Calculation error:', err)
+      console.error("Calculation error:", err);
       toast({
-        title: 'Calculation Error',
-        description: err instanceof Error ? err.message : 'Failed to calculate shipping rate.',
-        variant: 'destructive',
-      })
+        title: "Calculation Error",
+        description:
+          err instanceof Error
+            ? err.message
+            : "Failed to calculate shipping rate.",
+        variant: "destructive",
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (dataLoading) {
     return (
@@ -132,7 +147,7 @@ export function ShippingCalculator() {
           <p className="text-muted-foreground">Loading shipping data...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (dataError) {
@@ -146,7 +161,7 @@ export function ShippingCalculator() {
           </Button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -184,12 +199,19 @@ export function ShippingCalculator() {
                       </label>
                       <Select
                         value={formData.fromCountry}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, fromCountry: value }))}
+                        onValueChange={(value) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            fromCountry: value,
+                          }))
+                        }
                       >
-                        <SelectTrigger className={cn(
-                          "w-full",
-                          formErrors.fromCountry && "border-red-500"
-                        )}>
+                        <SelectTrigger
+                          className={cn(
+                            "w-full",
+                            formErrors.fromCountry && "border-red-500"
+                          )}
+                        >
                           <SelectValue placeholder="Select origin" />
                         </SelectTrigger>
                         <SelectContent>
@@ -203,7 +225,9 @@ export function ShippingCalculator() {
                         </SelectContent>
                       </Select>
                       {formErrors.fromCountry && (
-                        <p className="text-sm text-red-500">{formErrors.fromCountry}</p>
+                        <p className="text-sm text-red-500">
+                          {formErrors.fromCountry}
+                        </p>
                       )}
                     </div>
 
@@ -213,12 +237,16 @@ export function ShippingCalculator() {
                       </label>
                       <Select
                         value={formData.toCountry}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, toCountry: value }))}
+                        onValueChange={(value) =>
+                          setFormData((prev) => ({ ...prev, toCountry: value }))
+                        }
                       >
-                        <SelectTrigger className={cn(
-                          "w-full",
-                          formErrors.toCountry && "border-red-500"
-                        )}>
+                        <SelectTrigger
+                          className={cn(
+                            "w-full",
+                            formErrors.toCountry && "border-red-500"
+                          )}
+                        >
                           <SelectValue placeholder="Select destination" />
                         </SelectTrigger>
                         <SelectContent>
@@ -232,7 +260,9 @@ export function ShippingCalculator() {
                         </SelectContent>
                       </Select>
                       {formErrors.toCountry && (
-                        <p className="text-sm text-red-500">{formErrors.toCountry}</p>
+                        <p className="text-sm text-red-500">
+                          {formErrors.toCountry}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -258,18 +288,23 @@ export function ShippingCalculator() {
                         min="0.1"
                         step="0.1"
                         value={formData.weight}
-                        onChange={(e) => setFormData(prev => ({ ...prev, weight: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            weight: e.target.value,
+                          }))
+                        }
                         placeholder="Enter weight in kg"
-                        className={cn(
-                          formErrors.weight && "border-red-500"
-                        )}
+                        className={cn(formErrors.weight && "border-red-500")}
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
                         kg
                       </span>
                     </div>
                     {formErrors.weight && (
-                      <p className="text-sm text-red-500">{formErrors.weight}</p>
+                      <p className="text-sm text-red-500">
+                        {formErrors.weight}
+                      </p>
                     )}
                   </div>
 
@@ -283,14 +318,28 @@ export function ShippingCalculator() {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
-                                variant={formData.method === service.id ? "default" : "outline"}
+                                variant={
+                                  formData.method === service.id
+                                    ? "default"
+                                    : "outline"
+                                }
                                 className={cn(
                                   "w-full justify-start gap-2",
-                                  formData.method === service.id && "border-2 border-gray-300 bg-gray-900 text-white hover:bg-gray-900"
+                                  formData.method === service.id &&
+                                    "border-2 border-gray-300 bg-gray-900 text-white hover:bg-gray-900"
                                 )}
-                                onClick={() => setFormData(prev => ({ ...prev, method: service.id }))}
+                                onClick={() =>
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    method: service.id,
+                                  }))
+                                }
                               >
-                                {serviceIcons[service.id as keyof typeof serviceIcons]}
+                                {
+                                  serviceIcons[
+                                    service.id as keyof typeof serviceIcons
+                                  ]
+                                }
                                 <span>{service.name}</span>
                               </Button>
                             </TooltipTrigger>
@@ -302,7 +351,9 @@ export function ShippingCalculator() {
                       ))}
                     </div>
                     {formErrors.method && (
-                      <p className="text-sm text-red-500">{formErrors.method}</p>
+                      <p className="text-sm text-red-500">
+                        {formErrors.method}
+                      </p>
                     )}
                   </div>
 
@@ -333,10 +384,12 @@ export function ShippingCalculator() {
                     >
                       <Package className="h-8 w-8 mx-auto mb-4 " />
                       <h3 className="text-2xl font-bold  mb-2">
-                        Estimated Cost: {result.currency} {result.price.toFixed(2)}
+                        Estimated Cost: {result.currency}{" "}
+                        {result.price.toFixed(2)}
                       </h3>
                       <p className="text-sm text-gray-500">
-                        * Final price may vary based on actual weight, dimensions, and special handling requirements
+                        * Final price may vary based on actual weight,
+                        dimensions, and special handling requirements
                       </p>
                     </motion.div>
                   )}
@@ -347,5 +400,5 @@ export function ShippingCalculator() {
         </div>
       </div>
     </section>
-  )
+  );
 }
