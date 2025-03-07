@@ -1,43 +1,107 @@
 'use client'
 
-import { CustomerProfile } from '@/components/shipping/customer-profile'
-import { CustomerSupport } from '@/components/shipping/customer-support'
 import { ShippingHeader } from '@/components/shipping/header'
 import { ShippingShell } from '@/components/shipping/shell'
 import { ShipmentForm } from '@/components/staff/shipment-form'
 import { ManageShipment } from '@/components/staff/manage-shipment'
-import { ShipmentHistory } from '@/components/shipping/shipment-history'
-import { ShipmentTracking } from '@/components/shipping/shipment-tracking'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/hooks/use-auth'
-import { toast } from '@/hooks/use-toast'
-import { History, MessageSquare, Package, Truck, User } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { History, Package, CircleCheckBig, CircleX, PackagePlus } from 'lucide-react'
 import { useEffect, useState } from 'react'
-
-export default function ShippingDashboard() {
-  const router = useRouter()
+import { ShipmentProps } from '@/components/staff/manage-shipment'
+export default function StaffDashboard() {
   const [activeTab, setActiveTab] = useState('createShipment')
   const { user, getUser, loading } = useAuth()
-
+  const [shipments, setShipments] = useState<ShipmentProps[]>([])
+  const [users, setUsers] = useState([])
+  const [total, setTotal] = useState({
+    pending: 0,
+    cancelled: 0,
+    processing: 0,
+    delivered: 0,
+  })
   useEffect(() => {
-    if (!loading) {  // Only run if not loading
-      getUser()
+    getUser()
       .then((user) => {
-        if (user?.user_type !== 'WALK_IN') {
-          router.push('/')
-          toast({
-            title: 'Unauthorized',
-            description: 'You are not authorized to access this page',
+        if (user) {
+          // Fetch shipments for the logged-in staff
+          const token = localStorage.getItem('auth_token')
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/shipments/staff-shipments/${user.id}/`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
           })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              return response.json();
+            })
+            .then(data => {
+              setShipments(data)
+              setTotal({
+                pending: data.filter((d: any) => d.status === 'PENDING').length,
+                cancelled: data.filter((d: any) => d.status === 'CANCELLED').length,
+                processing: data.filter((d: any) => d.status === 'PROCESSING').length,
+                delivered: data.filter((d: any) => d.status === 'DELIVERED').length,
+              });
+            })
+          // .catch(error => {
+          //   console.error('Failed to fetch shipments:', error)
+          //   toast({
+          //     title: 'Error',
+          //     description: 'Failed to fetch shipments',
+          //     variant: 'destructive',
+          //   })
+          // })
         }
+
       })
       .catch((error) => {
         console.error('Failed to get user:', error)
       })
-    }
-  }, []) // Remove loading from dependencies
+  }, [])
+
+  useEffect(() => {
+    getUser()
+      .then((user) => {
+        if (user) {
+          // Fetch WALK_IN users
+          const token = localStorage.getItem('auth_token')
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/accounts/users/?user_type=WALK_IN/`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              return response.json();
+            })
+            .then(data => {
+              setUsers(data.results)
+              console.log(data.results)
+            })
+          // .catch(error => {
+          //   console.error('Failed to fetch users:', error)
+          //   toast({
+          //     title: 'Error',
+          //     description: 'Failed to fetch users',
+          //     variant: 'destructive',
+          //   })
+          // })
+        }
+
+      })
+      .catch((error) => {
+        console.error('Failed to get user:', error)
+      })
+  }, [])
+
 
   if (loading) {
     return (
@@ -54,37 +118,38 @@ export default function ShippingDashboard() {
           heading="Shipping Staff Dashboard"
           text="Manage all shipments and track your packages"
         />
-        
+
         <div className="grid gap-6">
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             <Card className="p-3 sm:p-4">
               <div className="flex items-center gap-2">
                 <Package className="h-4 w-4 text-muted-foreground" />
-                <div className="text-xs sm:text-sm font-medium">Active Shipments</div>
+                <div className="text-xs sm:text-sm font-medium">Pending</div>
               </div>
-              <div className="mt-2 text-xl sm:text-2xl font-bold">5</div>
+              <div className="mt-2 text-xl sm:text-2xl font-bold">{total.pending}</div>
             </Card>
-            <Card className="p-3 sm:p-4">
-              <div className="flex items-center gap-2">
-                <Truck className="h-4 w-4 text-muted-foreground" />
-                <div className="text-xs sm:text-sm font-medium">In Transit</div>
-              </div>
-              <div className="mt-2 text-xl sm:text-2xl font-bold">3</div>
-            </Card>
+
             <Card className="p-3 sm:p-4">
               <div className="flex items-center gap-2">
                 <History className="h-4 w-4 text-muted-foreground" />
-                <div className="text-xs sm:text-sm font-medium">Completed</div>
+                <div className="text-xs sm:text-sm font-medium">Processing</div>
               </div>
-              <div className="mt-2 text-xl sm:text-2xl font-bold">28</div>
+              <div className="mt-2 text-xl sm:text-2xl font-bold">{total.processing}</div>
             </Card>
             <Card className="p-3 sm:p-4">
               <div className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                <div className="text-xs sm:text-sm font-medium">Support Tickets</div>
+                <CircleCheckBig className="h-4 w-4 text-muted-foreground" />
+                <div className="text-xs sm:text-sm font-medium">Delivered</div>
               </div>
-              <div className="mt-2 text-xl sm:text-2xl font-bold">1</div>
+              <div className="mt-2 text-xl sm:text-2xl font-bold">{total.delivered}</div>
+            </Card>
+            <Card className="p-3 sm:p-4">
+              <div className="flex items-center gap-2">
+                <CircleX className="h-4 w-4 text-muted-foreground" />
+                <div className="text-xs sm:text-sm font-medium">Cancelled</div>
+              </div>
+              <div className="mt-2 text-xl sm:text-2xl font-bold">{total.cancelled}</div>
             </Card>
           </div>
 
@@ -93,7 +158,7 @@ export default function ShippingDashboard() {
             <div className="hidden sm:block">
               <TabsList className="grid w-full grid-cols-2 gap-1">
                 <TabsTrigger value="createShipment" className="flex items-center gap-2 text-sm">
-                  <Package className="h-4 w-4" />
+                  <PackagePlus className="h-4 w-4" />
                   <span>Create Shipment</span>
                 </TabsTrigger>
                 <TabsTrigger value="manageShipments" className="flex items-center gap-2 text-sm">
@@ -107,7 +172,7 @@ export default function ShippingDashboard() {
             <div className="sm:hidden">
               <TabsList className="grid w-full grid-cols-2 gap-1">
                 <TabsTrigger value="createShipment" className="flex items-center justify-center gap-1 text-xs">
-                  <Package className="h-4 w-4" />
+                  <PackagePlus className="h-4 w-4" />
                   <span>Create Shipment</span>
                 </TabsTrigger>
                 <TabsTrigger value="manageShipments" className="flex items-center justify-center gap-1 text-xs">
@@ -120,10 +185,10 @@ export default function ShippingDashboard() {
             {/* Tab Content */}
             <div className="mt-4 sm:mt-6">
               <TabsContent value="createShipment" className="space-y-4">
-                <ShipmentForm />
+                <ShipmentForm users={users} />
               </TabsContent>
               <TabsContent value="manageShipments" className="space-y-4">
-                <ManageShipment />
+                <ManageShipment shipments={shipments} />
               </TabsContent>
             </div>
           </Tabs>
