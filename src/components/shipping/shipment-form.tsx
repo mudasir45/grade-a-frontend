@@ -444,7 +444,7 @@ export function ShipmentForm() {
                         <Badge
                           variant={
                             shipment.status === "DELIVERED"
-                              ? "success"
+                              ? "secondary"
                               : "default"
                           }
                         >

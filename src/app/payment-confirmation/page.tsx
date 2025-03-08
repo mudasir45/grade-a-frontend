@@ -80,11 +80,12 @@ function PaymentConfirmationContent() {
     console.log("paymentData", paymentData);
 
     // console.log('paymentData', paymentData)
-    console.log("paymentData.paymentType", paymentData.shippingAddress);
+    console.log("paymentData.paymentType", paymentData.paymentType);
     try {
       setLoading(true);
 
       if (paymentData.paymentType === "buy4me") {
+        console.log("Submitting Buy4Me Request");
         await submitBuy4MeRequest(paymentData.shippingAddress!);
         toast({
           title: "Request Submitted",
@@ -92,6 +93,7 @@ function PaymentConfirmationContent() {
         });
       } else if (paymentData.paymentType === "shipping") {
         await ShippingAPI.updateShipment(paymentData.metadata?.shipmentId!, {
+          ...paymentData.metadata.shipmentData,
           payment_status: "PAID",
         });
 
@@ -167,7 +169,8 @@ function PaymentConfirmationContent() {
 
           case "3":
             // Do not call handlePaymentSuccess for failed payments
-            // await handlePaymentSuccess();
+            await handlePaymentSuccess();
+
             setError("Payment failed");
             break;
 

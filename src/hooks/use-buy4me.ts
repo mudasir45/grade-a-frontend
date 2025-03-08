@@ -15,76 +15,82 @@ export function useBuy4Me() {
   );
   const [loading, setLoading] = useState(false);
 
-  // Initialize the active request on mount
-  useEffect(() => {
-    const initializeRequest = async () => {
-      if (!user) return;
+  const initializeRequest = async () => {
+    if (!user) return;
 
-      try {
-        setLoading(true);
-        const token = localStorage.getItem("auth_token");
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("auth_token");
 
-        console.log(
-          "Active request before calling the first api: ",
-          activeRequest
-        );
-        // Fetch existing requests
-        const response = await fetch(
+      console.log(
+        "Active request before calling the first api: ",
+        activeRequest
+      );
+      // Fetch existing requests
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/buy4me/requests/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to fetch requests");
+
+      const data = await response.json();
+      console.log("Data", data);
+
+      // Find an existing draft request
+      let draftRequest = data.results.find(
+        (req: Buy4MeRequest) => req.status === "DRAFT"
+      );
+
+      if (draftRequest) {
+        // Ensure the items property is an array
+        draftRequest = { ...draftRequest, items: draftRequest.items || [] };
+        setActiveRequest(draftRequest);
+        console.log("Active Request", draftRequest);
+        localStorage.setItem("activeRequest", JSON.stringify(draftRequest));
+        return draftRequest;
+      } else {
+        // Create new draft request if none exists
+        const newRequestResponse = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/buy4me/requests/`,
           {
+            method: "POST",
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
+            body: JSON.stringify({
+              shipping_address: "will change later", // Will be set later
+              notes: "",
+              status: "DRAFT",
+            }),
           }
         );
 
-        if (!response.ok) throw new Error("Failed to fetch requests");
+        if (!newRequestResponse.ok) throw new Error("Failed to create request");
 
-        const data = await response.json();
-
-        // Find an existing draft request
-        let draftRequest = data.results.find(
-          (req: Buy4MeRequest) => req.status === "DRAFT"
-        );
-
-        if (draftRequest) {
-          // Ensure the items property is an array
-          draftRequest = { ...draftRequest, items: draftRequest.items || [] };
-          setActiveRequest(draftRequest);
-        } else {
-          // Create new draft request if none exists
-          const newRequestResponse = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/buy4me/requests/`,
-            {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                shipping_address: "will change later", // Will be set later
-                notes: "",
-                status: "DRAFT",
-              }),
-            }
-          );
-
-          if (!newRequestResponse.ok)
-            throw new Error("Failed to create request");
-
-          let newRequest = await newRequestResponse.json();
-          // Ensure newRequest.items is always an array
-          newRequest = { ...newRequest, items: newRequest.items || [] };
-          setActiveRequest(newRequest);
-        }
-      } catch (error) {
-        console.error("Error initializing request:", error);
-      } finally {
-        setLoading(false);
+        let newRequest = await newRequestResponse.json();
+        // Ensure newRequest.items is always an array
+        newRequest = { ...newRequest, items: newRequest.items || [] };
+        console.log("Active Request", newRequest);
+        setActiveRequest(newRequest);
+        localStorage.setItem("activeRequest", JSON.stringify(newRequest));
+        return newRequest;
       }
-    };
+    } catch (error) {
+      console.error("Error initializing request:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Initialize the active request on mount
+  useEffect(() => {
     initializeRequest();
   }, [user]);
 
@@ -234,43 +240,44 @@ export function useBuy4Me() {
     };
   }, [activeRequest]);
 
-  const submitRequest = useCallback(
-    async (shippingAddress: string) => {
-      console.log("Active Request", activeRequest);
-      if (!user || !activeRequest) throw new Error("No active request");
-      if ((activeRequest.items || []).length === 0)
-        throw new Error("No items in request");
-      try {
-        const token = localStorage.getItem("auth_token");
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/buy4me/requests/${activeRequest.id}/`,
-          {
-            method: "PATCH",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              shipping_address: shippingAddress,
-              status: "SUBMITTED",
-            }),
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error("Failed to submit request");
+  const submitRequest = async (shippingAddress: string) => {
+    const newActiveRequest = JSON.parse(
+      localStorage.getItem("activeRequest") || "{}"
+    );
+    console.log("New Active Request", newActiveRequest);
+    if (!newActiveRequest) throw new Error("No active request");
+    if ((newActiveRequest.items || []).length === 0)
+      throw new Error("No items in request");
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/buy4me/requests/${newActiveRequest.id}/`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            shipping_address: shippingAddress,
+            status: "SUBMITTED",
+          }),
         }
+      );
 
-        const submittedRequest = await response.json();
-        setActiveRequest(null); // Clear active request after submission
-        return submittedRequest;
-      } catch (error) {
-        console.error("Error submitting request:", error);
-        throw error;
+      if (!response.ok) {
+        throw new Error("Failed to submit request");
       }
-    },
-    [user, activeRequest]
-  );
+
+      const submittedRequest = await response.json();
+      localStorage.removeItem("activeRequest");
+      setActiveRequest(null); // Clear active request after submission
+      return submittedRequest;
+    } catch (error) {
+      console.error("Error submitting request:", error);
+      throw error;
+    }
+  };
 
   //get all countires
   const getUserCountries = useCallback(async () => {

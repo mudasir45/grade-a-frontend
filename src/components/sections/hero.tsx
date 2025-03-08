@@ -5,9 +5,18 @@ import { motion } from "framer-motion";
 import { ArrowRight, Package, ShoppingBag } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export function HeroSection() {
   const router = useRouter();
+
+  useEffect(() => {
+    const paymentData = JSON.parse(localStorage.getItem("paymentData") || "{}");
+    if (paymentData) {
+      localStorage.removeItem("paymentData");
+    }
+  }, []);
+
   return (
     <div className="relative min-h-screen flex items-center">
       {/* Background Image */}

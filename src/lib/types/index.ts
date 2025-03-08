@@ -34,47 +34,54 @@ export interface ShippingRate {
 }
 
 export interface Country {
-    id: string;
-    name: string;
-    code: string;
+  id: string;
+  name: string;
+  code: string;
 }
 
 export interface User {
-    id?: string;
-    first_name: string;
-    last_name: string;
-    email: string;
-    phone_number?: string;
-    preferred_currency?: string;
-    country_details?: Country;
-    country?: string;
-    user_type?: string;
-    default_shipping_method?: string;
-    [key: string]: any; 
-  }
-  
-  export interface AuthContextType {
-    user: User | null;
-    loading: boolean;
-    login: (email: string, password: string) => Promise<void>;
-    register: (email: string, password: string, name: string, country?: string, user_type?: string) => Promise<void>;
-    logout: () => void;
-    isOpen: boolean;
-    setIsOpen: (isOpen: boolean) => void;
-    getUser: () => Promise<User | null>;
-    setUser: (user: User | null) => void;
-    changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
-    updateUser: (user: User) => Promise<void>;
-  }
+  id?: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number?: string;
+  preferred_currency?: string;
+  country_details?: Country;
+  country?: string;
+  user_type?: string;
+  default_shipping_method?: string;
+  [key: string]: any;
+}
 
-export type Buy4MeRequestStatus = 
-  | 'DRAFT' 
-  | 'SUBMITTED' 
-  | 'ORDER_PLACED' 
-  | 'IN_TRANSIT' 
-  | 'WAREHOUSE_ARRIVED' 
-  | 'SHIPPED_TO_CUSTOMER' 
-  | 'COMPLETED';
+export interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    name: string,
+    country?: string,
+    user_type?: string
+  ) => Promise<void>;
+  logout: () => void;
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+  getUser: () => Promise<User | null>;
+  setUser: (user: User | null) => void;
+  changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
+  updateUser: (user: User) => Promise<void>;
+  isStaffUser: () => Promise<boolean>;
+}
+
+export type Buy4MeRequestStatus =
+  | "DRAFT"
+  | "SUBMITTED"
+  | "ORDER_PLACED"
+  | "IN_TRANSIT"
+  | "WAREHOUSE_ARRIVED"
+  | "SHIPPED_TO_CUSTOMER"
+  | "COMPLETED";
 
 export interface Buy4MeItem {
   id?: string;
@@ -107,7 +114,11 @@ export interface PaymentIntent {
   client_secret: string;
   amount: number;
   currency: string;
-  status: 'requires_payment_method' | 'requires_confirmation' | 'succeeded' | 'canceled';
+  status:
+    | "requires_payment_method"
+    | "requires_confirmation"
+    | "succeeded"
+    | "canceled";
   payment_method_types: string[];
 }
 
@@ -117,7 +128,6 @@ export interface PaymentResult {
   error?: string;
 }
 
-
 export interface ServiceType {
   id: string;
   name: string;
@@ -126,9 +136,9 @@ export interface ServiceType {
   is_active: boolean;
 }
 export interface PaymentData {
-    amount: string
-    orderId?: string
-    shippingAddress?: string
-    paymentType: 'buy4me' | 'shipping'
-    metadata?: Record<string, any>
-  }
+  amount: string;
+  orderId?: string;
+  shippingAddress?: string;
+  paymentType: "buy4me" | "shipping";
+  metadata?: Record<string, any>;
+}

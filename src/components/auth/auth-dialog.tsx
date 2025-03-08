@@ -28,8 +28,8 @@ const INITIAL_FORM_STATE = {
 const isValidPhoneNumber = (phone: string) => {
   // Remove any non-digit characters
   const digitsOnly = phone.replace(/\D/g, "");
-  // Check if it's exactly 10 digits
-  return digitsOnly.length === 12;
+  // Check if it's between 7 and 12 digits
+  return digitsOnly.length >= 7 && digitsOnly.length <= 12;
 };
 
 export function AuthDialog() {
@@ -102,13 +102,13 @@ export function AuthDialog() {
       const { id, value } = e.target;
 
       if (id === "phone") {
-        // Allow only numbers and limit to 10 digits
+        // Allow only numbers and limit to 12 digits
         const digitsOnly = value.replace(/\D/g, "").slice(0, 12);
 
         // Validate phone number
         if (digitsOnly.length > 0) {
-          if (digitsOnly.length !== 12) {
-            setPhoneError("Phone number must be 12 digits");
+          if (digitsOnly.length < 7 || digitsOnly.length > 12) {
+            setPhoneError("Phone number must be between 7 and 12 digits");
           } else {
             setPhoneError("");
           }
@@ -167,7 +167,7 @@ export function AuthDialog() {
     if (!isValidPhoneNumber(formData.phone)) {
       toast({
         title: "Invalid Phone Number",
-        description: "Please enter a valid 12-digit phone number",
+        description: "Please enter a valid phone number (7-12 digits)",
         variant: "destructive",
       });
       return;
@@ -234,7 +234,7 @@ export function AuthDialog() {
               required
               value={formData.phone}
               onChange={handleInputChange}
-              placeholder="Enter your 12-digit phone number (without country code)"
+              placeholder="Enter your phone number (7-12 digits)"
               autoComplete="tel"
               className={phoneError ? "border-red-500" : ""}
               maxLength={12}

@@ -202,6 +202,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const isStaffUser = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/accounts/check-staff-user/`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          },
+        }
+      );
+      const data = await response.json();
+      if (response.ok) {
+        return data.is_staff;
+      }
+      throw new Error("Failed to check if user is staff");
+    } catch (error) {
+      console.error(error);
+      throw new Error("Failed to check if user is staff");
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem("auth_token");
     setUser(null);
@@ -220,6 +241,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     getUser,
     changePassword,
     updateUser,
+    isStaffUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
