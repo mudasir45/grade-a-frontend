@@ -1,45 +1,45 @@
-'use client'
+"use client";
 
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table'
-import { Textarea } from '@/components/ui/textarea'
-import { useBuy4Me } from '@/hooks/use-buy4me'
-import { Buy4MeItem } from '@/lib/types/index'
-import { formatCurrency } from '@/lib/utils'
-import { Edit2, Save, Trash2, X } from 'lucide-react'
-import { useState } from 'react'
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import { useBuy4Me } from "@/hooks/use-buy4me";
+import { Buy4MeItem } from "@/lib/types/index";
+import { formatCurrency } from "@/lib/utils";
+import { Edit2, Save, Trash2, X } from "lucide-react";
+import { useState } from "react";
 
 interface RequestListProps {
-  onCheckout: () => void
+  onCheckout: () => void;
 }
 
 export function RequestList({ onCheckout }: RequestListProps) {
-  const { activeRequest, updateItem, removeItem, loading } = useBuy4Me()
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const { activeRequest, updateItem, removeItem, loading } = useBuy4Me();
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
-    quantity: '',
-    color: '',
-    size: '',
-    notes: '',
-  })
+    quantity: "",
+    color: "",
+    size: "",
+    notes: "",
+  });
 
   const handleEdit = (item: Buy4MeItem) => {
-    setEditingId(item.id || null)
+    setEditingId(item.id || null);
     setEditForm({
       quantity: item.quantity.toString(),
-      color: item.color || '',
-      size: item.size || '',
-      notes: item.notes || '',
-    })
-  }
+      color: item.color || "",
+      size: item.size || "",
+      notes: item.notes || "",
+    });
+  };
 
   const handleSave = async (itemId: string) => {
     await updateItem(itemId, {
@@ -47,24 +47,26 @@ export function RequestList({ onCheckout }: RequestListProps) {
       color: editForm.color,
       size: editForm.size,
       notes: editForm.notes,
-    })
-    setEditingId(null)
-  }
+    });
+    setEditingId(null);
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <p className="text-lg text-muted-foreground">Loading...</p>
       </div>
-    )
+    );
   }
 
   if (!activeRequest?.items || activeRequest.items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <p className="text-lg text-muted-foreground">Your request list is empty</p>
+        <p className="text-lg text-muted-foreground">
+          Your request list is empty
+        </p>
       </div>
-    )
+    );
   }
 
   return (
@@ -105,7 +107,9 @@ export function RequestList({ onCheckout }: RequestListProps) {
                       type="number"
                       min="1"
                       value={editForm.quantity}
-                      onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, quantity: e.target.value })
+                      }
                       className="w-20"
                     />
                   ) : (
@@ -117,13 +121,17 @@ export function RequestList({ onCheckout }: RequestListProps) {
                     <div className="space-y-2">
                       <Input
                         value={editForm.color}
-                        onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, color: e.target.value })
+                        }
                         placeholder="Color"
                         className="mb-2"
                       />
                       <Input
                         value={editForm.size}
-                        onChange={(e) => setEditForm({ ...editForm, size: e.target.value })}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, size: e.target.value })
+                        }
                         placeholder="Size"
                       />
                     </div>
@@ -138,15 +146,17 @@ export function RequestList({ onCheckout }: RequestListProps) {
                   {editingId === item.id ? (
                     <Textarea
                       value={editForm.notes}
-                      onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, notes: e.target.value })
+                      }
                       placeholder="Additional notes"
                     />
                   ) : (
-                    item.notes || '-'
+                    item.notes || "-"
                   )}
                 </TableCell>
                 <TableCell>
-                  {formatCurrency(parseFloat(item.unit_price) * item.quantity, item.currency)}
+                  {formatCurrency(parseFloat(item.unit_price) * item.quantity)}
                 </TableCell>
                 <TableCell>
                   <div className="flex space-x-2">
@@ -195,12 +205,10 @@ export function RequestList({ onCheckout }: RequestListProps) {
 
       <div className="flex items-center justify-between">
         <div className="text-lg font-semibold">
-          Total: {formatCurrency(parseFloat(activeRequest.total_cost), 'USD')}
+          Total: {formatCurrency(parseFloat(activeRequest.total_cost))}
         </div>
-        <Button onClick={onCheckout}>
-          Proceed to Checkout
-        </Button>
+        <Button onClick={onCheckout}>Proceed to Checkout</Button>
       </div>
     </div>
-  )
+  );
 }

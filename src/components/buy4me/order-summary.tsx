@@ -1,84 +1,90 @@
-'use client'
+"use client";
 
-import { Button } from '@/components/ui/button'
+import { Button } from "@/components/ui/button";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card'
-import { Textarea } from '@/components/ui/textarea'
-import { useBuy4Me } from '@/hooks/use-buy4me'
-import { useToast } from '@/hooks/use-toast'
-import { CURRENCY } from '@/lib/config'
-import { Buy4MeRequest } from '@/lib/types/index'
-import { formatCurrency } from '@/lib/utils'
-import { useState } from 'react'
-import PaymentForm from '../payment/payment-gateway'
-import { OrderTracking } from './order-tracking'
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { useBuy4Me } from "@/hooks/use-buy4me";
+import { useToast } from "@/hooks/use-toast";
+import { Buy4MeRequest } from "@/lib/types/index";
+import { formatCurrency } from "@/lib/utils";
+import { useState } from "react";
+import PaymentForm from "../payment/payment-gateway";
+import { OrderTracking } from "./order-tracking";
 
 export function OrderSummary() {
-  const { activeRequest, calculateTotals, submitRequest, loading: requestLoading } = useBuy4Me()
-  const { toast } = useToast()
-  const [loading, setLoading] = useState(false)
-  const [showPayment, setShowPayment] = useState(false)
-  const [submittedRequest, setSubmittedRequest] = useState<Buy4MeRequest | null>(null)
-  const [shippingAddress, setShippingAddress] = useState('')
+  const {
+    activeRequest,
+    calculateTotals,
+    submitRequest,
+    loading: requestLoading,
+  } = useBuy4Me();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [submittedRequest, setSubmittedRequest] =
+    useState<Buy4MeRequest | null>(null);
+  const [shippingAddress, setShippingAddress] = useState("");
 
-  const totals = calculateTotals()
+  const totals = calculateTotals();
 
   const handleProceedToPayment = () => {
     if (!activeRequest || activeRequest.items.length === 0) {
       toast({
-        title: 'No Items',
-        description: 'Please add items to your request list before proceeding.',
-        variant: 'destructive',
-      })
-      return
+        title: "No Items",
+        description: "Please add items to your request list before proceeding.",
+        variant: "destructive",
+      });
+      return;
     }
 
     if (!shippingAddress.trim()) {
       toast({
-        title: 'Missing Address',
-        description: 'Please provide a shipping address.',
-        variant: 'destructive',
-      })
-      return
+        title: "Missing Address",
+        description: "Please provide a shipping address.",
+        variant: "destructive",
+      });
+      return;
     }
 
-    setShowPayment(true)
-  }
+    setShowPayment(true);
+  };
 
   const handlePaymentSuccess = async (transactionId: string) => {
     try {
-      setLoading(true)
-      const submitted = await submitRequest(shippingAddress)
-      setSubmittedRequest(submitted)
-      setShowPayment(false)
+      setLoading(true);
+      const submitted = await submitRequest(shippingAddress);
+      setSubmittedRequest(submitted);
+      setShowPayment(false);
 
       toast({
-        title: 'Request Submitted',
-        description: 'Your request has been submitted successfully.',
-      })
+        title: "Request Submitted",
+        description: "Your request has been submitted successfully.",
+      });
 
       // Reset form
-      setShippingAddress('')
+      setShippingAddress("");
     } catch (error) {
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to submit request.',
-        variant: 'destructive',
-      })
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to submit request.",
+        variant: "destructive",
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handlePaymentCancel = () => {
-    setShowPayment(false)
-  }
+    setShowPayment(false);
+  };
 
   if (submittedRequest) {
     return (
@@ -95,7 +101,7 @@ export function OrderSummary() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   if (showPayment) {
@@ -105,11 +111,11 @@ export function OrderSummary() {
         shippingAddress={shippingAddress}
         paymentType="buy4me"
         metadata={{
-          requestType: 'buy4me',
-          items: activeRequest?.items
+          requestType: "buy4me",
+          items: activeRequest?.items,
         }}
       />
-    )
+    );
   }
 
   if (requestLoading) {
@@ -117,15 +123,17 @@ export function OrderSummary() {
       <div className="flex items-center justify-center py-12">
         <p className="text-lg text-muted-foreground">Loading...</p>
       </div>
-    )
+    );
   }
 
   if (!activeRequest || activeRequest.items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <p className="text-lg text-muted-foreground">Add items to your request list to proceed</p>
+        <p className="text-lg text-muted-foreground">
+          Add items to your request list to proceed
+        </p>
       </div>
-    )
+    );
   }
 
   return (
@@ -133,7 +141,9 @@ export function OrderSummary() {
       <Card>
         <CardHeader>
           <CardTitle>Request Details</CardTitle>
-          <CardDescription>Review your request details before submission</CardDescription>
+          <CardDescription>
+            Review your request details before submission
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {activeRequest.items.map((item) => (
@@ -145,12 +155,12 @@ export function OrderSummary() {
                 </p>
                 {(item.color || item.size) && (
                   <p className="text-sm text-muted-foreground">
-                    Specs: {[item.color, item.size].filter(Boolean).join(', ')}
+                    Specs: {[item.color, item.size].filter(Boolean).join(", ")}
                   </p>
                 )}
               </div>
               <p className="font-medium">
-                {formatCurrency(parseFloat(item.unit_price) * item.quantity, item.currency)}
+                {formatCurrency(parseFloat(item.unit_price) * item.quantity)}
               </p>
             </div>
           ))}
@@ -165,19 +175,19 @@ export function OrderSummary() {
         <CardContent className="space-y-4">
           <div className="flex justify-between">
             <span>Products Total</span>
-            <span>{formatCurrency(totals.productsTotal, CURRENCY.code)}</span>
+            <span>{formatCurrency(totals.productsTotal)}</span>
           </div>
           <div className="flex justify-between">
             <span>Service Fee (10%)</span>
-            <span>{formatCurrency(totals.serviceFee, CURRENCY.code)}</span>
+            <span>{formatCurrency(totals.serviceFee)}</span>
           </div>
           <div className="flex justify-between">
             <span>Estimated Shipping</span>
-            <span>{formatCurrency(totals.shipping, CURRENCY.code)}</span>
+            <span>{formatCurrency(totals.shipping)}</span>
           </div>
           <div className="border-t pt-4 flex justify-between font-bold">
             <span>Total</span>
-            <span>{formatCurrency(totals.total, CURRENCY.code)}</span>
+            <span>{formatCurrency(totals.total)}</span>
           </div>
           <div className="space-y-2 pt-4">
             <label htmlFor="shipping-address" className="text-sm font-medium">
@@ -196,9 +206,11 @@ export function OrderSummary() {
           <Button
             className="w-full"
             onClick={handleProceedToPayment}
-            disabled={loading || !activeRequest.items.length || !shippingAddress.trim()}
+            disabled={
+              loading || !activeRequest.items.length || !shippingAddress.trim()
+            }
           >
-            {loading ? 'Processing...' : 'Proceed to Payment'}
+            {loading ? "Processing..." : "Proceed to Payment"}
           </Button>
         </CardFooter>
       </Card>
@@ -235,5 +247,5 @@ export function OrderSummary() {
         </CardContent>
       </Card> */}
     </div>
-  )
+  );
 }

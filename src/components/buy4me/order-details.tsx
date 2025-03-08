@@ -1,46 +1,44 @@
-'use client'
+"use client";
 
-import { OrderTracking } from '@/components/buy4me/order-tracking'
-import { Button } from '@/components/ui/button'
+import { OrderTracking } from "@/components/buy4me/order-tracking";
+import { Button } from "@/components/ui/button";
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog'
-import { formatCurrency } from '@/lib/utils'
-import { Truck } from 'lucide-react'
-import { useState } from 'react'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { formatCurrency } from "@/lib/utils";
+import { Truck } from "lucide-react";
+import { useState } from "react";
 
 interface OrderDetailsProps {
-  order: any
-  open: boolean
-  onClose: () => void
+  order: any;
+  open: boolean;
+  onClose: () => void;
 }
 
 export function OrderDetails({ order, open, onClose }: OrderDetailsProps) {
-  const [requestShipping, setRequestShipping] = useState(false)
+  const [requestShipping, setRequestShipping] = useState(false);
 
   const handleRequestShipping = () => {
-    setRequestShipping(true)
+    setRequestShipping(true);
     // In a real app, this would make an API call to request shipping
     setTimeout(() => {
-      setRequestShipping(false)
-      onClose()
-    }, 2000)
-  }
+      setRequestShipping(false);
+      onClose();
+    }, 2000);
+  };
 
-  if (!order) return null
+  if (!order) return null;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>Order Details</DialogTitle>
-          <DialogDescription>
-            Order ID: {order.id}
-          </DialogDescription>
+          <DialogDescription>Order ID: {order.id}</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-6">
@@ -56,9 +54,16 @@ export function OrderDetails({ order, open, onClose }: OrderDetailsProps) {
             <div className="space-y-4">
               {order.items && order.items.length > 0 ? (
                 order.items.map((item: any) => (
-                  <div key={item.id} className="flex items-center gap-4 p-2 rounded-lg border">
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-4 p-2 rounded-lg border"
+                  >
                     <div className="h-16 w-16 rounded-md overflow-hidden">
-                      <img src={item.product_url} alt={item.product_name} className="h-full w-full object-cover" />
+                      <img
+                        src={item.product_url}
+                        alt={item.product_name}
+                        className="h-full w-full object-cover"
+                      />
                     </div>
                     <div className="flex-1">
                       <h4 className="font-medium">{item.product_name}</h4>
@@ -66,7 +71,7 @@ export function OrderDetails({ order, open, onClose }: OrderDetailsProps) {
                         Quantity: {item.quantity}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Price: {formatCurrency(item.unit_price, item.currency)}
+                        Price: {formatCurrency(item.unit_price)}
                       </p>
                     </div>
                   </div>
@@ -83,7 +88,7 @@ export function OrderDetails({ order, open, onClose }: OrderDetailsProps) {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span>Products Total</span>
-                <span>{formatCurrency(order.total_cost, order.currency)}</span>
+                <span>{formatCurrency(order.total_cost)}</span>
               </div>
               {/* Add more cost breakdown items as needed */}
             </div>
@@ -91,10 +96,13 @@ export function OrderDetails({ order, open, onClose }: OrderDetailsProps) {
 
           {/* Actions */}
           <div className="flex justify-end gap-4">
-            {order.status === 'warehouse' && (
-              <Button onClick={handleRequestShipping} disabled={requestShipping}>
+            {order.status === "warehouse" && (
+              <Button
+                onClick={handleRequestShipping}
+                disabled={requestShipping}
+              >
                 <Truck className="mr-2 h-4 w-4" />
-                {requestShipping ? 'Requesting...' : 'Request Shipping'}
+                {requestShipping ? "Requesting..." : "Request Shipping"}
               </Button>
             )}
             <Button variant="outline" onClick={onClose}>
@@ -104,5 +112,5 @@ export function OrderDetails({ order, open, onClose }: OrderDetailsProps) {
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

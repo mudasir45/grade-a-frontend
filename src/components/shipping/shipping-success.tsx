@@ -1,26 +1,26 @@
-'use client'
+"use client";
 
-import { Button } from '@/components/ui/button'
+import { Button } from "@/components/ui/button";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card'
-import { formatCurrency } from '@/lib/utils'
-import { CheckCircle2 } from 'lucide-react'
-import Link from 'next/link'
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { formatCurrency } from "@/lib/utils";
+import { CheckCircle2 } from "lucide-react";
+import Link from "next/link";
 
 interface ShippingSuccessProps {
   shipment: {
-    tracking_number: string
-    total_cost: number
-    service_type: string
-    sender_country: string
-    recipient_country: string
-  }
+    tracking_number: string;
+    total_cost: number;
+    service_type: string;
+    sender_country: string;
+    recipient_country: string;
+  };
 }
 
 export function ShippingSuccess({ shipment }: ShippingSuccessProps) {
@@ -56,7 +56,7 @@ export function ShippingSuccess({ shipment }: ShippingSuccessProps) {
           <div className="flex justify-between">
             <span className="text-muted-foreground">Total Cost:</span>
             <span className="font-medium">
-              {formatCurrency(shipment.total_cost, 'USD')}
+              {formatCurrency(shipment.total_cost)}
             </span>
           </div>
         </div>
@@ -70,5 +70,5 @@ export function ShippingSuccess({ shipment }: ShippingSuccessProps) {
         </Button>
       </CardFooter>
     </Card>
-  )
-} 
+  );
+}
