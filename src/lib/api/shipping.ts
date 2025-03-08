@@ -74,7 +74,7 @@ export class ShippingAPI {
     }
   }
 
-  static async updateShipment(id: string, data: { payment_status: string }) {
+  static async updateShipment(id: string, data: ShipmentRequest) {
     try {
       const response = await fetch(`${API_BASE_URL}/shipments/${id}/`, {
         method: "PATCH",

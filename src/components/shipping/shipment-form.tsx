@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -35,6 +36,7 @@ import { ArrowRight, Clock, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import PaymentForm from "../payment/payment-gateway";
+import PaymentModal from "../payment/PaymentForm";
 
 // Validation schemas
 const emailSchema = z.string().email("Invalid email address");
@@ -80,11 +82,49 @@ export function ShipmentForm() {
   const [calculating, setCalculating] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [pendingShipments, setPendingShipments] = useState<
     NewShipmentResponse[]
   >([]);
   const [selectedShipment, setSelectedShipment] =
     useState<NewShipmentResponse | null>(null);
+
+  const {
+    departureCountries,
+    destinationCountries,
+    serviceTypes,
+    shippingZones,
+    isLoading,
+    error: dataError,
+    refetch,
+  } = useShippingData();
+
+  const [fieldErrors, setFieldErrors] = useState<
+    { field: string; message: string }[]
+  >([]);
+
+  const [formData, setFormData] = useState<ShipmentRequest>({
+    sender_name: "",
+    sender_email: "",
+    sender_phone: "",
+    sender_address: "",
+    sender_country: "",
+    recipient_name: "",
+    recipient_email: "",
+    recipient_phone: "",
+    recipient_address: "",
+    recipient_country: "",
+    package_type: "",
+    weight: 0,
+    length: 0,
+    width: 0,
+    height: 0,
+    description: "",
+    declared_value: 0,
+    service_type: "",
+    insurance_required: false,
+    signature_required: false,
+  });
 
   useEffect(() => {
     fetchShipments();
@@ -109,42 +149,6 @@ export function ShipmentForm() {
       setLoading(false);
     }
   };
-
-  const [fieldErrors, setFieldErrors] = useState<
-    { field: string; message: string }[]
-  >([]);
-  const {
-    departureCountries,
-    destinationCountries,
-    serviceTypes,
-    shippingZones,
-    isLoading,
-    error: dataError,
-    refetch,
-  } = useShippingData();
-
-  const [formData, setFormData] = useState<ShipmentRequest>({
-    sender_name: "",
-    sender_email: "",
-    sender_phone: "",
-    sender_address: "",
-    sender_country: "",
-    recipient_name: "",
-    recipient_email: "",
-    recipient_phone: "",
-    recipient_address: "",
-    recipient_country: "",
-    package_type: "",
-    weight: 0,
-    length: 0,
-    width: 0,
-    height: 0,
-    description: "",
-    declared_value: 0,
-    service_type: "",
-    insurance_required: false,
-    signature_required: false,
-  });
 
   const handleFieldChange = (
     field: string,
@@ -388,8 +392,8 @@ export function ShipmentForm() {
         paymentType="shipping"
         metadata={{
           requestType: "shipping",
-          //   shipmentData: formData,
-          shipmentData: { payment_status: "PAID" },
+          shipmentData: formData,
+          shipmentStatus: { payment_status: "PAID" },
           shipmentId: selectedShipment?.id,
         }}
       />
@@ -398,23 +402,23 @@ export function ShipmentForm() {
 
   return (
     <div className="space-y-8">
-      {/* Pending Payments Section */}
+      {/* Pending Shipments List */}
       <Card>
         <CardHeader>
           <CardTitle className="text-xl font-semibold flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            Pending Payments
+            Pending Shipments
           </CardTitle>
           <CardDescription>
-            Shipments awaiting payment processing
+            Select a shipment to view and update details
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[200px] w-full rounded-md border">
+          <ScrollArea className="h-[400px] w-full rounded-md border">
             <div className="p-4">
               {pendingShipments.length === 0 ? (
                 <p className="text-center text-muted-foreground">
-                  No pending payments
+                  No pending shipments
                 </p>
               ) : (
                 <div className="space-y-4">
@@ -429,18 +433,25 @@ export function ShipmentForm() {
                     >
                       <div className="space-y-1">
                         <p className="font-medium">
-                          {shipment.sender_name} → {shipment.recipient_name}
+                          #{shipment.tracking_number}
                         </p>
-                        <p className="text-sm text-muted-foreground">
-                          Service: {shipment.service_type}
+                        <p className="text-sm text-gray-500">
+                          From: {shipment.sender_name}
                         </p>
-                        <p className="text-sm text-muted-foreground">
-                          Created:{" "}
-                          {new Date(shipment.created_at).toLocaleDateString()}
+                        <p className="text-sm text-gray-500">
+                          To: {shipment.recipient_name}
                         </p>
+                        <Badge
+                          variant={
+                            shipment.status === "DELIVERED"
+                              ? "success"
+                              : "default"
+                          }
+                        >
+                          {shipment.status}
+                        </Badge>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold">${shipment.total_cost}</p>
+                      <div>
                         <Button
                           size="sm"
                           variant={
@@ -448,29 +459,39 @@ export function ShipmentForm() {
                               ? "secondary"
                               : "default"
                           }
-                          onClick={() => handlePaymentContinuation(shipment)}
-                          disabled={loading}
-                          className="relative min-w-[120px]"
+                          onClick={() => {
+                            if (selectedShipment?.id === shipment.id) {
+                              setSelectedShipment(null);
+                              setFormData({
+                                sender_name: "",
+                                sender_email: "",
+                                sender_phone: "",
+                                sender_address: "",
+                                sender_country: "",
+                                recipient_name: "",
+                                recipient_email: "",
+                                recipient_phone: "",
+                                recipient_address: "",
+                                recipient_country: "",
+                                package_type: "",
+                                weight: 0,
+                                length: 0,
+                                width: 0,
+                                height: 0,
+                                description: "",
+                                declared_value: 0,
+                                service_type: "",
+                                insurance_required: false,
+                                signature_required: false,
+                              });
+                            } else {
+                              handlePaymentContinuation(shipment);
+                            }
+                          }}
                         >
-                          {loading && selectedShipment?.id === shipment.id ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                              Loading...
-                            </>
-                          ) : (
-                            <>
-                              {selectedShipment?.id === shipment.id ? (
-                                <>
-                                  <span>Selected</span>
-                                  <span className="text-xs block">
-                                    Scroll down to review
-                                  </span>
-                                </>
-                              ) : (
-                                "Complete Payment"
-                              )}
-                            </>
-                          )}
+                          {selectedShipment?.id === shipment.id
+                            ? "Cancel"
+                            : "View Details"}
                         </Button>
                       </div>
                     </div>
@@ -482,481 +503,484 @@ export function ShipmentForm() {
         </CardContent>
       </Card>
 
-      {/* Shipment Form */}
-      <form onSubmit={handleSubmit}>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl font-semibold flex items-center justify-between">
-              {selectedShipment ? (
-                <>
-                  <span>Complete Pending Shipment</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedShipment(null);
-                      setFormData({
-                        sender_name: "",
-                        sender_email: "",
-                        sender_phone: "",
-                        sender_address: "",
-                        sender_country: "",
-                        recipient_name: "",
-                        recipient_email: "",
-                        recipient_phone: "",
-                        recipient_address: "",
-                        recipient_country: "",
-                        package_type: "",
-                        weight: 0,
-                        length: 0,
-                        width: 0,
-                        height: 0,
-                        description: "",
-                        declared_value: 0,
-                        service_type: "",
-                        insurance_required: false,
-                        signature_required: false,
-                      });
-                      setShippingRate(null);
-                    }}
-                  >
-                    Create New Instead
-                  </Button>
-                </>
-              ) : (
-                "Create New Shipment"
-              )}
-            </CardTitle>
-            <CardDescription>
-              {selectedShipment
-                ? "Review and complete payment for your pending shipment"
-                : "Fill in the shipment details"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Sender Details */}
-            <div className="space-y-4">
-              <h3 className="font-medium">Sender Details</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sender_name">Full Name</Label>
-                  <Input
-                    id="sender_name"
-                    value={formData.sender_name}
-                    onChange={(e) =>
-                      handleFieldChange("sender_name", e.target.value)
-                    }
-                    className={cn(
-                      getFieldError("sender_name") && "border-red-500"
-                    )}
-                  />
-                  {getFieldError("sender_name") && (
-                    <p className="text-xs text-red-500">
-                      {getFieldError("sender_name")}
-                    </p>
-                  )}
-                </div>
+      <PaymentModal
+        price={shippingRate?.cost_breakdown.total_cost || 0}
+        isOpen={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        metadata={{
+          requestType: "shipping",
+          shipmentData: formData,
+          shipmentStatus: { payment_status: "PAID" },
+          shipmentId: selectedShipment?.id,
+        }}
+      />
 
-                <div className="space-y-2">
-                  <Label htmlFor="sender_email">Email</Label>
-                  <Input
-                    id="sender_email"
-                    type="email"
-                    value={formData.sender_email}
-                    onChange={(e) =>
-                      handleFieldChange("sender_email", e.target.value)
-                    }
-                    className={cn(
-                      getFieldError("sender_email") && "border-red-500"
-                    )}
-                  />
-                  {getFieldError("sender_email") && (
-                    <p className="text-xs text-red-500">
-                      {getFieldError("sender_email")}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="sender_phone">Phone</Label>
-                  <Input
-                    id="sender_phone"
-                    value={formData.sender_phone}
-                    onChange={(e) =>
-                      handleFieldChange("sender_phone", e.target.value)
-                    }
-                    className={cn(
-                      getFieldError("sender_phone") && "border-red-500"
-                    )}
-                  />
-                  {getFieldError("sender_phone") && (
-                    <p className="text-xs text-red-500">
-                      {getFieldError("sender_phone")}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="sender_country">Country</Label>
-                  <Select
-                    value={formData.sender_country}
-                    onValueChange={(value) =>
-                      handleFieldChange("sender_country", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select country" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {departureCountries.map((country) => (
-                        <SelectItem key={country.code} value={country.id}>
-                          {country.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="col-span-2">
-                  <Label htmlFor="sender_address">Address</Label>
-                  <Textarea
-                    id="sender_address"
-                    value={formData.sender_address}
-                    onChange={(e) =>
-                      handleFieldChange("sender_address", e.target.value)
-                    }
-                    className={cn(
-                      "min-h-[80px]",
-                      getFieldError("sender_address") && "border-red-500"
-                    )}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Recipient Details */}
-            <div className="space-y-4">
-              <h3 className="font-medium">Recipient Details</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="recipient_name">Full Name</Label>
-                  <Input
-                    id="recipient_name"
-                    value={formData.recipient_name}
-                    onChange={(e) =>
-                      handleFieldChange("recipient_name", e.target.value)
-                    }
-                    className={cn(
-                      getFieldError("recipient_name") && "border-red-500"
-                    )}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="recipient_email">Email</Label>
-                  <Input
-                    id="recipient_email"
-                    type="email"
-                    value={formData.recipient_email}
-                    onChange={(e) =>
-                      handleFieldChange("recipient_email", e.target.value)
-                    }
-                    className={cn(
-                      getFieldError("recipient_email") && "border-red-500"
-                    )}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="recipient_phone">Phone</Label>
-                  <Input
-                    id="recipient_phone"
-                    value={formData.recipient_phone}
-                    onChange={(e) =>
-                      handleFieldChange("recipient_phone", e.target.value)
-                    }
-                    className={cn(
-                      getFieldError("recipient_phone") && "border-red-500"
-                    )}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="recipient_country">Country</Label>
-                  <Select
-                    value={formData.recipient_country}
-                    onValueChange={(value) =>
-                      handleFieldChange("recipient_country", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select country" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {destinationCountries.map((country) => (
-                        <SelectItem key={country.code} value={country.id}>
-                          {country.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="col-span-2">
-                  <Label htmlFor="recipient_address">Address</Label>
-                  <Textarea
-                    id="recipient_address"
-                    value={formData.recipient_address}
-                    onChange={(e) =>
-                      handleFieldChange("recipient_address", e.target.value)
-                    }
-                    className={cn(
-                      "min-h-[80px]",
-                      getFieldError("recipient_address") && "border-red-500"
-                    )}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Package Details */}
-            <div className="space-y-4">
-              <h3 className="font-medium">Package Details</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="package_type">Package Type</Label>
-                  <Select
-                    value={formData.package_type}
-                    onValueChange={(value) =>
-                      handleFieldChange("package_type", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select package type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[
-                        { id: "document", name: "Document" },
-                        { id: "parcel", name: "Parcel" },
-                        { id: "box", name: "Box" },
-                        { id: "pallet", name: "Pallet" },
-                      ].map((type) => (
-                        <SelectItem key={type.id} value={type.id}>
-                          {type.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="service_type">Service Type</Label>
-                  <Select
-                    value={formData.service_type}
-                    onValueChange={(value) =>
-                      handleFieldChange("service_type", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select service type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {serviceTypes.map((type) => (
-                        <SelectItem key={type.id} value={type.id}>
-                          {type.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="weight">Weight (kg)</Label>
-                  <Input
-                    id="weight"
-                    type="number"
-                    min="0.1"
-                    step="0.1"
-                    value={formData.weight}
-                    onChange={(e) =>
-                      handleFieldChange("weight", parseFloat(e.target.value))
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Dimensions (cm)</Label>
-                  <div className="grid grid-cols-3 gap-2">
+      {/* Show form only when a shipment is selected */}
+      {selectedShipment && (
+        <form onSubmit={handleSubmit}>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold">
+                Shipment Details
+              </CardTitle>
+              <CardDescription>
+                Review and update shipment information
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Sender Details */}
+              <div className="space-y-4">
+                <h3 className="font-medium">Sender Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="sender_name">Full Name</Label>
                     <Input
-                      placeholder="Length"
-                      type="number"
-                      min="1"
-                      value={formData.length}
+                      id="sender_name"
+                      value={formData.sender_name}
                       onChange={(e) =>
-                        handleFieldChange("length", parseFloat(e.target.value))
+                        handleFieldChange("sender_name", e.target.value)
                       }
+                      className={cn(
+                        getFieldError("sender_name") && "border-red-500"
+                      )}
                     />
+                    {getFieldError("sender_name") && (
+                      <p className="text-xs text-red-500">
+                        {getFieldError("sender_name")}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="sender_email">Email</Label>
                     <Input
-                      placeholder="Width"
-                      type="number"
-                      min="1"
-                      value={formData.width}
+                      id="sender_email"
+                      type="email"
+                      value={formData.sender_email}
                       onChange={(e) =>
-                        handleFieldChange("width", parseFloat(e.target.value))
+                        handleFieldChange("sender_email", e.target.value)
                       }
+                      className={cn(
+                        getFieldError("sender_email") && "border-red-500"
+                      )}
                     />
+                    {getFieldError("sender_email") && (
+                      <p className="text-xs text-red-500">
+                        {getFieldError("sender_email")}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="sender_phone">Phone</Label>
                     <Input
-                      placeholder="Height"
-                      type="number"
-                      min="1"
-                      value={formData.height}
+                      id="sender_phone"
+                      value={formData.sender_phone}
                       onChange={(e) =>
-                        handleFieldChange("height", parseFloat(e.target.value))
+                        handleFieldChange("sender_phone", e.target.value)
                       }
+                      className={cn(
+                        getFieldError("sender_phone") && "border-red-500"
+                      )}
+                    />
+                    {getFieldError("sender_phone") && (
+                      <p className="text-xs text-red-500">
+                        {getFieldError("sender_phone")}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="sender_country">Country</Label>
+                    <Select
+                      value={formData.sender_country}
+                      onValueChange={(value) =>
+                        handleFieldChange("sender_country", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {departureCountries.map((country) => (
+                          <SelectItem key={country.code} value={country.id}>
+                            {country.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="col-span-2">
+                    <Label htmlFor="sender_address">Address</Label>
+                    <Textarea
+                      id="sender_address"
+                      value={formData.sender_address}
+                      onChange={(e) =>
+                        handleFieldChange("sender_address", e.target.value)
+                      }
+                      className={cn(
+                        "min-h-[80px]",
+                        getFieldError("sender_address") && "border-red-500"
+                      )}
                     />
                   </div>
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="declared_value">Declared Value (USD)</Label>
-                  <Input
-                    id="declared_value"
-                    type="number"
-                    min="0"
-                    value={formData.declared_value}
-                    onChange={(e) =>
-                      handleFieldChange(
-                        "declared_value",
-                        parseFloat(e.target.value)
-                      )
-                    }
-                  />
+              <Separator />
+
+              {/* Recipient Details */}
+              <div className="space-y-4">
+                <h3 className="font-medium">Recipient Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="recipient_name">Full Name</Label>
+                    <Input
+                      id="recipient_name"
+                      value={formData.recipient_name}
+                      onChange={(e) =>
+                        handleFieldChange("recipient_name", e.target.value)
+                      }
+                      className={cn(
+                        getFieldError("recipient_name") && "border-red-500"
+                      )}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="recipient_email">Email</Label>
+                    <Input
+                      id="recipient_email"
+                      type="email"
+                      value={formData.recipient_email}
+                      onChange={(e) =>
+                        handleFieldChange("recipient_email", e.target.value)
+                      }
+                      className={cn(
+                        getFieldError("recipient_email") && "border-red-500"
+                      )}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="recipient_phone">Phone</Label>
+                    <Input
+                      id="recipient_phone"
+                      value={formData.recipient_phone}
+                      onChange={(e) =>
+                        handleFieldChange("recipient_phone", e.target.value)
+                      }
+                      className={cn(
+                        getFieldError("recipient_phone") && "border-red-500"
+                      )}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="recipient_country">Country</Label>
+                    <Select
+                      value={formData.recipient_country}
+                      onValueChange={(value) =>
+                        handleFieldChange("recipient_country", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {destinationCountries.map((country) => (
+                          <SelectItem key={country.code} value={country.id}>
+                            {country.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="col-span-2">
+                    <Label htmlFor="recipient_address">Address</Label>
+                    <Textarea
+                      id="recipient_address"
+                      value={formData.recipient_address}
+                      onChange={(e) =>
+                        handleFieldChange("recipient_address", e.target.value)
+                      }
+                      className={cn(
+                        "min-h-[80px]",
+                        getFieldError("recipient_address") && "border-red-500"
+                      )}
+                    />
+                  </div>
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="description">Package Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) =>
-                      handleFieldChange("description", e.target.value)
-                    }
-                    className="min-h-[80px]"
-                  />
-                </div>
+              <Separator />
 
-                <div className="col-span-2 space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="insurance_required"
-                      checked={formData.insurance_required}
-                      onCheckedChange={(checked) =>
+              {/* Package Details */}
+              <div className="space-y-4">
+                <h3 className="font-medium">Package Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="package_type">Package Type</Label>
+                    <Select
+                      value={formData.package_type}
+                      onValueChange={(value) =>
+                        handleFieldChange("package_type", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select package type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[
+                          { id: "document", name: "Document" },
+                          { id: "parcel", name: "Parcel" },
+                          { id: "box", name: "Box" },
+                          { id: "pallet", name: "Pallet" },
+                        ].map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="service_type">Service Type</Label>
+                    <Select
+                      value={formData.service_type}
+                      onValueChange={(value) =>
+                        handleFieldChange("service_type", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select service type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {serviceTypes.map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="weight">Weight (kg)</Label>
+                    <Input
+                      id="weight"
+                      type="number"
+                      min="0.1"
+                      step="0.1"
+                      value={formData.weight}
+                      onChange={(e) =>
+                        handleFieldChange("weight", parseFloat(e.target.value))
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Dimensions (cm)</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <Input
+                        placeholder="Length"
+                        type="number"
+                        min="1"
+                        value={formData.length}
+                        onChange={(e) =>
+                          handleFieldChange(
+                            "length",
+                            parseFloat(e.target.value)
+                          )
+                        }
+                      />
+                      <Input
+                        placeholder="Width"
+                        type="number"
+                        min="1"
+                        value={formData.width}
+                        onChange={(e) =>
+                          handleFieldChange("width", parseFloat(e.target.value))
+                        }
+                      />
+                      <Input
+                        placeholder="Height"
+                        type="number"
+                        min="1"
+                        value={formData.height}
+                        onChange={(e) =>
+                          handleFieldChange(
+                            "height",
+                            parseFloat(e.target.value)
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="declared_value">Declared Value (USD)</Label>
+                    <Input
+                      id="declared_value"
+                      type="number"
+                      min="0"
+                      value={formData.declared_value}
+                      onChange={(e) =>
                         handleFieldChange(
-                          "insurance_required",
-                          checked as boolean
+                          "declared_value",
+                          parseFloat(e.target.value)
                         )
                       }
                     />
-                    <Label
-                      htmlFor="insurance_required"
-                      className="text-sm text-muted-foreground"
-                    >
-                      Add Insurance (Optional)
-                    </Label>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="signature_required"
-                      checked={formData.signature_required}
-                      onCheckedChange={(checked) =>
-                        handleFieldChange(
-                          "signature_required",
-                          checked as boolean
-                        )
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Package Description</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) =>
+                        handleFieldChange("description", e.target.value)
                       }
+                      className="min-h-[80px]"
                     />
-                    <Label
-                      htmlFor="signature_required"
-                      className="text-sm text-muted-foreground"
-                    >
-                      Require Signature (Optional)
-                    </Label>
+                  </div>
+
+                  <div className="col-span-2 space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="insurance_required"
+                        checked={formData.insurance_required}
+                        onCheckedChange={(checked) =>
+                          handleFieldChange(
+                            "insurance_required",
+                            checked as boolean
+                          )
+                        }
+                      />
+                      <Label
+                        htmlFor="insurance_required"
+                        className="text-sm text-muted-foreground"
+                      >
+                        Add Insurance (Optional)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="signature_required"
+                        checked={formData.signature_required}
+                        onCheckedChange={(checked) =>
+                          handleFieldChange(
+                            "signature_required",
+                            checked as boolean
+                          )
+                        }
+                      />
+                      <Label
+                        htmlFor="signature_required"
+                        className="text-sm text-muted-foreground"
+                      >
+                        Require Signature (Optional)
+                      </Label>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {calculating && (
-              <div className="flex items-center justify-center space-x-2 text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Calculating shipping rate...</span>
-              </div>
-            )}
-
-            {shippingRate && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">
-                    Shipping Cost Breakdown
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="grid gap-2">
-                    <div className="flex justify-between">
-                      <span>Base Rate:</span>
-                      <span>${shippingRate.rate_details.base_rate}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Weight Charge:</span>
-                      <span>${shippingRate.rate_details.weight_charge}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Service Charge:</span>
-                      <span>${shippingRate.cost_breakdown.service_price}</span>
-                    </div>
-                    {shippingRate.cost_breakdown.additional_charges.map(
-                      (charge) => (
-                        <div key={charge.name} className="flex justify-between">
-                          <span>{charge.name}:</span>
-                          <span>${charge.amount}</span>
-                        </div>
-                      )
-                    )}
-                    <Separator />
-                    <div className="flex justify-between font-bold">
-                      <span>Total:</span>
-                      <span>${shippingRate.cost_breakdown.total_cost}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </CardContent>
-          <CardFooter>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading || !shippingRate || fieldErrors.length > 0}
-            >
-              {loading ? (
-                <span className="flex items-center">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </span>
-              ) : (
-                <span className="flex items-center">
-                  {selectedShipment ? "Complete Payment" : "Proceed to Payment"}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </span>
+              {calculating && (
+                <div className="flex items-center justify-center space-x-2 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Calculating shipping rate...</span>
+                </div>
               )}
-            </Button>
-          </CardFooter>
-        </Card>
-      </form>
+
+              {shippingRate && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">
+                      Shipping Cost Breakdown
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="grid gap-2">
+                      <div className="flex justify-between">
+                        <span>Base Rate:</span>
+                        <span>${shippingRate.rate_details.base_rate}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Weight Charge:</span>
+                        <span>${shippingRate.rate_details.weight_charge}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Service Charge:</span>
+                        <span>
+                          ${shippingRate.cost_breakdown.service_price}
+                        </span>
+                      </div>
+                      {shippingRate.cost_breakdown.additional_charges.map(
+                        (charge) => (
+                          <div
+                            key={charge.name}
+                            className="flex justify-between"
+                          >
+                            <span>{charge.name}:</span>
+                            <span>${charge.amount}</span>
+                          </div>
+                        )
+                      )}
+                      <Separator />
+                      <div className="flex justify-between font-bold">
+                        <span>Total:</span>
+                        <span>${shippingRate.cost_breakdown.total_cost}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </CardContent>
+            <CardFooter>
+              <div className="flex justify-between w-full">
+                <Button
+                  type="submit"
+                  disabled={loading || !shippingRate || fieldErrors.length > 0}
+                >
+                  {loading ? (
+                    <span className="flex items-center">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </span>
+                  ) : (
+                    <span className="flex items-center">
+                      Complete Payment (BizaPay)
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </span>
+                  )}
+                </Button>
+                <Button
+                  onClick={() => setPaymentModalOpen(true)}
+                  type="button"
+                  disabled={loading || !shippingRate || fieldErrors.length > 0}
+                >
+                  {loading ? (
+                    <span className="flex items-center">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </span>
+                  ) : (
+                    <span className="flex items-center">
+                      Payment (Using PayStack)
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </span>
+                  )}
+                </Button>
+              </div>
+            </CardFooter>
+          </Card>
+        </form>
+      )}
     </div>
   );
 }

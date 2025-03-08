@@ -1,6 +1,10 @@
 "use client";
 
+import { useBuy4Me } from "@/hooks/use-buy4me";
+import { toast } from "@/hooks/use-toast";
+import { ShippingAPI } from "@/lib/api/shipping";
 import { useSearchParams } from "next/navigation";
+
 import { useEffect, useState } from "react";
 
 export default function PaymentSuccessPage() {
@@ -8,12 +12,55 @@ export default function PaymentSuccessPage() {
   const reference = searchParams.get("reference");
   const [verification, setVerification] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { submitRequest: submitBuy4MeRequest, loading: buy4meLoading } =
+    useBuy4Me();
+
+  const handlePaymentSuccess = async () => {
+    const paymentData = JSON.parse(localStorage.getItem("paymentData") || "{}");
+    if (!paymentData) {
+      alert("Payment data not found");
+      return;
+    }
+
+    console.log("paymentData.paymentType", paymentData.shippingAddress);
+    try {
+      setLoading(true);
+
+      if (paymentData.requestType === "buy4me") {
+        await submitBuy4MeRequest(paymentData.shippingAddress!);
+        toast({
+          title: "Request Submitted",
+          description: "Your buy4me request has been submitted successfully.",
+        });
+      } else if (paymentData.requestType === "shipping") {
+        await ShippingAPI.updateShipment(paymentData.shipmentId!, {
+          ...paymentData.shipmentData,
+          payment_status: "PAID",
+        });
+
+        toast({
+          title: "Shipment Created",
+          description: "Your shipping request has been created successfully.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to process request.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (reference) {
       fetch(`/api/paystack/verify-payment?reference=${reference}`)
         .then((res) => res.json())
         .then((data) => {
+          handlePaymentSuccess();
           setVerification(data);
           setLoading(false);
         })

@@ -16,8 +16,7 @@ export async function POST(request: Request) {
   const payload = {
     email,
     amount: amountInKobo.toString(),
-    // Set a callback URL for after payment completion
-    callback_url: `${process.env.NEXT_PUBLIC_BASE_URL}/payment/success`,
+    callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success`,
   };
 
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
