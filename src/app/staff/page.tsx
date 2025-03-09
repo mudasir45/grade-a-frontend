@@ -101,7 +101,7 @@ export default function StaffDashboard() {
           // Fetch WALK_IN users
           const token = localStorage.getItem("auth_token");
           fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/accounts/users/?user_type=WALK_IN/`,
+            `${process.env.NEXT_PUBLIC_API_URL}/accounts/users/?user_type=WALK_IN`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
