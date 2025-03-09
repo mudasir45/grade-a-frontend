@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { AnimatePresence, motion } from "framer-motion";
 import { LogIn, User as UserIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
 const INITIAL_FORM_STATE = {
@@ -39,6 +40,7 @@ export function AuthDialog() {
   const { register, user, isOpen, setIsOpen, setUser } = useAuth();
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
   const [phoneError, setPhoneError] = useState("");
+  const router = useRouter();
 
   const login = async (phone: string, password: string) => {
     try {
@@ -81,6 +83,11 @@ export function AuthDialog() {
       );
 
       const userData = await userResponse.json();
+      if (userData.user_type === "DRIVER") {
+        router.push("/driver");
+      } else if (userData.user_type === "ADMIN") {
+        router.push("/staff");
+      }
 
       if (userData.error) {
         throw new Error(userData.error);

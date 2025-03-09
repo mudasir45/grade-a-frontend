@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
 import type {
+  Buy4MeStatusUpdate,
   DriverDashboardResponse,
   DriverEarningsResponse,
   DriverShipmentResponse,
@@ -11,7 +12,7 @@ export const DRIVER_API = {
   // Dashboard
   getDashboard: async (): Promise<DriverDashboardResponse> => {
     try {
-      const response = await api.get("/driver/dashboard/");
+      const response = await api.get("/accounts/driver/dashboard/");
       return response.data;
     } catch (error) {
       throw new Error("Failed to fetch driver dashboard data");
@@ -24,7 +25,9 @@ export const DRIVER_API = {
     active_only?: boolean;
   }): Promise<DriverShipmentResponse[]> => {
     try {
-      const response = await api.get("/driver/shipments/", { params });
+      const response = await api.get("/accounts/driver/shipments/", {
+        params,
+      });
       return response.data;
     } catch (error) {
       throw new Error("Failed to fetch driver shipments");
@@ -37,7 +40,7 @@ export const DRIVER_API = {
     active_only?: boolean;
   }): Promise<DriverShipmentResponse[]> => {
     try {
-      const response = await api.get("/driver/buy4me/", { params });
+      const response = await api.get("/accounts/driver/buy4me/", { params });
       return response.data;
     } catch (error) {
       throw new Error("Failed to fetch Buy4me orders");
@@ -50,7 +53,7 @@ export const DRIVER_API = {
     data: ShipmentStatusUpdate
   ): Promise<void> => {
     try {
-      await api.patch(`/driver/shipments/${shipmentId}/status/`, data);
+      await api.post(`/accounts/driver/shipments/${shipmentId}/update/`, data);
     } catch (error) {
       throw new Error("Failed to update shipment status");
     }
@@ -59,10 +62,10 @@ export const DRIVER_API = {
   // Update Buy4Me Status
   updateBuy4meStatus: async (
     requestId: string,
-    data: ShipmentStatusUpdate
+    data: Buy4MeStatusUpdate
   ): Promise<void> => {
     try {
-      await api.patch(`/driver/buy4me/${requestId}/status/`, data);
+      await api.post(`/accounts/driver/buy4me/${requestId}/update/`, data);
     } catch (error) {
       throw new Error("Failed to update Buy4me status");
     }
@@ -74,7 +77,7 @@ export const DRIVER_API = {
     end_date?: string;
   }): Promise<DriverEarningsResponse> => {
     try {
-      const response = await api.get("/driver/earnings/", { params });
+      const response = await api.get("/accounts/driver/earnings/", { params });
       return response.data;
     } catch (error) {
       throw new Error("Failed to fetch earnings data");
@@ -84,7 +87,7 @@ export const DRIVER_API = {
   // Withdraw Funds
   withdrawFunds: async (data: WithdrawalRequest): Promise<void> => {
     try {
-      await api.post("/driver/withdraw/", data);
+      await api.post("/accounts/driver/withdraw/", data);
     } catch (error) {
       throw new Error("Failed to process withdrawal request");
     }
@@ -93,7 +96,7 @@ export const DRIVER_API = {
   // Get Payment History
   getPaymentHistory: async (): Promise<any> => {
     try {
-      const response = await api.get("/driver/payments/history/");
+      const response = await api.get("/accounts/driver/payments/history/");
       return response.data;
     } catch (error) {
       throw new Error("Failed to fetch payment history");
@@ -103,7 +106,7 @@ export const DRIVER_API = {
   // Get Payment Stats
   getPaymentStats: async (): Promise<any> => {
     try {
-      const response = await api.get("/driver/payments/stats/");
+      const response = await api.get("/accounts/driver/payments/stats/");
       return response.data;
     } catch (error) {
       throw new Error("Failed to fetch payment statistics");

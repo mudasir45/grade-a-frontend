@@ -72,6 +72,7 @@ export interface AuthContextType {
   changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
   updateUser: (user: User) => Promise<void>;
   isStaffUser: () => Promise<boolean>;
+  isDriverUser: () => Promise<boolean>;
 }
 
 export type Buy4MeRequestStatus =

@@ -1,8 +1,8 @@
 import { DRIVER_API } from "@/lib/api/driver";
 import type {
+  Buy4MeStatusUpdate,
   DriverDashboardResponse,
   DriverEarningsResponse,
-  DriverShipmentResponse,
   ShipmentStatusUpdate,
   WithdrawalRequest,
 } from "@/lib/types/driver";
@@ -22,7 +22,7 @@ export const useDriverShipments = (params?: {
   status?: string;
   active_only?: boolean;
 }) => {
-  return useQuery<DriverShipmentResponse[]>({
+  return useQuery<any>({
     queryKey: ["driverShipments", params],
     queryFn: () => DRIVER_API.getShipments(params),
   });
@@ -33,7 +33,7 @@ export const useDriverBuy4meOrders = (params?: {
   status?: string;
   active_only?: boolean;
 }) => {
-  return useQuery<DriverShipmentResponse[]>({
+  return useQuery<any>({
     queryKey: ["driverBuy4me", params],
     queryFn: () => DRIVER_API.getBuy4meOrders(params),
   });
@@ -68,7 +68,7 @@ export const useUpdateBuy4meStatus = () => {
       data,
     }: {
       requestId: string;
-      data: ShipmentStatusUpdate;
+      data: Buy4MeStatusUpdate;
     }) => DRIVER_API.updateBuy4meStatus(requestId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["driverBuy4me"] });

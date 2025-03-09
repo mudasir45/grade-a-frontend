@@ -222,6 +222,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
       throw new Error("Failed to check if user is staff");
     }
   };
+  const isDriverUser = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/accounts/check-driver-user/`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          },
+        }
+      );
+      const data = await response.json();
+      if (response.ok) {
+        return data.is_driver;
+      }
+      throw new Error("Failed to check if user is driver");
+    } catch (error) {
+      console.error(error);
+      throw new Error("Failed to check if user is driver");
+    }
+  };
 
   const logout = () => {
     localStorage.removeItem("auth_token");
@@ -242,6 +262,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     changePassword,
     updateUser,
     isStaffUser,
+    isDriverUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

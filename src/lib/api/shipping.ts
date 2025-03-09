@@ -181,7 +181,7 @@ export class ShippingAPI {
         `${API_BASE_URL}/shipping-rates/calculate/`,
         {
           method: "POST",
-          headers: this.getHeaders(),
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
         }
       );

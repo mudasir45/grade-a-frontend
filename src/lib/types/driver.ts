@@ -1,19 +1,42 @@
 export interface DriverProfile {
   id: string;
-  user: {
+  user: string;
+  user_details: {
+    id: string;
     email: string;
     username: string;
+    first_name: string;
+    last_name: string;
+    phone_number: string;
+    address: string;
+    user_type: string;
+    is_verified: boolean;
+    country: number;
+    preferred_currency: string;
+    date_joined: string;
+    country_details?: {
+      id: number;
+      name: string;
+      code: string;
+    };
+    default_shipping_method?: string;
   };
   vehicle_type: string;
+  license_number: string;
   is_active: boolean;
   commission_rate: number;
-  total_deliveries: number;
   total_earnings: number;
+  total_deliveries: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface RecentCommission {
   id: string;
+  driver: string;
+  driver_details?: string;
   delivery_type: "SHIPMENT" | "BUY4ME";
+  reference_id?: string;
   amount: number;
   earned_at: string;
   description: string;
@@ -60,6 +83,11 @@ export type ShipmentStatus =
 export interface ShipmentStatusUpdate {
   status_location_id: number;
   custom_description?: string;
+}
+
+export interface Buy4MeStatusUpdate {
+  status: string;
+  notes?: string;
 }
 
 export interface DriverEarningsResponse {

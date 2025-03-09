@@ -22,3 +22,16 @@ export function formatDate(dateString: string) {
   };
   return new Date(dateString).toLocaleDateString("en-US", options);
 }
+
+export function currencyConverter(
+  amount: number,
+  currency: "USD" | "NGN" | "RM"
+) {
+  if (currency === "USD") {
+    return amount;
+  } else if (currency === "NGN") {
+    return amount * 450;
+  } else if (currency === "RM") {
+    return amount * 4;
+  }
+}
