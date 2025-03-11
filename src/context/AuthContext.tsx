@@ -213,6 +213,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       );
       const data = await response.json();
+      if (response.status === 401) {
+        return false;
+      }
       if (response.ok) {
         return data.is_staff;
       }
@@ -233,6 +236,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       );
       const data = await response.json();
+      if (response.status === 401) {
+        return false;
+      }
       if (response.ok) {
         return data.is_driver;
       }

@@ -49,7 +49,7 @@ api.interceptors.response.use(
       } catch (refreshError) {
         // If refresh fails, redirect to login
         localStorage.removeItem("auth_token");
-        window.location.href = "/auth/login";
+        window.location.href = "/";
         return Promise.reject(refreshError);
       }
     }
