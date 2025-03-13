@@ -143,3 +143,11 @@ export interface PaymentData {
   paymentType: "buy4me" | "shipping";
   metadata?: Record<string, any>;
 }
+
+export interface City {
+  id?: string;
+  name: string;
+  postal_code: string;
+  delivery_charge: string;
+  is_active?: boolean;
+}

@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import useShippingData from "@/hooks/use-shipping-data";
 import { useToast } from "@/hooks/use-toast";
 import { ShippingAPI } from "@/lib/api/shipping";
+import { City } from "@/lib/types/index";
 import type { ShippingRate } from "@/lib/types/shipping";
 import { cn, convertCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -81,6 +82,7 @@ interface FormData {
   total_rm: number;
   total_naira: number;
   send_via: string;
+  city: string;
   additional_charges: {
     food: boolean;
     creams: boolean;
@@ -115,6 +117,7 @@ export function ShipmentForm({
     error: dataError,
     refetch,
   } = useShippingData();
+  const [cities, setCities] = useState<City[]>([]);
 
   // Set default service type from the first available service
   const defaultServiceType = serviceTypes[0]?.id;
@@ -151,6 +154,7 @@ export function ShipmentForm({
     total_rm: 0,
     total_naira: 0,
     send_via: "",
+    city: "",
     additional_charges: {
       food: false,
       creams: false,
@@ -160,6 +164,20 @@ export function ShipmentForm({
       medications: false,
     },
   };
+
+  useEffect(() => {
+    const fetchCities = async () => {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/accounts/cities/`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch cities");
+      }
+      const data = await response.json();
+      setCities(data);
+    };
+    fetchCities();
+  }, []);
 
   const [formData, setFormData] = useState<FormData>(
     mode === "edit" && initialData
@@ -392,6 +410,10 @@ export function ShipmentForm({
       setIsSubmitting(false);
     }
   };
+
+  //   useEffect(() => {
+  //     console.log("FormData: ", formData);
+  //   }, [formData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -830,6 +852,43 @@ export function ShipmentForm({
             </div>
 
             <Separator />
+
+            {/* City Selection */}
+            <div className="space-y-4 mb-5">
+              <h3 className="font-medium">City Selection</h3>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Select
+                    value={formData.city}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, city: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select city" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cities.map((city) => (
+                        <SelectItem key={city.id} value={city.id!}>
+                          {city.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2 ob">
+                  <p>Delivery Charge</p>
+                  <p>
+                    RM{" "}
+                    {
+                      cities.find((city) => city.id === formData.city)
+                        ?.delivery_charge
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {/* Parcel Details */}
             <div className="space-y-4">
