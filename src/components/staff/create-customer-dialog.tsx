@@ -33,7 +33,7 @@ const isValidPhoneNumber = (phone: string) => {
 };
 
 interface CreateCustomerDialogProps {
-  setIsCreated: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsCreated?: React.Dispatch<React.SetStateAction<boolean>>;
   open: boolean;
   onOpenChange: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -138,7 +138,7 @@ export function CreateCustomerDialog({
         title: "Success",
         description: "User created successfully",
       });
-      setIsCreated(true);
+      setIsCreated?.(true);
       // Reset form after successful creation
       setFormData(INITIAL_FORM_STATE);
       onOpenChange(false);

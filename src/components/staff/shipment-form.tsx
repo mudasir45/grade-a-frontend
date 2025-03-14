@@ -53,7 +53,7 @@ interface ShipmentFormProps {
   initialData?: any; // Type this properly based on your data structure
   onUpdate?: (data: any) => Promise<boolean>;
   users?: any[];
-  setIsCreated: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsCreated?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 // Add this interface to define the shape of your form data
