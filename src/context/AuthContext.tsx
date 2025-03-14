@@ -63,7 +63,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ username: phone, password }),
+          body: JSON.stringify({ phone_number: phone, password }),
         }
       );
 
@@ -122,9 +122,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            username: phone,
             phone_number: phone,
             password,
+            country: country,
             first_name: firstName,
             last_name: lastName,
             user_type: "BUY4ME",

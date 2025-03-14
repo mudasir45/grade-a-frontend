@@ -10,10 +10,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useBuy4Me } from "@/hooks/use-buy4me";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
-import { LogIn } from "lucide-react";
-import { useCallback, useState } from "react";
+import { Country } from "@/lib/types/index";
+import { Loader2, LogIn } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import SearchableSelect from "../ui/searchable-select";
 const INITIAL_FORM_STATE = {
   phone: "",
   email: "",
@@ -31,11 +33,13 @@ const isValidPhoneNumber = (phone: string) => {
 };
 
 interface CreateCustomerDialogProps {
+  setIsCreated: React.Dispatch<React.SetStateAction<boolean>>;
   open: boolean;
   onOpenChange: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export function CreateCustomerDialog({
+  setIsCreated,
   open,
   onOpenChange,
 }: CreateCustomerDialogProps) {
@@ -43,6 +47,16 @@ export function CreateCustomerDialog({
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
   const [phoneError, setPhoneError] = useState("");
+  const { getUserCountries, loading: countriesLoading } = useBuy4Me();
+  const [countries, setCountries] = useState<Country[]>([]);
+
+  useEffect(() => {
+    const fetchCountries = async () => {
+      const countries = await getUserCountries();
+      setCountries(countries || []);
+    };
+    fetchCountries();
+  }, [getUserCountries]);
 
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,11 +119,12 @@ export function CreateCustomerDialog({
           body: JSON.stringify({
             username: formData.phone,
             phone_number: formData.phone,
-            email: formData.email,
+            email: formData.email ? formData.email : "test@gmail.com",
             password: formData.password,
             first_name: firstName,
             last_name: lastName,
             user_type: "WALK_IN",
+            country: formData.country,
           }),
         }
       );
@@ -123,6 +138,7 @@ export function CreateCustomerDialog({
         title: "Success",
         description: "User created successfully",
       });
+      setIsCreated(true);
       // Reset form after successful creation
       setFormData(INITIAL_FORM_STATE);
       onOpenChange(false);
@@ -136,6 +152,14 @@ export function CreateCustomerDialog({
       setLoading(false);
     }
   };
+
+  if (countriesLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-10 w-10 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -169,7 +193,6 @@ export function CreateCustomerDialog({
             <Input
               id="email"
               type="email"
-              required
               value={formData.email}
               onChange={handleInputChange}
               placeholder="Enter your email"
@@ -201,7 +224,15 @@ export function CreateCustomerDialog({
               autoComplete="name"
             />
           </div>
-
+          <SearchableSelect
+            label="Country"
+            options={countries.map((country) => ({
+              value: country.id,
+              label: country.name,
+            }))}
+            value={formData.country}
+            onChange={(value) => setFormData({ ...formData, country: value })}
+          />
           <Button
             type="submit"
             className="w-full"

@@ -25,6 +25,7 @@ export default function StaffDashboard() {
   const { user, getUser, loading, isStaffUser } = useAuth();
   const [shipments, setShipments] = useState<ShipmentProps[]>([]);
   const [users, setUsers] = useState([]);
+  const [isCreated, setIsCreated] = useState(false);
   const [total, setTotal] = useState({
     pending: 0,
     cancelled: 0,
@@ -132,7 +133,7 @@ export default function StaffDashboard() {
       .catch((error) => {
         console.error("Failed to get user:", error);
       });
-  }, []);
+  }, [isCreated]);
 
   if (loading) {
     return (
@@ -240,7 +241,7 @@ export default function StaffDashboard() {
             {/* Tab Content */}
             <div className="mt-4 sm:mt-6">
               <TabsContent value="createShipment" className="space-y-4">
-                <ShipmentForm users={users} />
+                <ShipmentForm users={users} setIsCreated={setIsCreated} />
               </TabsContent>
               <TabsContent value="manageShipments" className="space-y-4">
                 <ManageShipment shipments={shipments} />

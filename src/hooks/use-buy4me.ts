@@ -281,17 +281,25 @@ export function useBuy4Me() {
 
   //get all countires
   const getUserCountries = useCallback(async () => {
-    const token = localStorage.getItem("auth_token");
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/accounts/user-countries/`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    const data = await response.json();
-    return data.results as Country[];
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/accounts/user-countries/`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      const data = await response.json();
+      return data.results as Country[];
+    } catch (error) {
+      console.error("Error fetching user countries:", error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const getServiceTypes = useCallback(async () => {

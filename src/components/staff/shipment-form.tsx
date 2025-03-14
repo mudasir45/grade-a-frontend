@@ -26,6 +26,7 @@ import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
+import SearchableSelect from "../ui/searchable-select";
 
 interface FormErrors {
   sender: string[];
@@ -52,6 +53,7 @@ interface ShipmentFormProps {
   initialData?: any; // Type this properly based on your data structure
   onUpdate?: (data: any) => Promise<boolean>;
   users?: any[];
+  setIsCreated: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 // Add this interface to define the shape of your form data
@@ -100,6 +102,7 @@ export function ShipmentForm({
   initialData,
   onUpdate,
   users,
+  setIsCreated,
 }: ShipmentFormProps) {
   const { toast } = useToast();
   const [fieldErrors, setFieldErrors] = useState<FieldError[]>([]);
@@ -122,6 +125,7 @@ export function ShipmentForm({
   // Set default service type from the first available service
   const defaultServiceType = serviceTypes[0]?.id;
   const [searchCustomerId, setSearchCustomerId] = useState("");
+
   const [showCreateCustomerDialog, setShowCreateCustomerDialog] =
     useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -857,26 +861,17 @@ export function ShipmentForm({
             <div className="space-y-4 mb-5">
               <h3 className="font-medium">City Selection</h3>
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Select
-                    value={formData.city}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, city: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select city" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {cities.map((city) => (
-                        <SelectItem key={city.id} value={city.id!}>
-                          {city.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <SearchableSelect
+                  label="City"
+                  options={cities.map((city) => ({
+                    value: city.id!,
+                    label: city.name,
+                  }))}
+                  value={formData.city}
+                  onChange={(value) =>
+                    setFormData({ ...formData, city: value })
+                  }
+                />
                 <div className="space-y-2 ob">
                   <p>Delivery Charge</p>
                   <p>
@@ -1306,6 +1301,7 @@ export function ShipmentForm({
       <CreateCustomerDialog
         open={showCreateCustomerDialog}
         onOpenChange={setShowCreateCustomerDialog}
+        setIsCreated={setIsCreated}
       />
     </form>
   );

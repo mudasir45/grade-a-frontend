@@ -12,11 +12,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
+import { useBuy4Me } from "@/hooks/use-buy4me";
 import { useToast } from "@/hooks/use-toast";
+import { Country } from "@/lib/types/index";
 import { AnimatePresence, motion } from "framer-motion";
-import { LogIn, User as UserIcon } from "lucide-react";
+import { Loader2, LogIn, User as UserIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import SearchableSelect from "../ui/searchable-select";
 
 const INITIAL_FORM_STATE = {
   phone: "",
@@ -41,6 +44,16 @@ export function AuthDialog() {
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
   const [phoneError, setPhoneError] = useState("");
   const router = useRouter();
+  const [countries, setCountries] = useState<Country[]>([]);
+  const { getUserCountries, loading: countriesLoading } = useBuy4Me();
+
+  useEffect(() => {
+    const fetchCountries = async () => {
+      const countries = await getUserCountries();
+      setCountries(countries || []);
+    };
+    fetchCountries();
+  }, [getUserCountries]);
 
   const login = async (phone: string, password: string) => {
     try {
@@ -51,7 +64,7 @@ export function AuthDialog() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ username: phone, password }),
+          body: JSON.stringify({ phone_number: phone, password }),
         }
       );
 
@@ -60,7 +73,16 @@ export function AuthDialog() {
       if (response.status === 401) {
         toast({
           title: "Invalid credentials",
-          description: "Please check your email and password",
+          description: "Please check your phone number and password",
+          variant: "destructive",
+        });
+        return null;
+      }
+
+      if (response.status === 400) {
+        toast({
+          title: "Something went wrong!",
+          description: "Please check your credentials and try again.",
           variant: "destructive",
         });
         return null;
@@ -196,6 +218,7 @@ export function AuthDialog() {
           formData.phone,
           formData.password,
           formData.name,
+          formData.country,
           "BUY4ME"
         );
         console.log("response", response);
@@ -213,6 +236,14 @@ export function AuthDialog() {
     setIsLogin((prev) => !prev);
     resetForm();
   }, [resetForm]);
+
+  if (countriesLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-10 w-10 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -284,6 +315,19 @@ export function AuthDialog() {
                     autoComplete="name"
                   />
                 </div>
+
+                <SearchableSelect
+                  label="Country"
+                  options={countries.map((country) => ({
+                    value: country.id,
+                    label: country.name,
+                  }))}
+                  className="text-black"
+                  value={formData.country}
+                  onChange={(value) =>
+                    setFormData({ ...formData, country: value })
+                  }
+                />
               </motion.div>
             )}
           </AnimatePresence>
