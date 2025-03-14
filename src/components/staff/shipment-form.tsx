@@ -583,27 +583,38 @@ export function ShipmentForm({
         <CardContent className="space-y-6">
           {/* Customer Search / Tracking Number */}
           {mode === "create" ? (
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="search-customer">Search customer</Label>
-              <Select
-                value={searchCustomerId}
-                onValueChange={handleCustomerSelect}
-              >
-                <SelectTrigger id="search-customer">
-                  <SelectValue placeholder="Search customer by username" />
-                </SelectTrigger>
-                <SelectContent className="max-h-60 overflow-y-auto">
-                  {users &&
-                    users.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        <span className="flex items-center gap-2">
-                          <span>{user.username}</span>
-                        </span>
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
+            // <div className="flex-1 space-y-2">
+            //   <Label htmlFor="search-customer">Search customer</Label>
+            //   <Select
+            //     value={searchCustomerId}
+            //     onValueChange={handleCustomerSelect}
+            //   >
+            //     <SelectTrigger id="search-customer">
+            //       <SelectValue placeholder="Search customer by username" />
+            //     </SelectTrigger>
+            //     <SelectContent className="max-h-60 overflow-y-auto">
+            //       {users &&
+            //         users.map((user) => (
+            //           <SelectItem key={user.id} value={user.id}>
+            //             <span className="flex items-center gap-2">
+            //               <span>{user.username}</span>
+            //             </span>
+            //           </SelectItem>
+            //         ))}
+            //     </SelectContent>
+            //   </Select>
+            // </div>
+            <SearchableSelect
+              label="Search customer"
+              options={
+                users?.map((user) => ({
+                  value: String(user.id),
+                  label: user.phone_number,
+                })) || []
+              }
+              value={searchCustomerId}
+              onChange={(value) => handleCustomerSelect(value)}
+            />
           ) : (
             <div className="flex-1 space-y-2">
               <Label htmlFor="tracking-number">Tracking Number</Label>
