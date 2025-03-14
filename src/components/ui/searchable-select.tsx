@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import React, { useMemo, useState } from "react";
 import { Label } from "./label";
 import {
@@ -20,6 +21,7 @@ export interface SearchableSelectProps {
   onChange: (value: string) => void;
   placeholder?: string;
   searchPlaceholder?: string;
+  className?: string;
 }
 
 const SearchableSelect: React.FC<SearchableSelectProps> = ({
@@ -29,6 +31,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
   onChange,
   placeholder = "Select an option",
   searchPlaceholder = "Search...",
+  className,
 }) => {
   const [search, setSearch] = useState("");
 
@@ -41,7 +44,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
   }, [search, options]);
 
   return (
-    <div className="space-y-2">
+    <div className={cn("space-y-2", className)}>
       {label && <Label htmlFor="searchable-select">{label}</Label>}
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger>
