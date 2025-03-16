@@ -20,7 +20,7 @@ import useShippingData from "@/hooks/use-shipping-data";
 import { useToast } from "@/hooks/use-toast";
 import { ShippingAPI } from "@/lib/api/shipping";
 import { City } from "@/lib/types/index";
-import type { ShippingRate } from "@/lib/types/shipping";
+import { Extras, type ShippingRate } from "@/lib/types/shipping";
 import { cn, convertCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
@@ -85,14 +85,7 @@ interface FormData {
   total_naira: number;
   send_via: string;
   city: string;
-  additional_charges: {
-    food: boolean;
-    creams: boolean;
-    traditional: boolean;
-    electronics: boolean;
-    documents: boolean;
-    medications: boolean;
-  };
+  additional_charges: Extras[];
   status?: string;
   tracking_number?: string;
 }
@@ -131,6 +124,20 @@ export function ShipmentForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const token = localStorage.getItem("auth_token");
   // Initialize form data with default values
+  const [extras, setExtras] = useState<Extras[]>([]);
+
+  useEffect(() => {
+    const getExtras = async () => {
+      try {
+        const extras = await ShippingAPI.getExtras();
+        setExtras(extras);
+      } catch (error) {
+        console.log("error while fetching extras");
+      }
+    };
+    getExtras();
+  }, []);
+
   const defaultFormData: FormData = {
     sender_name: "",
     sender_phone: "",
@@ -159,14 +166,7 @@ export function ShipmentForm({
     total_naira: 0,
     send_via: "",
     city: "",
-    additional_charges: {
-      food: false,
-      creams: false,
-      traditional: false,
-      electronics: false,
-      documents: false,
-      medications: false,
-    },
+    additional_charges: [],
   };
 
   useEffect(() => {
@@ -195,15 +195,6 @@ export function ShipmentForm({
         }
       : defaultFormData
   );
-
-  const additional_charges = [
-    { id: "food", label: "Food stuff" },
-    { id: "creams", label: "Creams, human" },
-    { id: "traditional", label: "Traditional Items" },
-    { id: "electronics", label: "Passport, Electronics" },
-    { id: "documents", label: "Driver license, documents" },
-    { id: "medications", label: "Medications" },
-  ];
 
   // Handle field change with validation
   const handleFieldChange = (
@@ -287,17 +278,24 @@ export function ShipmentForm({
       const requiredFields = [
         "sender_country",
         "recipient_country",
+        "service_type",
         "weight",
         "length",
         "width",
         "height",
+        "city",
       ] as const;
 
       // Check if we have all required fields
       const hasRequiredFields = requiredFields.every((field) => {
         const value = formData[field];
-        if (typeof value === "number") {
-          return value > 0;
+        if (
+          value === "sender_country" ||
+          value === "recipient_country" ||
+          value === "service_type" ||
+          value === "city"
+        ) {
+          return Boolean(value);
         }
         return Boolean(value);
       });
@@ -328,6 +326,8 @@ export function ShipmentForm({
           service_type: formData.service_type,
           declared_value: formData.declared_value || 0,
           insurance_required: formData.insurance_required || false,
+          additional_charges: formData.additional_charges,
+          city: formData.city,
         });
 
         setShippingRate(rate);
@@ -364,9 +364,10 @@ export function ShipmentForm({
     formData.width,
     formData.height,
     formData.service_type,
-    formData.declared_value,
     formData.insurance_required,
     formData.packaging_rm,
+    formData.city,
+    formData.additional_charges,
   ]);
 
   const handleCreateShipment = async () => {
@@ -415,9 +416,9 @@ export function ShipmentForm({
     }
   };
 
-  //   useEffect(() => {
-  //     console.log("FormData: ", formData);
-  //   }, [formData]);
+  useEffect(() => {
+    console.log("FormData: ", formData);
+  }, [formData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -901,7 +902,7 @@ export function ShipmentForm({
               <h3 className="font-medium">Parcel Details</h3>
               {renderErrors(errors.package)}
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2 col-span-full">
+                {/* <div className="space-y-2 col-span-full">
                   <Label htmlFor="service_type">Service Type</Label>
                   <Select
                     value={formData.service_type}
@@ -920,7 +921,20 @@ export function ShipmentForm({
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
+                </div> */}
+
+                <SearchableSelect
+                  label="Select Service Type"
+                  options={serviceTypes.map((service) => ({
+                    value: service.id,
+                    label: service.name,
+                  }))}
+                  value={formData.service_type}
+                  onChange={(value) =>
+                    setFormData({ ...formData, service_type: value })
+                  }
+                />
+
                 <div className="space-y-2">
                   <Label htmlFor="package_type">Package Type</Label>
                   <Select
@@ -1113,28 +1127,56 @@ export function ShipmentForm({
             <div className="space-y-4">
               <h3 className="font-medium">Additional Charges</h3>
               <div className="grid gap-2">
-                {additional_charges.map((item) => (
-                  <div key={item.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={item.id}
-                      checked={
-                        formData.additional_charges[
-                          item.id as keyof typeof formData.additional_charges
-                        ]
-                      }
-                      onCheckedChange={(checked) =>
-                        setFormData({
-                          ...formData,
-                          additional_charges: {
-                            ...formData.additional_charges,
-                            [item.id]: checked,
-                          },
-                        })
-                      }
-                    />
-                    <Label htmlFor={item.id}>{item.label}</Label>
-                  </div>
-                ))}
+                {extras.map((item) => {
+                  // Check if the extra is already added
+                  const isChecked = formData.additional_charges.some(
+                    (charge) => charge.id === item.id
+                  );
+
+                  return (
+                    <div key={item.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={item.id}
+                        checked={isChecked}
+                        onCheckedChange={(checked) => {
+                          setFormData((prevFormData) => {
+                            let newAdditionalCharges =
+                              prevFormData.additional_charges;
+                            if (checked) {
+                              // If it's checked and not already added, append it
+                              if (
+                                !newAdditionalCharges.some(
+                                  (charge) => charge.id === item.id
+                                )
+                              ) {
+                                newAdditionalCharges = [
+                                  ...newAdditionalCharges,
+                                  {
+                                    id: item.id,
+                                    name: item.name,
+                                    charge_type: item.charge_type,
+                                    value: item.value,
+                                  },
+                                ];
+                              }
+                            } else {
+                              // Remove the extra when unchecked
+                              newAdditionalCharges =
+                                newAdditionalCharges.filter(
+                                  (charge) => charge.id !== item.id
+                                );
+                            }
+                            return {
+                              ...prevFormData,
+                              additional_charges: newAdditionalCharges,
+                            };
+                          });
+                        }}
+                      />
+                      <Label htmlFor={item.id}>{item.name}</Label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -1257,7 +1299,7 @@ export function ShipmentForm({
                 <CardContent className="space-y-2">
                   <div className="grid gap-2 text-sm sm:text-base">
                     <div className="flex justify-between">
-                      <span>Base Rate:</span>
+                      <span>Regulation charge:</span>
                       <span>${shippingRate.rate_details.base_rate}</span>
                     </div>
                     <div className="flex justify-between">
@@ -1268,6 +1310,11 @@ export function ShipmentForm({
                       <span>Service Charge:</span>
                       <span>${shippingRate.cost_breakdown.service_price}</span>
                     </div>
+                    <div className="flex justify-between">
+                      <span>City Delivery Charges:</span>
+                      <span>${shippingRate.city_delivery_charge}</span>
+                    </div>
+                    <h1 className="font-bold text-xl">Additional Charges</h1>
                     {shippingRate.cost_breakdown.additional_charges.map(
                       (charge) => (
                         <div key={charge.name} className="flex justify-between">
@@ -1276,6 +1323,13 @@ export function ShipmentForm({
                         </div>
                       )
                     )}
+                    {shippingRate.extras.map((charge) => (
+                      <div key={charge.name} className="flex justify-between">
+                        <span>{charge.name}:</span>
+                        <span>${charge.value}</span>
+                      </div>
+                    ))}
+
                     <div className="border-t pt-2 flex justify-between font-bold">
                       <span>Total:</span>
                       <span>${shippingRate.cost_breakdown.total_cost}</span>
@@ -1286,9 +1340,9 @@ export function ShipmentForm({
             )}
 
             <div className="flex flex-col sm:flex-row gap-4 sm:justify-end mt-2">
-              <Button type="button" variant="outline" disabled={isSubmitting}>
+              {/* <Button type="button" variant="outline" disabled={isSubmitting}>
                 Print AWB
-              </Button>
+              </Button> */}
               <Button
                 type="submit"
                 disabled={isSubmitting}

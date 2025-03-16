@@ -188,6 +188,8 @@ export interface ShippingRate {
   weight_calculation: WeightCalculation;
   rate_details: RateDetails;
   cost_breakdown: CostBreakdown;
+  city_delivery_charge: number;
+  extras: Extras[];
 }
 
 export interface Address {
@@ -289,4 +291,13 @@ export interface NewShipmentResponse {
   updated_at: string;
   staff?: string | null;
   service_type: string;
+}
+
+export interface Extras {
+  id?: string;
+  name: string;
+  description?: string;
+  charge_type: string;
+  value: string;
+  is_active?: boolean;
 }

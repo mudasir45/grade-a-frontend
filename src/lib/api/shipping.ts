@@ -1,6 +1,6 @@
 "use client";
 
-import { ShipmentRequest } from "../types/shipping";
+import { Extras, ShipmentRequest } from "../types/shipping";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://dev.ukcallcanter.com/api";
@@ -175,6 +175,8 @@ export class ShippingAPI {
     service_type: string;
     declared_value?: number;
     insurance_required?: boolean;
+    additional_charges?: Extras[];
+    city?: string;
   }) {
     try {
       const response = await fetch(
@@ -254,6 +256,23 @@ export class ShippingAPI {
           headers: this.getHeaders(),
         }
       );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch shipment stats");
+      }
+
+      return response.json();
+    } catch (error) {
+      throw error instanceof Error
+        ? error
+        : new Error("Failed to fetch shipment stats");
+    }
+  }
+  static async getExtras() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/shipping-rates/extras`, {
+        headers: this.getHeaders(),
+      });
 
       if (!response.ok) {
         throw new Error("Failed to fetch shipment stats");

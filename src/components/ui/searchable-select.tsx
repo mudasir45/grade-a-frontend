@@ -1,15 +1,8 @@
-import { cn } from "@/lib/utils";
-import React, { useMemo, useState } from "react";
-import { Label } from "./label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./select";
+import React from "react";
+import ReactSelect from "react-select";
 
 export interface Option {
+  id?: string;
   value: string;
   label: string;
 }
@@ -20,7 +13,6 @@ export interface SearchableSelectProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  searchPlaceholder?: string;
   className?: string;
 }
 
@@ -30,44 +22,29 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
   value,
   onChange,
   placeholder = "Select an option",
-  searchPlaceholder = "Search...",
   className,
 }) => {
-  const [search, setSearch] = useState("");
+  // Convert the passed string value to the corresponding option object
+  const selectedOption =
+    options.find((option) => option.value === value) || null;
 
-  // Filter options based on the search text
-  const filteredOptions = useMemo(() => {
-    if (!search) return options;
-    return options.filter((option) =>
-      option.label.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [search, options]);
+  // Handle the selection change by extracting the new string value
+  const handleChange = (option: Option | null) => {
+    onChange(option ? option.value : "");
+  };
 
   return (
-    <div className={cn("space-y-2", className)}>
-      {label && <Label htmlFor="searchable-select">{label}</Label>}
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger>
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          {/* Search input within dropdown */}
-          <div className="p-2">
-            <input
-              type="text"
-              placeholder={searchPlaceholder}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full px-2 py-1 border rounded"
-            />
-          </div>
-          {filteredOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+    <div className={className}>
+      {label && (
+        <label className="mb-1 block font-medium text-gray-700">{label}</label>
+      )}
+      <ReactSelect
+        options={options}
+        value={selectedOption}
+        onChange={handleChange}
+        placeholder={placeholder}
+        isClearable
+      />
     </div>
   );
 };
