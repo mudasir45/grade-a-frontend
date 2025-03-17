@@ -260,7 +260,7 @@ function PaymentConfirmationContent() {
           )}
 
           {status.status === "success" && (
-            <Button variant="default" onClick={() => router.push("/")}>
+            <Button variant="default" onClick={() => router.push("/shipping")}>
               View Orders
             </Button>
           )}

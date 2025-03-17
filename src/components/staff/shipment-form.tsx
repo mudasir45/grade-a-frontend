@@ -280,9 +280,6 @@ export function ShipmentForm({
         "recipient_country",
         "service_type",
         "weight",
-        "length",
-        "width",
-        "height",
         "city",
       ] as const;
 
@@ -1183,7 +1180,7 @@ export function ShipmentForm({
             {/* Total Bill */}
             <div className="space-y-4 pt-4">
               <div className="grid md:grid-cols-3 gap-6">
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label htmlFor="delivery_rm">Delivery(RM)</Label>
                   <Input
                     id="delivery_rm"
@@ -1192,7 +1189,7 @@ export function ShipmentForm({
                     readOnly
                     className="bg-muted"
                   />
-                </div>
+                </div> */}
                 <div className="space-y-2">
                   <Label htmlFor="total_rm">Total Bill (RM)</Label>
                   <Input

@@ -6,8 +6,10 @@ import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle, Package, ShoppingBag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const ConsolidationPage = () => {
+  const router = useRouter();
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
       {/* Hero Section */}
@@ -39,6 +41,7 @@ const ConsolidationPage = () => {
               <Button
                 size="lg"
                 className="bg-white text-purple-700 hover:bg-gray-100"
+                onClick={() => router.push("/")}
               >
                 Get Started <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
