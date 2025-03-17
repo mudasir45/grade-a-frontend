@@ -458,12 +458,6 @@ export function ShipmentForm({
     if (!formData.package_type) packageErrors.push("Package type is required");
     if (!formData.weight || formData.weight <= 0)
       packageErrors.push("Valid weight is required");
-    if (!formData.length || formData.length <= 0)
-      packageErrors.push("Valid length is required");
-    if (!formData.width || formData.width <= 0)
-      packageErrors.push("Valid width is required");
-    if (!formData.height || formData.height <= 0)
-      packageErrors.push("Valid height is required");
     if (!formData.description)
       packageErrors.push("Package description is required");
 
