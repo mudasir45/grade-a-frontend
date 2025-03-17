@@ -109,6 +109,10 @@ export function AuthDialog() {
         router.push("/driver");
       } else if (userData.user_type === "ADMIN") {
         router.push("/staff");
+      } else if (userData.user_type === "WALK_IN") {
+        router.push("/shipping");
+      } else if (userData.user_type === "BUY4ME") {
+        router.push("/buy4me");
       }
 
       if (userData.error) {

@@ -49,7 +49,8 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 import { ShipmentForm } from "./shipment-form";
 import { UpdateStatusDialog } from "./update-status-dialog";
 // Update the imports and add interface for shipment type
@@ -105,10 +106,19 @@ export interface ShipmentProps {
 }
 
 interface ManageShipmentProps {
-  shipments: ShipmentProps[];
+  //   shipments: ShipmentProps[];
+  user: any;
+  setTotal: React.Dispatch<
+    React.SetStateAction<{
+      pending: number;
+      cancelled: number;
+      processing: number;
+      delivered: number;
+    }>
+  >;
 }
 
-export function ManageShipment({ shipments }: ManageShipmentProps) {
+export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -118,9 +128,47 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
     useState<ShipmentProps | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [shipments, setShipments] = useState<ShipmentProps[]>([]);
   const token = localStorage.getItem("auth_token");
+  const router = useRouter();
   console.log(selectedShipment);
   // Filter shipments based on search term and status filter
+
+  const getStaffShipments = async () => {
+    if (user) {
+      // Fetch shipments for the logged-in staff
+      const token = localStorage.getItem("auth_token");
+      fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/shipments/staff-shipments/${user.id}/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      )
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then((data) => {
+          setShipments(data);
+          setTotal({
+            pending: data.filter((d: any) => d.status === "PENDING").length,
+            cancelled: data.filter((d: any) => d.status === "CANCELLED").length,
+            processing: data.filter((d: any) => d.status === "PROCESSING")
+              .length,
+            delivered: data.filter((d: any) => d.status === "DELIVERED").length,
+          });
+        });
+    }
+  };
+  useEffect(() => {
+    getStaffShipments();
+  }, []);
+
   const filteredShipments = shipments.filter((shipment) => {
     const matchesSearch =
       shipment.tracking_number
@@ -344,6 +392,13 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
                           className="flex items-center gap-2"
+                          onClick={() => (window.location.href = "google.com")}
+                        >
+                          <RefreshCcw className="h-4 w-4" />
+                          Download Receipt
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="flex items-center gap-2"
                           onClick={() => handleUpdateStatusClick(shipment)}
                         >
                           <RefreshCcw className="h-4 w-4" />
@@ -425,6 +480,18 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              className="flex items-center gap-2"
+                              onClick={() =>
+                                window.open(
+                                  `${process.env.NEXT_PUBLIC_SERVER_URL}${shipment.receipt}`,
+                                  "_blank"
+                                )
+                              }
+                            >
+                              <RefreshCcw className="h-4 w-4" />
+                              Download Receipt
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               className="flex items-center gap-2"
                               onClick={() => handleUpdateStatusClick(shipment)}
@@ -521,6 +588,7 @@ export function ManageShipment({ shipments }: ManageShipmentProps) {
             </DialogTitle>
           </DialogHeader>
           <UpdateStatusDialog
+            getStaffShipments={getStaffShipments}
             shipmentId={selectedShipment?.id}
             currentStatus={selectedShipment?.status}
             setStatusDialogOpen={setStatusDialogOpen}

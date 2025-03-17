@@ -51,7 +51,7 @@ export function Footer() {
             <Link href="/" className="flex items-center space-x-2">
               <Package className="h-8 w-8 text-red-500" />
               <span className="text-xl font-bold text-white">
-                Logistic System
+                Grade A Express
               </span>
             </Link>
             <p className="mt-4 text-sm leading-6">
@@ -61,15 +61,20 @@ export function Footer() {
             <div className="mt-6 space-y-4">
               <div className="flex items-center gap-3">
                 <Mail className="h-5 w-5 text-red-500" />
-                <span>support@redboxexpress.com</span>
+                <span>gradeaplus21@gmail.com</span>
               </div>
               <div className="flex items-center gap-3">
                 <Phone className="h-5 w-5 text-red-500" />
-                <span>+1 (555) 123-4567</span>
+                <span>+60 11-3690 7583 (Malaysia office)</span>
+                <span>+234 902 020 2928 (Nigeria office)</span>
               </div>
               <div className="flex items-center gap-3">
                 <MapPin className="h-5 w-5 text-red-500" />
-                <span>123 Shipping Lane, Logistics City</span>
+                <span>
+                  Shop 23, Victory plaza, beside Mobil filling station, ilepo
+                  oke odo bus stop, along abule egba/iyana paja express way,
+                  Lagos, Nigeria.
+                </span>
               </div>
             </div>
           </div>

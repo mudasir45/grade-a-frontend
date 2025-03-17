@@ -120,14 +120,6 @@ export default function StaffDashboard() {
               setUsers(data.results);
               console.log(data.results);
             });
-          // .catch(error => {
-          //   console.error('Failed to fetch users:', error)
-          //   toast({
-          //     title: 'Error',
-          //     description: 'Failed to fetch users',
-          //     variant: 'destructive',
-          //   })
-          // })
         }
       })
       .catch((error) => {
@@ -244,7 +236,7 @@ export default function StaffDashboard() {
                 <ShipmentForm users={users} setIsCreated={setIsCreated} />
               </TabsContent>
               <TabsContent value="manageShipments" className="space-y-4">
-                <ManageShipment shipments={shipments} />
+                <ManageShipment user={user} setTotal={setTotal} />
               </TabsContent>
             </div>
           </Tabs>

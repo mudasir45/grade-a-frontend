@@ -10,24 +10,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import useShippingData from "@/hooks/use-shipping-data";
 import { useToast } from "@/hooks/use-toast";
 import { ShippingAPI } from "@/lib/api/shipping";
+import { City } from "@/lib/types/index";
 import type {
-  NewShipmentResponse,
+  Extras,
   ShipmentRequest,
   ShippingRate,
 } from "@/lib/types/shipping";
@@ -37,6 +30,7 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import PaymentForm from "../payment/payment-gateway";
 import PaymentModal from "../payment/PaymentForm";
+import SearchableSelect from "../ui/searchable-select";
 
 // Validation schemas
 const emailSchema = z.string().email("Invalid email address");
@@ -47,10 +41,52 @@ const phoneSchema = z
     "Phone number must be in international format (e.g., +1234567890)"
   );
 
-// Update the restore shipment data function to handle NewShipmentResponse
+// Define our custom types
+interface CityData {
+  id: string;
+  name: string;
+}
+
+interface ExtendedShipmentRequest extends ShipmentRequest {
+  city: string;
+}
+
+interface ShipmentResponseData {
+  id: string;
+  tracking_number: string;
+  sender_name: string;
+  sender_email: string;
+  sender_phone: string;
+  sender_address: string;
+  sender_country: string;
+  recipient_name: string;
+  recipient_email: string;
+  recipient_phone: string;
+  recipient_address: string;
+  recipient_country: string;
+  package_type: string;
+  weight: string;
+  length: string;
+  width: string;
+  height: string;
+  description?: string;
+  declared_value: string;
+  service_type: string;
+  status: string;
+  payment_status: string;
+  city: string | CityData;
+}
+
+// Update the restore shipment data function to handle ShipmentResponseData
 const restoreShipmentData = (
-  shipment: NewShipmentResponse
-): ShipmentRequest => {
+  shipment: ShipmentResponseData
+): ExtendedShipmentRequest => {
+  // Extract city ID from the city field
+  const cityId =
+    typeof shipment.city === "object" && shipment.city
+      ? shipment.city.id
+      : shipment.city;
+
   return {
     sender_name: shipment.sender_name,
     sender_email: shipment.sender_email,
@@ -70,8 +106,8 @@ const restoreShipmentData = (
     description: shipment.description || "",
     declared_value: parseFloat(shipment.declared_value),
     service_type: shipment.service_type,
-    insurance_required: shipment.insurance_required,
-    signature_required: shipment.signature_required,
+    city: cityId,
+    additional_charges: [],
   };
 };
 
@@ -83,11 +119,25 @@ export function ShipmentForm() {
   const [showPayment, setShowPayment] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [cities, setCities] = useState<City[]>([]);
+  const [extras, setExtras] = useState<Extras[]>([]);
   const [pendingShipments, setPendingShipments] = useState<
-    NewShipmentResponse[]
+    ShipmentResponseData[]
   >([]);
   const [selectedShipment, setSelectedShipment] =
-    useState<NewShipmentResponse | null>(null);
+    useState<ShipmentResponseData | null>(null);
+
+  useEffect(() => {
+    const getExtras = async () => {
+      try {
+        const extras = await ShippingAPI.getExtras();
+        setExtras(extras);
+      } catch (error) {
+        console.log("error while fetching extras");
+      }
+    };
+    getExtras();
+  }, []);
 
   const {
     departureCountries,
@@ -103,7 +153,21 @@ export function ShipmentForm() {
     { field: string; message: string }[]
   >([]);
 
-  const [formData, setFormData] = useState<ShipmentRequest>({
+  useEffect(() => {
+    const fetchCities = async () => {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/accounts/cities/`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch cities");
+      }
+      const data = await response.json();
+      setCities(data);
+    };
+    fetchCities();
+  }, []);
+
+  const [formData, setFormData] = useState<ExtendedShipmentRequest>({
     sender_name: "",
     sender_email: "",
     sender_phone: "",
@@ -122,8 +186,8 @@ export function ShipmentForm() {
     description: "",
     declared_value: 0,
     service_type: "",
-    insurance_required: false,
-    signature_required: false,
+    city: "",
+    additional_charges: [],
   });
 
   useEffect(() => {
@@ -135,7 +199,8 @@ export function ShipmentForm() {
       setLoading(true);
       const response = await ShippingAPI.getShipments();
       const pendingShipments = response.filter(
-        (shipment: NewShipmentResponse) => shipment.payment_status === "PENDING"
+        (shipment: ShipmentResponseData) =>
+          shipment.payment_status === "PENDING"
       );
       setPendingShipments(pendingShipments);
     } catch (error) {
@@ -211,10 +276,11 @@ export function ShipmentForm() {
         "width",
         "height",
         "service_type",
+        "city",
       ];
 
       const hasAllFields = requiredFields.every((field) => {
-        const value = formData[field as keyof ShipmentRequest];
+        const value = formData[field as keyof ExtendedShipmentRequest];
         return typeof value === "number" ? value > 0 : Boolean(value);
       });
 
@@ -231,7 +297,7 @@ export function ShipmentForm() {
           height: formData.height,
           service_type: formData.service_type,
           declared_value: formData.declared_value || 0,
-          insurance_required: formData.insurance_required || false,
+          city: formData.city, // formData.city is already a string (city ID)
         });
         setShippingRate(rate);
       } catch (error) {
@@ -298,7 +364,7 @@ export function ShipmentForm() {
     const newErrors = [];
 
     for (const field of requiredFields) {
-      const value = formData[field as keyof ShipmentRequest];
+      const value = formData[field as keyof ExtendedShipmentRequest];
       if (!value || (typeof value === "number" && value <= 0)) {
         newErrors.push({
           field,
@@ -312,7 +378,7 @@ export function ShipmentForm() {
   };
 
   // Update the payment continuation handler
-  const handlePaymentContinuation = async (shipment: NewShipmentResponse) => {
+  const handlePaymentContinuation = async (shipment: ShipmentResponseData) => {
     setLoading(true);
     try {
       // First restore the shipment data
@@ -328,7 +394,7 @@ export function ShipmentForm() {
         height: restoredData.height,
         service_type: restoredData.service_type,
         declared_value: restoredData.declared_value || 0,
-        insurance_required: restoredData.insurance_required || false,
+        city: restoredData.city, // city is already a string from restoreShipmentData
       });
 
       // Only update form and state if we got a valid rate
@@ -481,8 +547,7 @@ export function ShipmentForm() {
                                 description: "",
                                 declared_value: 0,
                                 service_type: "",
-                                insurance_required: false,
-                                signature_required: false,
+                                city: "",
                               });
                             } else {
                               handlePaymentContinuation(shipment);
@@ -592,23 +657,12 @@ export function ShipmentForm() {
 
                   <div className="space-y-2">
                     <Label htmlFor="sender_country">Country</Label>
-                    <Select
+                    <Input
+                      id="sender_country"
                       value={formData.sender_country}
-                      onValueChange={(value) =>
-                        handleFieldChange("sender_country", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select country" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {departureCountries.map((country) => (
-                          <SelectItem key={country.code} value={country.id}>
-                            {country.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      readOnly
+                      className="bg-muted"
+                    />
                   </div>
 
                   <div className="col-span-2">
@@ -616,11 +670,9 @@ export function ShipmentForm() {
                     <Textarea
                       id="sender_address"
                       value={formData.sender_address}
-                      onChange={(e) =>
-                        handleFieldChange("sender_address", e.target.value)
-                      }
+                      readOnly
                       className={cn(
-                        "min-h-[80px]",
+                        "min-h-[80px] bg-muted",
                         getFieldError("sender_address") && "border-red-500"
                       )}
                     />
@@ -679,23 +731,12 @@ export function ShipmentForm() {
 
                   <div className="space-y-2">
                     <Label htmlFor="recipient_country">Country</Label>
-                    <Select
+                    <Input
+                      id="recipient_country"
                       value={formData.recipient_country}
-                      onValueChange={(value) =>
-                        handleFieldChange("recipient_country", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select country" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {destinationCountries.map((country) => (
-                          <SelectItem key={country.code} value={country.id}>
-                            {country.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      readOnly
+                      className="bg-muted"
+                    />
                   </div>
 
                   <div className="col-span-2">
@@ -703,14 +744,40 @@ export function ShipmentForm() {
                     <Textarea
                       id="recipient_address"
                       value={formData.recipient_address}
-                      onChange={(e) =>
-                        handleFieldChange("recipient_address", e.target.value)
-                      }
+                      readOnly
                       className={cn(
-                        "min-h-[80px]",
+                        "min-h-[80px] bg-muted",
                         getFieldError("recipient_address") && "border-red-500"
                       )}
                     />
+                  </div>
+                </div>
+              </div>
+
+              {/* City Selection */}
+              <div className="space-y-4 mb-5">
+                <h3 className="font-medium">City Selection</h3>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <SearchableSelect
+                    label="City"
+                    options={cities.map((city) => ({
+                      value: city.id!,
+                      label: city.name,
+                    }))}
+                    value={formData.city}
+                    onChange={(value) =>
+                      setFormData({ ...formData, city: value })
+                    }
+                  />
+                  <div className="space-y-2 ob">
+                    <p>Delivery Charge</p>
+                    <p>
+                      RM{" "}
+                      {
+                        cities.find((city) => city.id === formData.city)
+                          ?.delivery_charge
+                      }
+                    </p>
                   </div>
                 </div>
               </div>
@@ -723,49 +790,22 @@ export function ShipmentForm() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="package_type">Package Type</Label>
-                    <Select
+                    <Input
+                      id="package_type"
                       value={formData.package_type}
-                      onValueChange={(value) =>
-                        handleFieldChange("package_type", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select package type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[
-                          { id: "document", name: "Document" },
-                          { id: "parcel", name: "Parcel" },
-                          { id: "box", name: "Box" },
-                          { id: "pallet", name: "Pallet" },
-                        ].map((type) => (
-                          <SelectItem key={type.id} value={type.id}>
-                            {type.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      readOnly
+                      className="bg-muted"
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="service_type">Service Type</Label>
-                    <Select
+                    <Input
+                      id="service_type"
                       value={formData.service_type}
-                      onValueChange={(value) =>
-                        handleFieldChange("service_type", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select service type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {serviceTypes.map((type) => (
-                          <SelectItem key={type.id} value={type.id}>
-                            {type.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      readOnly
+                      className="bg-muted"
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -773,12 +813,9 @@ export function ShipmentForm() {
                     <Input
                       id="weight"
                       type="number"
-                      min="0.1"
-                      step="0.1"
                       value={formData.weight}
-                      onChange={(e) =>
-                        handleFieldChange("weight", parseFloat(e.target.value))
-                      }
+                      readOnly
+                      className="bg-muted"
                     />
                   </div>
 
@@ -788,35 +825,23 @@ export function ShipmentForm() {
                       <Input
                         placeholder="Length"
                         type="number"
-                        min="1"
                         value={formData.length}
-                        onChange={(e) =>
-                          handleFieldChange(
-                            "length",
-                            parseFloat(e.target.value)
-                          )
-                        }
+                        readOnly
+                        className="bg-muted"
                       />
                       <Input
                         placeholder="Width"
                         type="number"
-                        min="1"
                         value={formData.width}
-                        onChange={(e) =>
-                          handleFieldChange("width", parseFloat(e.target.value))
-                        }
+                        readOnly
+                        className="bg-muted"
                       />
                       <Input
                         placeholder="Height"
                         type="number"
-                        min="1"
                         value={formData.height}
-                        onChange={(e) =>
-                          handleFieldChange(
-                            "height",
-                            parseFloat(e.target.value)
-                          )
-                        }
+                        readOnly
+                        className="bg-muted"
                       />
                     </div>
                   </div>
@@ -826,14 +851,9 @@ export function ShipmentForm() {
                     <Input
                       id="declared_value"
                       type="number"
-                      min="0"
                       value={formData.declared_value}
-                      onChange={(e) =>
-                        handleFieldChange(
-                          "declared_value",
-                          parseFloat(e.target.value)
-                        )
-                      }
+                      readOnly
+                      className="bg-muted"
                     />
                   </div>
 
@@ -842,50 +862,9 @@ export function ShipmentForm() {
                     <Textarea
                       id="description"
                       value={formData.description}
-                      onChange={(e) =>
-                        handleFieldChange("description", e.target.value)
-                      }
-                      className="min-h-[80px]"
+                      readOnly
+                      className="min-h-[80px] bg-muted"
                     />
-                  </div>
-
-                  <div className="col-span-2 space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="insurance_required"
-                        checked={formData.insurance_required}
-                        onCheckedChange={(checked) =>
-                          handleFieldChange(
-                            "insurance_required",
-                            checked as boolean
-                          )
-                        }
-                      />
-                      <Label
-                        htmlFor="insurance_required"
-                        className="text-sm text-muted-foreground"
-                      >
-                        Add Insurance (Optional)
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="signature_required"
-                        checked={formData.signature_required}
-                        onCheckedChange={(checked) =>
-                          handleFieldChange(
-                            "signature_required",
-                            checked as boolean
-                          )
-                        }
-                      />
-                      <Label
-                        htmlFor="signature_required"
-                        className="text-sm text-muted-foreground"
-                      >
-                        Require Signature (Optional)
-                      </Label>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -920,6 +899,10 @@ export function ShipmentForm() {
                           ${shippingRate.cost_breakdown.service_price}
                         </span>
                       </div>
+                      <div className="flex justify-between">
+                        <span>City Delivery Charges:</span>
+                        <span>${shippingRate.city_delivery_charge}</span>
+                      </div>
                       {shippingRate.cost_breakdown.additional_charges.map(
                         (charge) => (
                           <div
@@ -931,6 +914,12 @@ export function ShipmentForm() {
                           </div>
                         )
                       )}
+                      {shippingRate.extras?.map((charge) => (
+                        <div key={charge.name} className="flex justify-between">
+                          <span>{charge.name}:</span>
+                          <span>${charge.value}</span>
+                        </div>
+                      ))}
                       <Separator />
                       <div className="flex justify-between font-bold">
                         <span>Total:</span>

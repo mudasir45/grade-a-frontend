@@ -39,7 +39,9 @@ export default function Buy4MePage() {
       // Only run if not loading
       getUser()
         .then((user) => {
-          if (user?.user_type !== "BUY4ME") {
+          if (
+            !(user?.user_type === "BUY4ME" || user?.user_type === "WALK_IN")
+          ) {
             router.push("/");
             toast({
               title: "Unauthorized",

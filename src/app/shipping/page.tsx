@@ -55,7 +55,7 @@ export default function ShippingDashboard() {
     }
 
     getShipmentStats();
-  }, []); // Remove loading from dependencies
+  }, []);
 
   if (loading) {
     return (

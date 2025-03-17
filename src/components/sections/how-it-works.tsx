@@ -1,38 +1,45 @@
-'use client'
+"use client";
 
-import { motion } from 'framer-motion'
-import { CheckCircle, Package, ShoppingCart, Truck } from 'lucide-react'
+import { motion } from "framer-motion";
+import { CheckCircle, Package, ShoppingCart, Truck } from "lucide-react";
 
 const steps = [
   {
-    title: 'Choose Your Service',
-    description: 'Select between direct shipping or Buy4Me service based on your needs',
+    title: "Choose Your Service",
+    description:
+      "Select between direct shipping or Buy4Me service based on your needs",
     icon: Package,
-    color: 'bg-blue-500',
+    color: "bg-blue-500",
   },
   {
-    title: 'Place Your Order',
-    description: 'Provide shipping details or shopping links for your desired items',
+    title: "Place Your Order",
+    description:
+      "Provide shipping details or shopping links for your desired items",
     icon: ShoppingCart,
-    color: 'bg-green-500',
+    color: "bg-green-500",
   },
   {
-    title: 'We Process & Ship',
-    description: 'We handle the purchase, consolidation, and shipping of your items',
+    title: "We Process & Ship",
+    description:
+      "We handle the purchase, consolidation, and shipping of your items",
     icon: Truck,
-    color: 'bg-purple-500',
+    color: "bg-purple-500",
   },
   {
-    title: 'Delivery',
-    description: 'Receive your package at your doorstep with real-time tracking',
+    title: "Delivery",
+    description:
+      "Receive your package at our office or right at your doorstep with real-time tracking.",
     icon: CheckCircle,
-    color: 'bg-red-500',
+    color: "bg-red-500",
   },
-]
+];
 
 export function HowItWorks() {
   return (
-    <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-r from-gray-100 to-white" id="how-it-works">
+    <section
+      className="py-16 sm:py-20 md:py-24 bg-gradient-to-r from-gray-100 to-white"
+      id="how-it-works"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12 sm:mb-16">
           <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
@@ -72,5 +79,5 @@ export function HowItWorks() {
         </div>
       </div>
     </section>
-  )
+  );
 }

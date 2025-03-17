@@ -1181,7 +1181,7 @@ export function ShipmentForm({
             </div>
 
             {/* Total Bill */}
-            <div className="space-y-4">
+            <div className="space-y-4 pt-4">
               <div className="grid md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="delivery_rm">Delivery(RM)</Label>
@@ -1213,46 +1213,6 @@ export function ShipmentForm({
                     className="bg-muted"
                   />
                 </div>
-              </div>
-            </div>
-
-            {/* optional checkbox */}
-            <div className="sm:col-span-2 space-y-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="insurance_required"
-                  checked={formData.insurance_required}
-                  onCheckedChange={(checked) =>
-                    setFormData({
-                      ...formData,
-                      insurance_required: checked as boolean,
-                    })
-                  }
-                />
-                <Label
-                  htmlFor="insurance_required"
-                  className="text-sm text-muted-foreground"
-                >
-                  Add Insurance (Optional)
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="signature_required"
-                  checked={formData.signature_required}
-                  onCheckedChange={(checked) =>
-                    setFormData({
-                      ...formData,
-                      signature_required: checked as boolean,
-                    })
-                  }
-                />
-                <Label
-                  htmlFor="signature_required"
-                  className="text-sm text-muted-foreground"
-                >
-                  Require Signature (Optional)
-                </Label>
               </div>
             </div>
 

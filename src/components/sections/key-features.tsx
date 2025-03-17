@@ -1,53 +1,55 @@
-'use client'
+"use client";
 
-import { motion, useInView } from 'framer-motion'
-import { useRef } from 'react'
-import { Shield, Clock, Globe, DollarSign } from 'lucide-react'
+import { motion, useInView } from "framer-motion";
+import { Clock, DollarSign, Globe, Shield } from "lucide-react";
+import { useRef } from "react";
 
 const features = [
   {
-    name: 'Secure Shipping',
-    description: 'Your packages are fully insured and handled with care throughout the journey.',
+    name: "Secure Shipping",
+    description:
+      "Your packages are fully insured and handled with care throughout the journey.",
     icon: Shield,
-    value: '100%',
-    suffix: '',
+    value: "100%",
+    suffix: "",
   },
   {
-    name: 'Fast Delivery',
-    description: 'Express shipping options available for urgent deliveries.',
+    name: "Fast Delivery",
+    description: "Express shipping options available for urgent deliveries.",
     icon: Clock,
-    value: '2-5',
-    suffix: ' Days',
+    value: "2-5",
+    suffix: " Days",
   },
   {
-    name: 'Global Coverage',
-    description: 'Shipping services available to and from countries worldwide.',
+    name: "Global Coverage",
+    description: "Shipping services available to and from countries worldwide.",
     icon: Globe,
-    value: '100+',
-    suffix: ' Countries',
+    value: "100+",
+    suffix: " Countries",
   },
   {
-    name: 'Cost Effective',
-    description: 'Competitive rates with no hidden fees.',
+    name: "Cost Effective",
+    description: "Competitive rates with no hidden fees.",
     icon: DollarSign,
-    value: '30%',
-    suffix: ' Savings',
+    value: "30%",
+    suffix: " Savings",
   },
-]
+];
 
 export function KeyFeatures() {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: "-100px" })
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
     <section className="py-24 bg-white" ref={ref}>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Why Choose RedBox Express?
+            Why Choose Grade A Express?
           </h2>
           <p className="mt-6 text-lg leading-8 text-gray-600">
-            We provide reliable, efficient, and cost-effective logistics solutions
+            We provide reliable, efficient, and cost-effective logistics
+            solutions
           </p>
         </div>
 
@@ -61,7 +63,10 @@ export function KeyFeatures() {
               className="text-center"
             >
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
-                <feature.icon className="h-8 w-8 text-red-600" aria-hidden="true" />
+                <feature.icon
+                  className="h-8 w-8 text-red-600"
+                  aria-hidden="true"
+                />
               </div>
               <motion.h3
                 initial={{ opacity: 0 }}
@@ -69,14 +74,19 @@ export function KeyFeatures() {
                 transition={{ duration: 0.5, delay: index * 0.1 + 0.2 }}
                 className="mt-6 text-2xl font-semibold tracking-tight text-gray-900"
               >
-                {feature.value}{feature.suffix}
+                {feature.value}
+                {feature.suffix}
               </motion.h3>
-              <h4 className="text-base font-semibold leading-7 text-gray-900">{feature.name}</h4>
-              <p className="mt-2 text-sm leading-7 text-gray-600">{feature.description}</p>
+              <h4 className="text-base font-semibold leading-7 text-gray-900">
+                {feature.name}
+              </h4>
+              <p className="mt-2 text-sm leading-7 text-gray-600">
+                {feature.description}
+              </p>
             </motion.div>
           ))}
         </div>
       </div>
     </section>
-  )
+  );
 }

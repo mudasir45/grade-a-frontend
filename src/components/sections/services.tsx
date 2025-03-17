@@ -1,47 +1,63 @@
-'use client'
+"use client";
 
-import { motion } from 'framer-motion'
-import { Package, ShoppingBag, Truck, Clock, Globe, CreditCard } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { motion } from "framer-motion";
+import {
+  Clock,
+  CreditCard,
+  Globe,
+  Package,
+  ShoppingBag,
+  Truck,
+} from "lucide-react";
 
 const services = [
   {
-    title: 'International Shipping',
-    description: 'Fast and reliable shipping services to over 100+ countries worldwide',
+    title: "International Shipping",
+    description:
+      "Fast and reliable shipping services to over 100+ countries worldwide",
     icon: Globe,
-    color: 'text-blue-500',
+    color: "text-blue-500",
   },
   {
-    title: 'Buy4Me Service',
-    description: 'We help you purchase items from your favorite stores and ship them to you',
+    title: "Buy4Me Service",
+    description:
+      "We help you purchase items from your favorite stores and ship them to you",
     icon: ShoppingBag,
-    color: 'text-green-500',
+    color: "text-green-500",
   },
   {
-    title: 'Express Delivery',
-    description: 'Priority shipping options for time-sensitive deliveries',
+    title: "Express Delivery",
+    description: "Priority shipping options for time-sensitive deliveries",
     icon: Truck,
-    color: 'text-red-500',
+    color: "text-red-500",
   },
   {
-    title: 'Real-time Tracking',
-    description: 'Track your shipments 24/7 with our advanced tracking system',
+    title: "Real-time Tracking",
+    description: "Track your shipments 24/7 with our advanced tracking system",
     icon: Clock,
-    color: 'text-purple-500',
+    color: "text-purple-500",
   },
   {
-    title: 'Consolidation',
-    description: 'Combine multiple packages into one shipment to save on shipping costs',
+    title: "Consolidation",
+    description:
+      "Combine multiple packages into one shipment to save on shipping costs",
     icon: Package,
-    color: 'text-orange-500',
+    color: "text-orange-500",
   },
   {
-    title: 'Secure Payment',
-    description: 'Multiple payment options with secure transaction processing',
+    title: "Secure Payment",
+    description: "Multiple payment options with secure transaction processing",
     icon: CreditCard,
-    color: 'text-indigo-500',
+    color: "text-indigo-500",
   },
-]
+];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -51,7 +67,7 @@ const containerVariants = {
       staggerChildren: 0.1,
     },
   },
-}
+};
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -62,7 +78,7 @@ const itemVariants = {
       duration: 0.5,
     },
   },
-}
+};
 
 export function ServicesOverview() {
   return (
@@ -73,7 +89,8 @@ export function ServicesOverview() {
             Our Services
           </h2>
           <p className="mt-4 text-lg leading-8 text-gray-600">
-            Comprehensive logistics and shopping solutions tailored to your needs
+            Comprehensive logistics and shopping solutions tailored to your
+            needs
           </p>
         </div>
 
@@ -85,7 +102,7 @@ export function ServicesOverview() {
           className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
         >
           {services.map((service, index) => {
-            const Icon = service.icon
+            const Icon = service.icon;
             return (
               <motion.div key={service.title} variants={itemVariants}>
                 <Card className="h-full transition-transform duration-300 hover:scale-105">
@@ -99,10 +116,10 @@ export function ServicesOverview() {
                   </CardContent>
                 </Card>
               </motion.div>
-            )
+            );
           })}
         </motion.div>
       </div>
     </section>
-  )
+  );
 }

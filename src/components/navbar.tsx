@@ -38,7 +38,7 @@ export function Navbar() {
         "fixed top-0 w-full z-50 transition-all duration-200",
         isScrolled
           ? "bg-background/80 backdrop-blur-md shadow-sm"
-          : "bg-transparent"
+          : "bg-background/60 backdrop-blur-sm"
       )}
     >
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-label="Top">
@@ -49,8 +49,10 @@ export function Navbar() {
                 </Link> */}
             <Link href="/" className="-m-1.5 p-1.5">
               <span className="flex items-center space-x-2">
-                <Package className="h-8 w-8 text-red-600" />
-                <span className="text-xl font-bold">Grade A Express</span>
+                <Package className="h-8 w-8 text-primary" />
+                <span className="text-xl font-bold text-foreground">
+                  Grade A Express
+                </span>
               </span>
             </Link>
           </div>
@@ -64,8 +66,8 @@ export function Navbar() {
                 className={cn(
                   "text-sm font-medium transition-colors hover:text-primary",
                   pathname === item.href
-                    ? "text-primary"
-                    : "text-muted-foreground"
+                    ? "text-primary font-semibold"
+                    : "text-foreground/80"
                 )}
               >
                 {item.name}
@@ -79,7 +81,7 @@ export function Navbar() {
           <div className="md:hidden flex items-center gap-4">
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="text-foreground">
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
@@ -93,8 +95,8 @@ export function Navbar() {
                       className={cn(
                         "text-lg font-medium transition-colors hover:text-primary p-2 rounded-md",
                         pathname === item.href
-                          ? "bg-secondary text-primary"
-                          : "text-muted-foreground"
+                          ? "bg-secondary text-primary font-semibold"
+                          : "text-foreground/80"
                       )}
                     >
                       {item.name}

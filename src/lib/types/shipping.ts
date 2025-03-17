@@ -50,8 +50,8 @@ export interface ShipmentRequest {
   description: string;
   declared_value: number;
   service_type: string;
-  insurance_required: boolean;
-  signature_required: boolean;
+  city: string;
+  additional_charges?: Extras[];
   notes?: string;
   payment_method?: string;
   payment_details?: {
@@ -74,19 +74,19 @@ export interface ShipmentRequest {
   };
 }
 
-export interface ShipmentRequest {
-  sender_name: string;
-  sender_email: string;
-  sender_phone: string;
-  sender_address: string;
-  sender_country: string;
-  recipient_name: string;
-  recipient_email: string;
-  recipient_phone: string;
-  recipient_address: string;
-  recipient_country: string;
-  package_type: string;
-}
+// export interface ShipmentRequest {
+//   sender_name: string;
+//   sender_email: string;
+//   sender_phone: string;
+//   sender_address: string;
+//   sender_country: string;
+//   recipient_name: string;
+//   recipient_email: string;
+//   recipient_phone: string;
+//   recipient_address: string;
+//   recipient_country: string;
+//   package_type: string;
+// }
 
 export type ShipmentStatus =
   | "PENDING" // Initial state when created
@@ -291,6 +291,7 @@ export interface NewShipmentResponse {
   updated_at: string;
   staff?: string | null;
   service_type: string;
+  city: string;
 }
 
 export interface Extras {
