@@ -49,7 +49,7 @@ export function Navbar() {
                 </Link> */}
             <Link href="/" className="-m-1.5 p-1.5">
               <span className="flex items-center space-x-2">
-                <Package className="h-8 w-8 text-primary" />
+                <Package className="h-8 w-8 text-red-500" />
                 <span className="text-xl font-bold text-foreground">
                   Grade A Express
                 </span>
