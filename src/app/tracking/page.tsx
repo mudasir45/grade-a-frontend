@@ -1,17 +1,20 @@
+"use client";
 import { ShipmentTracking } from "@/components/shipping/shipment-tracking";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
-import { Metadata } from "next";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Track Your Shipment | Grade-A Express",
-  description:
-    "Track your shipment in real-time with Grade-A Express tracking system.",
-};
+// export const metadata: Metadata = {
+//   title: "Track Your Shipment | Grade-A Express",
+//   description:
+//     "Track your shipment in real-time with Grade-A Express tracking system.",
+// };
 
 export default function TrackingPage() {
+  const trackingNumber = useSearchParams().get("tracking_number");
+  console.log(trackingNumber);
   return (
     <Container>
       <div className="py-10 space-y-10 bg-gradient-to-b from-white to-gray-50">
@@ -25,7 +28,7 @@ export default function TrackingPage() {
           </p>
         </div>
 
-        <ShipmentTracking />
+        <ShipmentTracking IncomingTrackingNumber={trackingNumber || ""} />
 
         <Card className="bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-6">

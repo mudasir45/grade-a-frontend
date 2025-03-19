@@ -53,7 +53,7 @@ export interface ShipmentRequest {
   city: string;
   additional_charges?: Extras[];
   notes?: string;
-  payment_method?: string;
+  payment_method?: "ONLINE" | "COD";
   payment_details?: {
     card?: {
       number: string;

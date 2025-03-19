@@ -188,6 +188,7 @@ export function ShipmentForm() {
     service_type: "",
     city: "",
     additional_charges: [],
+    payment_method: "ONLINE",
   });
 
   useEffect(() => {

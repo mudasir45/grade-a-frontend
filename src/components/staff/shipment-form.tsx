@@ -125,6 +125,8 @@ export function ShipmentForm({
   const token = localStorage.getItem("auth_token");
   // Initialize form data with default values
   const [extras, setExtras] = useState<Extras[]>([]);
+  const [convertedAmount, setConvertedAmount] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const getExtras = async () => {
@@ -246,6 +248,25 @@ export function ShipmentForm({
       return "Invalid input";
     }
   };
+
+  async function fetchConvertedAmount() {
+    setLoading(true);
+    try {
+      const result = await convertCurrency(formData.total_naira, "MYR", "NGN");
+      setConvertedAmount(result);
+    } catch (error) {
+      console.error("Error converting currency:", error);
+      setConvertedAmount(0);
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    // Only fetch if there's a valid total_naira amount
+    if (formData.total_naira && formData.total_naira > 0) {
+      fetchConvertedAmount();
+    }
+  }, [formData.total_naira]);
 
   // Render error messages
   const renderErrors = (stepErrors: string[]) => {
@@ -395,11 +416,15 @@ export function ShipmentForm({
         throw new Error("Failed to create shipment");
       }
       const data = await response.json();
-
       toast({
         title: "Success",
         description: "Shipment created successfully",
       });
+
+      // Reset the form after successful creation
+      setFormData(defaultFormData);
+      setSearchCustomerId("");
+      setConvertedAmount(0);
     } catch (error) {
       console.error("Error creating shipment:", error);
       toast({
@@ -1171,42 +1196,6 @@ export function ShipmentForm({
               </div>
             </div>
 
-            {/* Total Bill */}
-            <div className="space-y-4 pt-4">
-              <div className="grid md:grid-cols-3 gap-6">
-                {/* <div className="space-y-2">
-                  <Label htmlFor="delivery_rm">Delivery(RM)</Label>
-                  <Input
-                    id="delivery_rm"
-                    type="number"
-                    value={formData.delivery_rm}
-                    readOnly
-                    className="bg-muted"
-                  />
-                </div> */}
-                <div className="space-y-2">
-                  <Label htmlFor="total_rm">Total Bill (RM)</Label>
-                  <Input
-                    id="total_rm"
-                    type="number"
-                    value={formData.total_rm}
-                    readOnly
-                    className="bg-muted"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="total_naira">Total Bill (Naira)</Label>
-                  <Input
-                    id="total_naira"
-                    type="number"
-                    value={convertCurrency(formData.total_naira, "MYR", "NGN")}
-                    readOnly
-                    className="bg-muted"
-                  />
-                </div>
-              </div>
-            </div>
-
             {/* send bill */}
             <div className="space-y-4">
               <h3 className="font-medium">Send Bill Via</h3>
@@ -1251,39 +1240,69 @@ export function ShipmentForm({
                   <div className="grid gap-2 text-sm sm:text-base">
                     <div className="flex justify-between">
                       <span>Regulation charge:</span>
-                      <span>${shippingRate.rate_details.base_rate}</span>
+                      <span>RM {shippingRate.rate_details.base_rate}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Weight Charge:</span>
-                      <span>${shippingRate.rate_details.weight_charge}</span>
+                      <span>RM {shippingRate.rate_details.weight_charge}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Service Charge:</span>
-                      <span>${shippingRate.cost_breakdown.service_price}</span>
+                      <span>
+                        RM {shippingRate.cost_breakdown.service_price}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span>City Delivery Charges:</span>
-                      <span>${shippingRate.city_delivery_charge}</span>
+                      <span>RM {shippingRate.city_delivery_charge}</span>
                     </div>
                     <h1 className="font-bold text-xl">Additional Charges</h1>
                     {shippingRate.cost_breakdown.additional_charges.map(
                       (charge) => (
                         <div key={charge.name} className="flex justify-between">
                           <span>{charge.name}:</span>
-                          <span>${charge.amount}</span>
+                          <span>RM {charge.amount}</span>
                         </div>
                       )
                     )}
                     {shippingRate.extras.map((charge) => (
                       <div key={charge.name} className="flex justify-between">
                         <span>{charge.name}:</span>
-                        <span>${charge.value}</span>
+                        <span>RM {charge.value}</span>
                       </div>
                     ))}
 
-                    <div className="border-t pt-2 flex justify-between font-bold">
+                    {/* <div className="border-t pt-2 flex justify-between font-bold">
                       <span>Total:</span>
                       <span>${shippingRate.cost_breakdown.total_cost}</span>
+                    </div> */}
+
+                    {/* Total Bill */}
+                    <div className="space-y-4 pt-4">
+                      <div className="grid md:grid-cols-3 gap-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="total_rm">Total Bill (RM)</Label>
+                          <Input
+                            id="total_rm"
+                            type="number"
+                            value={formData.total_rm}
+                            readOnly
+                            className="bg-muted"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="total_naira">
+                            Total Bill (Naira)
+                          </Label>
+                          <Input
+                            id="total_naira"
+                            type="number"
+                            value={loading ? "Loading..." : convertedAmount}
+                            readOnly
+                            className="bg-muted"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </CardContent>

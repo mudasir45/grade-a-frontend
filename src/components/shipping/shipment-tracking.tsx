@@ -15,9 +15,15 @@ import { formatDate } from "@/lib/utils";
 import { Package, Search } from "lucide-react";
 import { useState } from "react";
 
-export function ShipmentTracking() {
+export function ShipmentTracking({
+  IncomingTrackingNumber,
+}: {
+  IncomingTrackingNumber?: string;
+}) {
   const { toast } = useToast();
-  const [trackingNumber, setTrackingNumber] = useState("");
+  const [trackingNumber, setTrackingNumber] = useState(
+    IncomingTrackingNumber || ""
+  );
   const [loading, setLoading] = useState(false);
   const [trackingData, setTrackingData] = useState<any>(null);
 
