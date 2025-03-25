@@ -89,12 +89,12 @@ export class ShippingAPI {
     }
   }
 
-  static async updateShipment(id: string, data: ShipmentRequest) {
+  static async updateShipment(id: string, data?: any) {
     try {
       const response = await fetch(`${API_BASE_URL}/shipments/${id}/`, {
         method: "PATCH",
         headers: this.getHeaders(),
-        body: JSON.stringify(data),
+        body: JSON.stringify(data || {}),
       });
 
       if (!response.ok) {

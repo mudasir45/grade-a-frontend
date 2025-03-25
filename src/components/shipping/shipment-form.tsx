@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -21,6 +22,7 @@ import { ShippingAPI } from "@/lib/api/shipping";
 import { City } from "@/lib/types/index";
 import type {
   Extras,
+  NewShipmentResponse,
   ShipmentRequest,
   ShippingRate,
 } from "@/lib/types/shipping";
@@ -47,72 +49,24 @@ interface CityData {
   name: string;
 }
 
-interface ExtendedShipmentRequest extends ShipmentRequest {
-  city: string;
-}
-
-interface ShipmentResponseData {
-  id: string;
-  tracking_number: string;
-  sender_name: string;
-  sender_email: string;
-  sender_phone: string;
-  sender_address: string;
-  sender_country: string;
-  recipient_name: string;
-  recipient_email: string;
-  recipient_phone: string;
-  recipient_address: string;
-  recipient_country: string;
-  package_type: string;
-  weight: string;
-  length: string;
-  width: string;
-  height: string;
-  description?: string;
-  declared_value: string;
-  service_type: string;
-  status: string;
-  payment_status: string;
-  city: string | CityData;
-}
-
-// Update the restore shipment data function to handle ShipmentResponseData
+// Update the restore shipment data function to handle NewShipmentResponse
 const restoreShipmentData = (
-  shipment: ShipmentResponseData
-): ExtendedShipmentRequest => {
-  // Extract city ID from the city field
-  const cityId =
-    typeof shipment.city === "object" && shipment.city
-      ? shipment.city.id
-      : shipment.city;
-
+  shipment: NewShipmentResponse
+): NewShipmentResponse => {
   return {
-    sender_name: shipment.sender_name,
-    sender_email: shipment.sender_email,
-    sender_phone: shipment.sender_phone,
-    sender_address: shipment.sender_address,
-    sender_country: shipment.sender_country,
-    recipient_name: shipment.recipient_name,
-    recipient_email: shipment.recipient_email,
-    recipient_phone: shipment.recipient_phone,
-    recipient_address: shipment.recipient_address,
-    recipient_country: shipment.recipient_country,
-    package_type: shipment.package_type,
-    weight: parseFloat(shipment.weight),
-    length: parseFloat(shipment.length),
-    width: parseFloat(shipment.width),
-    height: parseFloat(shipment.height),
-    description: shipment.description || "",
-    declared_value: parseFloat(shipment.declared_value),
-    service_type: shipment.service_type,
-    city: cityId,
-    additional_charges: [],
-    payment_method: "ONLINE",
+    ...shipment,
+    city:
+      typeof shipment.city === "object" && shipment.city !== null
+        ? shipment.city
+        : {
+            name: "",
+            postal_code: "",
+            delivery_charge: "0",
+          },
   };
 };
 
-export function ShipmentForm() {
+export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [shippingRate, setShippingRate] = useState<ShippingRate | null>(null);
@@ -123,10 +77,12 @@ export function ShipmentForm() {
   const [cities, setCities] = useState<City[]>([]);
   const [extras, setExtras] = useState<Extras[]>([]);
   const [pendingShipments, setPendingShipments] = useState<
-    ShipmentResponseData[]
+    NewShipmentResponse[]
   >([]);
   const [selectedShipment, setSelectedShipment] =
-    useState<ShipmentResponseData | null>(null);
+    useState<NewShipmentResponse | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     const getExtras = async () => {
@@ -156,19 +112,36 @@ export function ShipmentForm() {
 
   useEffect(() => {
     const fetchCities = async () => {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/accounts/cities/`
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch cities");
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/accounts/cities/`
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch cities");
+        }
+        const data = await response.json();
+        setCities(data);
+      } catch (error) {
+        console.error("Error fetching cities:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch cities",
+          variant: "destructive",
+        });
       }
-      const data = await response.json();
-      setCities(data);
     };
     fetchCities();
-  }, []);
+  }, [toast]);
 
-  const [formData, setFormData] = useState<ExtendedShipmentRequest>({
+  const [formData, setFormData] = useState<NewShipmentResponse>({
+    id: "",
+    user: "",
+    cod_amount: "",
+    payment_method: "ONLINE",
+    payment_status: "PENDING",
+    payment_date: "",
+    transaction_id: "",
+    receipt: "",
     sender_name: "",
     sender_email: "",
     sender_phone: "",
@@ -180,16 +153,35 @@ export function ShipmentForm() {
     recipient_address: "",
     recipient_country: "",
     package_type: "",
-    weight: 0,
-    length: 0,
-    width: 0,
-    height: 0,
+    weight: "0",
+    length: "0",
+    width: "0",
+    height: "0",
     description: "",
-    declared_value: 0,
+    declared_value: "0",
+    insurance_required: false,
+    signature_required: false,
+    tracking_number: "",
+    current_location: "",
+    estimated_delivery: null,
+    status: "PENDING",
+    base_rate: "0",
+    per_kg_rate: "0",
+    weight_charge: "0",
+    service_charge: "0",
+    total_additional_charges: "0",
+    total_cost: "0",
+    notes: "",
+    created_at: "",
+    updated_at: "",
+    staff: null,
     service_type: "",
-    city: "",
-    additional_charges: [],
-    payment_method: "ONLINE",
+    city: {
+      name: "",
+      postal_code: "",
+      delivery_charge: "0",
+    },
+    extras: [],
   });
 
   useEffect(() => {
@@ -204,7 +196,7 @@ export function ShipmentForm() {
       // Check if response exists and has the expected structure
       if (response && Array.isArray(response)) {
         const pendingShipments = response.filter(
-          (shipment: ShipmentResponseData) =>
+          (shipment: NewShipmentResponse) =>
             shipment.payment_status === "PENDING"
         );
         console.log("Pending payment shipments:", pendingShipments);
@@ -212,7 +204,7 @@ export function ShipmentForm() {
       } else if (response && response.data && Array.isArray(response.data)) {
         // Some APIs return data in a nested structure like { data: [...] }
         const pendingShipmentsFromData = response.data.filter(
-          (shipment: ShipmentResponseData) =>
+          (shipment: NewShipmentResponse) =>
             shipment.payment_status === "PENDING"
         );
         console.log(
@@ -248,6 +240,7 @@ export function ShipmentForm() {
     value: string | number | boolean
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    setHasChanges(true);
 
     if (
       typeof value === "string" &&
@@ -293,7 +286,78 @@ export function ShipmentForm() {
     return fieldErrors.find((e) => e.field === field)?.message;
   };
 
-  // Calculate shipping rate when relevant fields change
+  // Update the city selection handler
+  const handleCityChange = (value: string) => {
+    const selectedCity = cities.find((city) => city.id === value);
+    if (selectedCity) {
+      setFormData((prev) => ({
+        ...prev,
+        city: {
+          id: selectedCity.id,
+          name: selectedCity.name,
+          postal_code: selectedCity.postal_code,
+          delivery_charge: selectedCity.delivery_charge,
+          is_active: selectedCity.is_active,
+        },
+      }));
+      setHasChanges(true);
+    }
+  };
+
+  // Update the handleExtraChange function
+  const handleExtraChange = (
+    extraId: string,
+    checked: boolean,
+    quantity: number = 1
+  ) => {
+    setFormData((prev) => {
+      const currentExtras = prev.extras || [];
+      let newExtras;
+
+      if (checked) {
+        const extra = extras.find((e) => e.id === extraId);
+        if (extra) {
+          newExtras = [
+            ...currentExtras,
+            {
+              id: extra.id,
+              name: extra.name,
+              charge_type: extra.charge_type,
+              value: extra.value,
+              quantity: quantity,
+            },
+          ];
+        }
+      } else {
+        newExtras = currentExtras.filter((extra) => extra.id !== extraId);
+      }
+
+      return {
+        ...prev,
+        extras: newExtras || currentExtras,
+      };
+    });
+    setHasChanges(true);
+  };
+
+  // Update the handleQuantityChange function
+  const handleQuantityChange = (extraId: string, value: string | number) => {
+    const newQuantity =
+      typeof value === "string" ? parseInt(value) || 1 : value;
+    setFormData((prev) => {
+      const currentExtras = prev.extras || [];
+      const updatedExtras = currentExtras.map((extra) =>
+        extra.id === extraId ? { ...extra, quantity: newQuantity } : extra
+      );
+      return {
+        ...prev,
+        extras: updatedExtras,
+      };
+    });
+    setHasChanges(true);
+  };
+
+  // Update the calculateRate function
   useEffect(() => {
     const calculateRate = async () => {
       const requiredFields = [
@@ -308,7 +372,7 @@ export function ShipmentForm() {
       ];
 
       const hasAllFields = requiredFields.every((field) => {
-        const value = formData[field as keyof ExtendedShipmentRequest];
+        const value = formData[field as keyof NewShipmentResponse];
         return typeof value === "number" ? value > 0 : Boolean(value);
       });
 
@@ -319,13 +383,21 @@ export function ShipmentForm() {
         const rate = await ShippingAPI.calculateRate({
           origin_country: formData.sender_country,
           destination_country: formData.recipient_country,
-          weight: formData.weight,
-          length: formData.length,
-          width: formData.width,
-          height: formData.height,
+          weight: parseFloat(formData.weight),
+          length: parseFloat(formData.length),
+          width: parseFloat(formData.width),
+          height: parseFloat(formData.height),
           service_type: formData.service_type,
-          declared_value: formData.declared_value || 0,
-          city: formData.city, // formData.city is already a string (city ID)
+          declared_value: parseFloat(formData.declared_value),
+          city: formData.city.id,
+          calculation_type: "weight",
+          additional_charges: formData.extras.map((extra) => ({
+            id: extra.id,
+            name: extra.name,
+            charge_type: extra.charge_type,
+            value: extra.value,
+            quantity: extra.quantity,
+          })),
         });
         setShippingRate(rate);
       } catch (error) {
@@ -345,6 +417,7 @@ export function ShipmentForm() {
     return () => clearTimeout(timeoutId);
   }, [formData, toast]);
 
+  // Update the handleSubmit function
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -366,7 +439,78 @@ export function ShipmentForm() {
       return;
     }
 
-    setShowPayment(true);
+    if (!formData.city.id) {
+      toast({
+        title: "Missing City",
+        description: "Please select a city for delivery.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const shipmentData: ShipmentRequest = {
+        sender_name: formData.sender_name,
+        sender_email: formData.sender_email,
+        sender_phone: formData.sender_phone,
+        sender_address: formData.sender_address,
+        sender_country: formData.sender_country,
+        recipient_name: formData.recipient_name,
+        recipient_email: formData.recipient_email,
+        recipient_phone: formData.recipient_phone,
+        recipient_address: formData.recipient_address,
+        recipient_country: formData.recipient_country,
+        package_type: formData.package_type,
+        weight: parseFloat(formData.weight),
+        length: parseFloat(formData.length),
+        width: parseFloat(formData.width),
+        height: parseFloat(formData.height),
+        description: formData.description,
+        declared_value: parseFloat(formData.declared_value),
+        service_type: formData.service_type,
+        city: formData.city.id,
+        additional_charges: formData.extras.map((extra) => ({
+          id: extra.id,
+          name: extra.name,
+          charge_type: extra.charge_type,
+          value: extra.value,
+          quantity: extra.quantity,
+        })),
+        payment_method: formData.payment_method as "ONLINE" | "COD" | undefined,
+        notes: formData.notes,
+      };
+
+      if (isUpdating && selectedShipment) {
+        await ShippingAPI.updateShipment(selectedShipment.id, shipmentData);
+        toast({
+          title: "Success",
+          description: "Shipment updated successfully",
+        });
+      } else {
+        await ShippingAPI.createShipment(shipmentData);
+        toast({
+          title: "Success",
+          description: "Shipment created successfully",
+        });
+        setShowPayment(true);
+      }
+
+      // Refresh the shipments list
+      fetchShipments();
+      setIsUpdating(false);
+      onSuccess();
+    } catch (error) {
+      console.error("Error submitting shipment:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to submit shipment",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const validateForm = (): boolean => {
@@ -392,7 +536,7 @@ export function ShipmentForm() {
     const newErrors = [];
 
     for (const field of requiredFields) {
-      const value = formData[field as keyof ExtendedShipmentRequest];
+      const value = formData[field as keyof NewShipmentResponse];
       if (!value || (typeof value === "number" && value <= 0)) {
         newErrors.push({
           field,
@@ -406,7 +550,7 @@ export function ShipmentForm() {
   };
 
   // Update the payment continuation handler
-  const handlePaymentContinuation = async (shipment: ShipmentResponseData) => {
+  const handlePaymentContinuation = async (shipment: NewShipmentResponse) => {
     setLoading(true);
     try {
       // First restore the shipment data
@@ -416,22 +560,15 @@ export function ShipmentForm() {
       const rate = await ShippingAPI.calculateRate({
         origin_country: restoredData.sender_country,
         destination_country: restoredData.recipient_country,
-        weight: restoredData.weight,
-        length: restoredData.length,
-        width: restoredData.width,
-        height: restoredData.height,
+        weight: parseFloat(restoredData.weight),
+        length: parseFloat(restoredData.length),
+        width: parseFloat(restoredData.width),
+        height: parseFloat(restoredData.height),
         service_type: restoredData.service_type,
-        declared_value: restoredData.declared_value || 0,
-        city: restoredData.city,
-        additional_charges: Array.isArray(restoredData.additional_charges)
-          ? restoredData.additional_charges.map((charge) => ({
-              id: charge.id || "",
-              name: charge.name || "",
-              charge_type: charge.charge_type || "",
-              value: parseFloat(charge.value?.toString() || "0"),
-              quantity: charge.quantity || 1,
-            }))
-          : [],
+        declared_value: parseFloat(restoredData.declared_value),
+        city: restoredData.city.id,
+        calculation_type: "weight",
+        additional_charges: restoredData.extras || [],
       });
 
       // Only update form and state if we got a valid rate
@@ -462,6 +599,73 @@ export function ShipmentForm() {
       // Reset states on error
       setSelectedShipment(null);
       setShippingRate(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update the service type display in the form
+  const getServiceTypeName = (serviceTypeId: string) => {
+    const serviceType = serviceTypes.find((type) => type.id === serviceTypeId);
+    return serviceType ? serviceType.name : serviceTypeId;
+  };
+
+  // Add new function to handle updates
+  const handleUpdate = async () => {
+    if (!selectedShipment) return;
+
+    try {
+      setLoading(true);
+      const shipmentData: ShipmentRequest = {
+        sender_name: formData.sender_name,
+        sender_email: formData.sender_email,
+        sender_phone: formData.sender_phone,
+        sender_address: formData.sender_address,
+        sender_country: formData.sender_country,
+        recipient_name: formData.recipient_name,
+        recipient_email: formData.recipient_email,
+        recipient_phone: formData.recipient_phone,
+        recipient_address: formData.recipient_address,
+        recipient_country: formData.recipient_country,
+        package_type: formData.package_type,
+        weight: parseFloat(formData.weight),
+        length: parseFloat(formData.length),
+        width: parseFloat(formData.width),
+        height: parseFloat(formData.height),
+        description: formData.description,
+        declared_value: parseFloat(formData.declared_value),
+        service_type: formData.service_type,
+        city: formData.city.id!,
+        additional_charges: formData.extras.map((extra) => ({
+          id: extra.id,
+          name: extra.name,
+          charge_type: extra.charge_type,
+          value: extra.value,
+          quantity: extra.quantity,
+        })),
+        payment_method: formData.payment_method as "ONLINE" | "COD" | undefined,
+        notes: formData.notes,
+      };
+
+      await ShippingAPI.updateShipment(selectedShipment.id, shipmentData);
+      toast({
+        title: "Success",
+        description: "Shipment updated successfully",
+      });
+      setHasChanges(false);
+      setIsUpdating(false);
+      fetchShipments();
+      if (typeof onSuccess === "function") {
+        onSuccess();
+      }
+    } catch (error) {
+      console.error("Error updating shipment:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to update shipment",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -582,6 +786,14 @@ export function ShipmentForm() {
                             if (selectedShipment?.id === shipment.id) {
                               setSelectedShipment(null);
                               setFormData({
+                                id: "",
+                                user: "",
+                                cod_amount: "",
+                                payment_method: "ONLINE",
+                                payment_status: "PENDING",
+                                payment_date: "",
+                                transaction_id: "",
+                                receipt: "",
                                 sender_name: "",
                                 sender_email: "",
                                 sender_phone: "",
@@ -593,16 +805,35 @@ export function ShipmentForm() {
                                 recipient_address: "",
                                 recipient_country: "",
                                 package_type: "",
-                                weight: 0,
-                                length: 0,
-                                width: 0,
-                                height: 0,
+                                weight: "0",
+                                length: "0",
+                                width: "0",
+                                height: "0",
                                 description: "",
-                                declared_value: 0,
+                                declared_value: "0",
+                                insurance_required: false,
+                                signature_required: false,
+                                tracking_number: "",
+                                current_location: "",
+                                estimated_delivery: null,
+                                status: "PENDING",
+                                base_rate: "0",
+                                per_kg_rate: "0",
+                                weight_charge: "0",
+                                service_charge: "0",
+                                total_additional_charges: "0",
+                                total_cost: "0",
+                                notes: "",
+                                created_at: "",
+                                updated_at: "",
+                                staff: null,
                                 service_type: "",
-                                city: "",
-                                additional_charges: [],
-                                payment_method: "ONLINE",
+                                city: {
+                                  name: "",
+                                  postal_code: "",
+                                  delivery_charge: "0",
+                                },
+                                extras: [],
                               });
                             } else {
                               handlePaymentContinuation(shipment);
@@ -629,7 +860,7 @@ export function ShipmentForm() {
         onClose={() => setPaymentModalOpen(false)}
         metadata={{
           requestType: "shipping",
-          shipmentData: formData,
+          shipmentData: { ...formData, city: formData.city.id },
           shipmentStatus: { payment_status: "PAID" },
           shipmentId: selectedShipment?.id,
           returnUrl: "/shipping",
@@ -641,12 +872,36 @@ export function ShipmentForm() {
         <form onSubmit={handleSubmit}>
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl font-semibold">
-                Shipment Details
-              </CardTitle>
-              <CardDescription>
-                Review and update shipment information
-              </CardDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="text-xl font-semibold">
+                    Shipment Details
+                  </CardTitle>
+                  <CardDescription>
+                    Review and update shipment information
+                  </CardDescription>
+                </div>
+                {hasChanges && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleUpdate}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <span className="flex items-center">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Updating...
+                      </span>
+                    ) : (
+                      <span className="flex items-center">
+                        Save Changes
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </span>
+                    )}
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Sender Details */}
@@ -817,28 +1072,86 @@ export function ShipmentForm() {
                   <SearchableSelect
                     label="City"
                     options={cities.map((city) => ({
-                      value: city.id!,
+                      value: city.id || "",
                       label: city.name,
                     }))}
-                    value={formData.city}
-                    onChange={(value) =>
-                      setFormData({ ...formData, city: value })
-                    }
+                    value={formData.city?.id || ""}
+                    onChange={handleCityChange}
                   />
-                  <div className="space-y-2 ob">
+                  <div className="space-y-2">
                     <p>Delivery Charge</p>
                     <p>
                       RM{" "}
-                      {
-                        cities.find((city) => city.id === formData.city)
-                          ?.delivery_charge
-                      }
+                      {cities.find((city) => city.id === formData.city?.id)
+                        ?.delivery_charge || 0}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <Separator />
+              {/* Additional Charges */}
+              <div className="space-y-4">
+                <h3 className="font-medium">Additional Charges</h3>
+                <div className="grid gap-2">
+                  {extras.map((item) => {
+                    const isChecked = formData.extras?.some(
+                      (extra) => extra.id === item.id
+                    );
+                    const quantity =
+                      formData.extras?.find((extra) => extra.id === item.id)
+                        ?.quantity || 1;
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="flex items-center space-x-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id={item.id}
+                            checked={isChecked}
+                            onCheckedChange={(checked) =>
+                              handleExtraChange(
+                                item.id,
+                                checked as boolean,
+                                quantity
+                              )
+                            }
+                          />
+                          <Label htmlFor={item.id}>{item.name}</Label>
+                        </div>
+
+                        {isChecked && (
+                          <div className="flex items-center space-x-2">
+                            <Label
+                              htmlFor={`quantity-${item.id}`}
+                              className="text-sm"
+                            >
+                              Quantity:
+                            </Label>
+                            <Input
+                              id={`quantity-${item.id}`}
+                              type="number"
+                              min={1}
+                              value={quantity}
+                              className="w-20"
+                              onChange={(e) =>
+                                handleQuantityChange(item.id, e.target.value)
+                              }
+                            />
+                          </div>
+                        )}
+
+                        <div className="ml-auto text-sm text-muted-foreground">
+                          {item.charge_type === "PERCENTAGE"
+                            ? `${item.value}%`
+                            : `RM ${item.value}`}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
               {/* Package Details */}
               <div className="space-y-4">
@@ -858,7 +1171,7 @@ export function ShipmentForm() {
                     <Label htmlFor="service_type">Service Type</Label>
                     <Input
                       id="service_type"
-                      value={formData.service_type}
+                      value={getServiceTypeName(formData.service_type)}
                       readOnly
                       className="bg-muted"
                     />
@@ -992,7 +1305,12 @@ export function ShipmentForm() {
               <div className="flex justify-between w-full">
                 <Button
                   type="submit"
-                  disabled={loading || !shippingRate || fieldErrors.length > 0}
+                  disabled={
+                    loading ||
+                    !shippingRate ||
+                    fieldErrors.length > 0 ||
+                    hasChanges
+                  }
                 >
                   {loading ? (
                     <span className="flex items-center">
@@ -1009,7 +1327,12 @@ export function ShipmentForm() {
                 <Button
                   onClick={() => setPaymentModalOpen(true)}
                   type="button"
-                  disabled={loading || !shippingRate || fieldErrors.length > 0}
+                  disabled={
+                    loading ||
+                    !shippingRate ||
+                    fieldErrors.length > 0 ||
+                    hasChanges
+                  }
                 >
                   {loading ? (
                     <span className="flex items-center">

@@ -16,6 +16,7 @@ function PaymentSuccessContent() {
   const [verification, setVerification] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { submitRequest: submitBuy4MeRequest } = useBuy4Me();
+  const [returnPath, setReturnPath] = useState<string | null>(null);
 
   const handlePaymentSuccess = async () => {
     const paymentData = JSON.parse(localStorage.getItem("paymentData") || "{}");
@@ -31,6 +32,7 @@ function PaymentSuccessContent() {
 
     try {
       if (paymentData.requestType === "driver") {
+        setReturnPath("/driver");
         console.log("in the driver payment");
         // Handle driver payment
         const response = await fetch(
@@ -62,20 +64,21 @@ function PaymentSuccessContent() {
           description: "Driver payment recorded successfully",
         });
       } else if (paymentData.requestType === "buy4me") {
+        setReturnPath("/buy4me");
         await submitBuy4MeRequest(paymentData.shippingAddress!);
         toast({
           title: "Request Submitted",
           description: "Your buy4me request has been submitted successfully.",
         });
       } else if (paymentData.requestType === "shipping") {
+        setReturnPath("/shipping");
         await ShippingAPI.updateShipment(paymentData.shipmentId!, {
-          ...paymentData.shipmentData,
           payment_status: "PAID",
         });
 
         toast({
-          title: "Shipment Created",
-          description: "Your shipping request has been created successfully.",
+          title: "Shipment Updated",
+          description: "Your shipping request payment has been updated.",
         });
       }
     } catch (error) {
@@ -152,7 +155,7 @@ function PaymentSuccessContent() {
               </p>
             </div>
             <div className="flex justify-center pt-4">
-              <Link href="/dashboard">
+              <Link href={returnPath || "/"}>
                 <Button>Return to Dashboard</Button>
               </Link>
             </div>
@@ -170,8 +173,8 @@ function PaymentSuccessContent() {
 
   // Get payment data to determine return path
   const paymentData = JSON.parse(localStorage.getItem("paymentData") || "{}");
-  const returnPath =
-    paymentData.requestType === "driver" ? "/driver" : "/buy4me";
+  //   const returnPath =
+  //     paymentData.requestType === "driver" ? "/driver" : "/buy4me";
 
   return (
     <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
@@ -208,7 +211,7 @@ function PaymentSuccessContent() {
             </p>
           </div>
           <div className="flex justify-center pt-4">
-            <Link href={returnPath}>
+            <Link href={returnPath || "/"}>
               <Button>Return to Dashboard</Button>
             </Link>
           </div>

@@ -1617,14 +1617,6 @@ export function ShipmentForm({
                   <CardTitle className="text-lg">
                     Shipping Cost Breakdown
                   </CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={resetCalculations}
-                    type="button"
-                  >
-                    Reset Calculations
-                  </Button>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="grid gap-2 text-sm sm:text-base">

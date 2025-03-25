@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye } from "lucide-react";
 import { useEffect, useState } from "react";
 import ShipmentDetailsDialog from "../ui/shipment-details";
+import { ShipmentProps } from "./manage-shipment";
 
 interface User {
   id: string;
@@ -273,7 +274,7 @@ export function UserShipments() {
       <ShipmentDetailsDialog
         viewDialogOpen={viewDialogOpen}
         setViewDialogOpen={setViewDialogOpen}
-        selectedShipment={selectedShipment}
+        selectedShipment={selectedShipment as ShipmentProps | null}
         getStatusBadge={getStatusBadge}
       />
     </Card>

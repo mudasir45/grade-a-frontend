@@ -1,3 +1,5 @@
+import { City } from ".";
+
 export interface Shipment {
   id: string;
   tracking_number: string;
@@ -300,7 +302,8 @@ export interface NewShipmentResponse {
   updated_at: string;
   staff?: string | null;
   service_type: string;
-  city: string;
+  city: City;
+  extras: Extras[];
 }
 
 export interface Extras {
