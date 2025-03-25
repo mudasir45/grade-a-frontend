@@ -108,6 +108,7 @@ const restoreShipmentData = (
     service_type: shipment.service_type,
     city: cityId,
     additional_charges: [],
+    payment_method: "ONLINE",
   };
 };
 
@@ -199,18 +200,44 @@ export function ShipmentForm() {
     try {
       setLoading(true);
       const response = await ShippingAPI.getShipments();
-      const pendingShipments = response.filter(
-        (shipment: ShipmentResponseData) =>
-          shipment.payment_status === "PENDING"
-      );
-      setPendingShipments(pendingShipments);
+
+      // Check if response exists and has the expected structure
+      if (response && Array.isArray(response)) {
+        const pendingShipments = response.filter(
+          (shipment: ShipmentResponseData) =>
+            shipment.payment_status === "PENDING"
+        );
+        console.log("Pending payment shipments:", pendingShipments);
+        setPendingShipments(pendingShipments);
+      } else if (response && response.data && Array.isArray(response.data)) {
+        // Some APIs return data in a nested structure like { data: [...] }
+        const pendingShipmentsFromData = response.data.filter(
+          (shipment: ShipmentResponseData) =>
+            shipment.payment_status === "PENDING"
+        );
+        console.log(
+          "Pending payment shipments from data:",
+          pendingShipmentsFromData
+        );
+        setPendingShipments(pendingShipmentsFromData);
+      } else {
+        console.error("Unexpected response format:", response);
+        toast({
+          title: "Data Format Error",
+          description: "Received unexpected data format from server",
+          variant: "destructive",
+        });
+        setPendingShipments([]);
+      }
     } catch (error) {
+      console.error("Error fetching shipments:", error);
       toast({
         title: "Error",
         description:
           error instanceof Error ? error.message : "Failed to fetch shipments",
         variant: "destructive",
       });
+      setPendingShipments([]);
     } finally {
       setLoading(false);
     }
@@ -395,7 +422,16 @@ export function ShipmentForm() {
         height: restoredData.height,
         service_type: restoredData.service_type,
         declared_value: restoredData.declared_value || 0,
-        city: restoredData.city, // city is already a string from restoreShipmentData
+        city: restoredData.city,
+        additional_charges: Array.isArray(restoredData.additional_charges)
+          ? restoredData.additional_charges.map((charge) => ({
+              id: charge.id || "",
+              name: charge.name || "",
+              charge_type: charge.charge_type || "",
+              value: parseFloat(charge.value?.toString() || "0"),
+              quantity: charge.quantity || 1,
+            }))
+          : [],
       });
 
       // Only update form and state if we got a valid rate
@@ -414,6 +450,7 @@ export function ShipmentForm() {
         description: "Please review the details and complete the payment",
       });
     } catch (error) {
+      console.error("Payment continuation error:", error);
       toast({
         title: "Error",
         description:
@@ -462,6 +499,7 @@ export function ShipmentForm() {
           shipmentData: formData,
           shipmentStatus: { payment_status: "PAID" },
           shipmentId: selectedShipment?.id,
+          returnUrl: "/shipping",
         }}
       />
     );
@@ -484,9 +522,15 @@ export function ShipmentForm() {
           <ScrollArea className="h-[400px] w-full rounded-md border">
             <div className="p-4">
               {pendingShipments.length === 0 ? (
-                <p className="text-center text-muted-foreground">
-                  No pending shipments
-                </p>
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground mb-2">
+                    No shipments pending payment
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    When you create a shipment without completing payment, it
+                    will appear here.
+                  </p>
+                </div>
               ) : (
                 <div className="space-y-4">
                   {pendingShipments.map((shipment) => (
@@ -508,15 +552,23 @@ export function ShipmentForm() {
                         <p className="text-sm text-gray-500">
                           To: {shipment.recipient_name}
                         </p>
-                        <Badge
-                          variant={
-                            shipment.status === "DELIVERED"
-                              ? "secondary"
-                              : "default"
-                          }
-                        >
-                          {shipment.status}
-                        </Badge>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          <Badge
+                            variant={
+                              shipment.status === "DELIVERED"
+                                ? "secondary"
+                                : "default"
+                            }
+                          >
+                            {shipment.status}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className="bg-orange-100 text-orange-700 hover:bg-orange-200"
+                          >
+                            Payment: {shipment.payment_status}
+                          </Badge>
+                        </div>
                       </div>
                       <div>
                         <Button
@@ -549,6 +601,8 @@ export function ShipmentForm() {
                                 declared_value: 0,
                                 service_type: "",
                                 city: "",
+                                additional_charges: [],
+                                payment_method: "ONLINE",
                               });
                             } else {
                               handlePaymentContinuation(shipment);
@@ -557,7 +611,7 @@ export function ShipmentForm() {
                         >
                           {selectedShipment?.id === shipment.id
                             ? "Cancel"
-                            : "View Details"}
+                            : "Complete Payment"}
                         </Button>
                       </div>
                     </div>
@@ -578,6 +632,7 @@ export function ShipmentForm() {
           shipmentData: formData,
           shipmentStatus: { payment_status: "PAID" },
           shipmentId: selectedShipment?.id,
+          returnUrl: "/shipping",
         }}
       />
 
@@ -902,7 +957,9 @@ export function ShipmentForm() {
                       </div>
                       <div className="flex justify-between">
                         <span>City Delivery Charges:</span>
-                        <span>${shippingRate.city_delivery_charge}</span>
+                        <span>
+                          ${shippingRate.cost_breakdown.city_delivery_charge}
+                        </span>
                       </div>
                       {shippingRate.cost_breakdown.additional_charges.map(
                         (charge) => (
@@ -915,7 +972,7 @@ export function ShipmentForm() {
                           </div>
                         )
                       )}
-                      {shippingRate.extras?.map((charge) => (
+                      {shippingRate.cost_breakdown.extras?.map((charge) => (
                         <div key={charge.name} className="flex justify-between">
                           <span>{charge.name}:</span>
                           <span>${charge.value}</span>

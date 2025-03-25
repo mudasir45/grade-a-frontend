@@ -1,8 +1,12 @@
 "use client";
 
 import { EarningsChart } from "@/components/driver/earnings-chart";
+import { DriverPaymentHistory } from "@/components/driver/payment-history";
+import { DriverPaymentModal } from "@/components/driver/payment-modal";
 import { RecentDeliveries } from "@/components/driver/recent-deliveries";
+import { useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,6 +16,10 @@ import { DollarSign, Package, ShoppingBag, TrendingUp } from "lucide-react";
 
 export default function DriverDashboard() {
   const { data, isLoading, error } = useDriverDashboard();
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
+    "paystack" | "bizapay"
+  >("paystack");
 
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -32,8 +40,13 @@ export default function DriverDashboard() {
     recent_commissions,
   } = data;
 
+  const handlePayment = (method: "paystack" | "bizapay") => {
+    setSelectedPaymentMethod(method);
+    setIsPaymentModalOpen(true);
+  };
+
   return (
-    <div className="space-y-6 ">
+    <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">
@@ -90,6 +103,22 @@ export default function DriverDashboard() {
             <p className="text-xs text-muted-foreground">
               {pending_deliveries.total} total pending deliveries
             </p>
+            <div className="mt-4 space-x-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handlePayment("paystack")}
+              >
+                Pay with PayStack
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handlePayment("bizapay")}
+              >
+                Pay with BizaPay
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -107,11 +136,27 @@ export default function DriverDashboard() {
             <p className="text-xs text-muted-foreground">
               {pending_deliveries.total} total pending deliveries
             </p>
+            <div className="mt-4 space-x-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handlePayment("paystack")}
+              >
+                Pay with PayStack
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handlePayment("bizapay")}
+              >
+                Pay with BizaPay
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-4">
+      <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -147,6 +192,16 @@ export default function DriverDashboard() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <DriverPaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        paymentMethod={selectedPaymentMethod}
+      />
+
+      <div className="mt-6">
+        <DriverPaymentHistory />
+      </div>
     </div>
   );
 }

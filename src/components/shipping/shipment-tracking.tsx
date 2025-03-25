@@ -97,11 +97,19 @@ export function ShipmentTracking({
                   <p className="font-medium">{trackingData.status}</p>
                 </div>
                 <div>
+                  <p className="text-sm text-muted-foreground">
+                    Payment Status
+                  </p>
+                  <p className="font-medium">
+                    {trackingData.payment_status || "Unknown"}
+                  </p>
+                </div>
+                <div>
                   <p className="text-sm text-muted-foreground">Location</p>
                   <p className="font-medium">{trackingData.current_location}</p>
                 </div>
                 {trackingData.estimated_delivery && (
-                  <div className="col-span-2">
+                  <div>
                     <p className="text-sm text-muted-foreground">
                       Estimated Delivery
                     </p>

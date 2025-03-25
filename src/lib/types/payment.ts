@@ -1,9 +1,4 @@
-
-export type PaymentMethodType = 
-  | 'card' 
-  | 'fpx' 
-  | 'ewallet'
-  | 'bank_transfer'
+export type PaymentMethodType = "card" | "fpx" | "ewallet" | "bank_transfer";
 
 export interface PaymentMethod {
   id: string;
@@ -19,58 +14,62 @@ export interface PaymentMethod {
 
 export const PAYMENT_METHODS: PaymentMethod[] = [
   {
-    id: 'card',
-    name: 'Credit/Debit Card',
-    type: 'card',
-    logo: '/images/payments/cards.png',
-    description: 'Pay with Visa, Mastercard, or American Express',
-    currencies: ['MYR', 'USD'],
-    enabled: true
+    id: "card",
+    name: "Credit/Debit Card",
+    type: "card",
+    logo: "/images/payments/cards.png",
+    description: "Pay with Visa, Mastercard, or American Express",
+    currencies: ["MYR", "USD"],
+    enabled: true,
   },
   {
-    id: 'fpx',
-    name: 'FPX Online Banking',
-    type: 'fpx',
-    logo: '/images/payments/fpx.png',
-    description: 'Pay directly from your Malaysian bank account',
-    currencies: ['MYR'],
-    enabled: true
+    id: "fpx",
+    name: "FPX Online Banking",
+    type: "fpx",
+    logo: "/images/payments/fpx.png",
+    description: "Pay directly from your Malaysian bank account",
+    currencies: ["MYR"],
+    enabled: true,
   },
   {
-    id: 'tng',
-    name: 'Touch n Go eWallet',
-    type: 'ewallet',
-    logo: '/images/payments/tng.png',
-    description: 'Pay with Touch n Go eWallet',
-    currencies: ['MYR'],
-    enabled: true
+    id: "tng",
+    name: "Touch n Go eWallet",
+    type: "ewallet",
+    logo: "/images/payments/tng.png",
+    description: "Pay with Touch n Go eWallet",
+    currencies: ["MYR"],
+    enabled: true,
   },
   {
-    id: 'grabpay',
-    name: 'GrabPay',
-    type: 'ewallet',
-    logo: '/images/payments/grabpay.png',
-    description: 'Pay with GrabPay',
-    currencies: ['MYR'],
-    enabled: true
+    id: "grabpay",
+    name: "GrabPay",
+    type: "ewallet",
+    logo: "/images/payments/grabpay.png",
+    description: "Pay with GrabPay",
+    currencies: ["MYR"],
+    enabled: true,
   },
   {
-    id: 'boost',
-    name: 'Boost',
-    type: 'ewallet',
-    logo: '/images/payments/boost.png',
-    description: 'Pay with Boost',
-    currencies: ['MYR'],
-    enabled: true
-  }
-]
+    id: "boost",
+    name: "Boost",
+    type: "ewallet",
+    logo: "/images/payments/boost.png",
+    description: "Pay with Boost",
+    currencies: ["MYR"],
+    enabled: true,
+  },
+];
 
 export interface PaymentIntent {
   id: string;
   client_secret: string;
   amount: number; // Amount in cents
   currency: string;
-  status: 'requires_payment_method' | 'requires_confirmation' | 'succeeded' | 'canceled';
+  status:
+    | "requires_payment_method"
+    | "requires_confirmation"
+    | "succeeded"
+    | "canceled";
   payment_method_types: string[];
 }
 
@@ -97,30 +96,43 @@ export interface CreatePaymentIntentRequest {
 }
 
 export interface BizapayPayment {
-  id: string
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
-  amount: number
-  currency: string
-  orderId: string
-  customerEmail: string
-  paymentUrl: string
-  createdAt: string
-  updatedAt: string
+  id: string;
+  status: "pending" | "processing" | "completed" | "failed" | "cancelled";
+  amount: number;
+  currency: string;
+  orderId: string;
+  customerEmail: string;
+  paymentUrl: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreatePaymentResponse {
-  payment: BizapayPayment
-  redirectUrl: string
+  payment: BizapayPayment;
+  redirectUrl: string;
 }
 
 export interface PaymentStatusResponse {
-  payment: BizapayPayment
+  payment: BizapayPayment;
 }
 
 export interface WebhookEvent {
-  type: string
+  type: string;
   data: {
-    payment: BizapayPayment
-  }
-  signature: string
-} 
+    payment: BizapayPayment;
+  };
+  signature: string;
+}
+
+export interface DriverPayment {
+  id: string;
+  payment_id: string;
+  amount: string;
+  payment_for: "SHIPMENT" | "BUY4ME";
+  payment_date: string;
+  created_at: string;
+  updated_at: string;
+  driver: string;
+  shipment: string | null;
+  buy4me: string | null;
+}

@@ -41,6 +41,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { Extras } from "@/lib/types/shipping";
 import {
   Eye,
   MoreHorizontal,
@@ -104,6 +105,9 @@ export interface ShipmentProps {
   updated_at: string;
   staff: string;
   service_type: string;
+  city: string;
+  extras: Extras[];
+  additional_charges: Extras[];
 }
 
 interface ManageShipmentProps {
@@ -202,6 +206,7 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
 
   // Function to handle edit click
   const handleEditClick = (shipment: any) => {
+    console.log("selected shipment", shipment);
     setSelectedShipment(shipment);
     setEditDialogOpen(true);
   };
@@ -240,6 +245,8 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
       sender_country: updatedData.sender_country,
       recipient_country: updatedData.recipient_country,
       service_type: updatedData.service_type,
+      city: updatedData.city,
+      additional_charges: updatedData.additional_charges,
     };
 
     try {

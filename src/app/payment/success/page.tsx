@@ -19,6 +19,7 @@ function PaymentSuccessContent() {
 
   const handlePaymentSuccess = async () => {
     const paymentData = JSON.parse(localStorage.getItem("paymentData") || "{}");
+    console.log("paymentData: ", paymentData);
     if (!paymentData) {
       toast({
         title: "Error",
@@ -29,7 +30,38 @@ function PaymentSuccessContent() {
     }
 
     try {
-      if (paymentData.requestType === "buy4me") {
+      if (paymentData.requestType === "driver") {
+        console.log("in the driver payment");
+        // Handle driver payment
+        const response = await fetch(
+          "http://127.0.0.1:8000/api/accounts/driver/payments/",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+            },
+            body: JSON.stringify({
+              payment_id: verification?.data?.reference || reference,
+              amount: paymentData.amount,
+              driver: paymentData.driver_id,
+              payment_for: paymentData.payment_for,
+              [paymentData.payment_for.toLowerCase()]: paymentData.item_id,
+            }),
+          }
+        );
+        console.log("response: ", response);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to record payment");
+        }
+
+        toast({
+          title: "Success",
+          description: "Driver payment recorded successfully",
+        });
+      } else if (paymentData.requestType === "buy4me") {
         await submitBuy4MeRequest(paymentData.shippingAddress!);
         toast({
           title: "Request Submitted",
@@ -62,8 +94,14 @@ function PaymentSuccessContent() {
         .then((res) => res.json())
         .then(async (data) => {
           setVerification(data);
-          if (data.status && data.data.status === "success") {
+          if (data?.status && data?.data?.status === "success") {
             await handlePaymentSuccess();
+          } else {
+            toast({
+              title: "Error",
+              description: "Payment verification failed",
+              variant: "destructive",
+            });
           }
         })
         .catch((error) => {
@@ -130,6 +168,11 @@ function PaymentSuccessContent() {
     ? (parseInt(verification.data.amount) / 100).toFixed(2)
     : "0.00";
 
+  // Get payment data to determine return path
+  const paymentData = JSON.parse(localStorage.getItem("paymentData") || "{}");
+  const returnPath =
+    paymentData.requestType === "driver" ? "/driver" : "/buy4me";
+
   return (
     <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
       <Card className="w-full max-w-md">
@@ -165,7 +208,7 @@ function PaymentSuccessContent() {
             </p>
           </div>
           <div className="flex justify-center pt-4">
-            <Link href="/dashboard">
+            <Link href={returnPath}>
               <Button>Return to Dashboard</Button>
             </Link>
           </div>

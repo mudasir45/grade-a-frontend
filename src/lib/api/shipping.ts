@@ -1,6 +1,6 @@
 "use client";
 
-import { Extras, ShipmentRequest } from "../types/shipping";
+import { Extras, ShipmentRequest, ShippingRate } from "../types/shipping";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://dev.ukcallcanter.com/api";
@@ -42,6 +42,21 @@ interface TrackingResponse {
     timestamp: string;
     description: string;
   }[];
+}
+
+interface CalculateRateParams {
+  origin_country: string;
+  destination_country: string;
+  weight: number;
+  length?: number;
+  width?: number;
+  height?: number;
+  service_type: string;
+  declared_value?: number;
+  insurance_required?: boolean;
+  additional_charges?: Extras[];
+  city?: string;
+  calculation_type: "weight" | "dimensions";
 }
 
 export class ShippingAPI {
@@ -165,26 +180,37 @@ export class ShippingAPI {
     }
   }
 
-  static async calculateRate(data: {
-    origin_country: string;
-    destination_country: string;
-    weight: number;
-    length: number;
-    width: number;
-    height: number;
-    service_type: string;
-    declared_value?: number;
-    insurance_required?: boolean;
-    additional_charges?: Extras[];
-    city?: string;
-  }) {
+  static async calculateRate(data: CalculateRateParams): Promise<ShippingRate> {
     try {
+      // Make sure additional_charges is properly formatted as an array of objects
+      let formattedCharges: Extras[] = [];
+
+      if (data.additional_charges) {
+        // Ensure it's an array and has the correct structure
+        formattedCharges = Array.isArray(data.additional_charges)
+          ? data.additional_charges.map((charge) => ({
+              id: charge.id,
+              name: charge.name,
+              charge_type: charge.charge_type,
+              value: parseFloat(charge.value?.toString() || "0"),
+              quantity: charge.quantity || 1,
+            }))
+          : [];
+      }
+
+      const formattedData = {
+        ...data,
+        additional_charges: formattedCharges,
+      };
+
       const response = await fetch(
         `${API_BASE_URL}/shipping-rates/calculate/`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formattedData),
         }
       );
 

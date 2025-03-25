@@ -77,15 +77,40 @@ function PaymentConfirmationContent() {
       setError("Payment data not found");
       return;
     }
-    console.log("paymentData", paymentData);
 
-    // console.log('paymentData', paymentData)
-    console.log("paymentData.paymentType", paymentData.paymentType);
     try {
       setLoading(true);
 
-      if (paymentData.paymentType === "buy4me") {
-        console.log("Submitting Buy4Me Request");
+      if (paymentData.requestType === "driver") {
+        // Handle driver payment
+        const response = await fetch(
+          "http://127.0.0.1:8000/api/accounts/driver/payments/",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+            },
+            body: JSON.stringify({
+              payment_id: billCode,
+              amount: paymentData.amount,
+              driver: paymentData.driver_id,
+              payment_for: paymentData.payment_for,
+              [paymentData.payment_for.toLowerCase()]: paymentData.item_id,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to record payment");
+        }
+
+        toast({
+          title: "Success",
+          description: "Driver payment recorded successfully",
+        });
+      } else if (paymentData.paymentType === "buy4me") {
         await submitBuy4MeRequest(paymentData.shippingAddress!);
         toast({
           title: "Request Submitted",
@@ -168,9 +193,6 @@ function PaymentConfirmationContent() {
             break;
 
           case "3":
-            // Do not call handlePaymentSuccess for failed payments
-            await handlePaymentSuccess();
-
             setError("Payment failed");
             break;
 
@@ -216,6 +238,10 @@ function PaymentConfirmationContent() {
         color: "text-red-600",
       };
 
+  // Get payment data to determine return path
+  const paymentData = JSON.parse(localStorage.getItem("paymentData") || "{}");
+  const returnPath = paymentData.requestType === "driver" ? "/driver" : "/";
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <Card className="max-w-lg w-full">
@@ -246,22 +272,16 @@ function PaymentConfirmationContent() {
         <CardFooter className="flex justify-center space-x-4">
           <Button
             variant="outline"
-            onClick={() => router.push("/")}
+            onClick={() => router.push(returnPath)}
             className="flex items-center"
           >
             <HomeIcon className="w-4 h-4 mr-2" />
-            Return Home
+            Return to Dashboard
           </Button>
 
           {status.status === "failed" && (
-            <Button variant="default" onClick={() => router.push("/")}>
+            <Button variant="default" onClick={() => router.push(returnPath)}>
               Try Again
-            </Button>
-          )}
-
-          {status.status === "success" && (
-            <Button variant="default" onClick={() => router.push("/shipping")}>
-              View Orders
             </Button>
           )}
         </CardFooter>

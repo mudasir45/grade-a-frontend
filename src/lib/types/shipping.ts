@@ -174,22 +174,31 @@ interface AdditionalCharge {
   description: string;
 }
 
+interface RateDetails {
+  per_kg_rate: number;
+  weight_charge: number;
+}
+
 interface CostBreakdown {
-  base_cost: number;
+  weight_charge: number;
   service_price: number;
+  city_delivery_charge: number;
   additional_charges: AdditionalCharge[];
-  total_additional: number;
+  extras: Extras[];
   total_cost: number;
+  extras_total: number;
 }
 
 export interface ShippingRate {
   route: Route;
   service: Service;
-  weight_calculation: WeightCalculation;
+  weight: {
+    actual: number;
+    volumetric: number;
+    chargeable: number;
+  };
   rate_details: RateDetails;
   cost_breakdown: CostBreakdown;
-  city_delivery_charge: number;
-  extras: Extras[];
 }
 
 export interface Address {
@@ -295,10 +304,9 @@ export interface NewShipmentResponse {
 }
 
 export interface Extras {
-  id?: string;
+  id: string;
   name: string;
-  description?: string;
   charge_type: string;
-  value: string;
-  is_active?: boolean;
+  value: number;
+  quantity?: number;
 }

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import ReactSelect from "react-select";
 
 export interface Option {
@@ -25,8 +25,21 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
   className,
 }) => {
   // Convert the passed string value to the corresponding option object
+  const stringValue = value ? String(value) : "";
   const selectedOption =
-    options.find((option) => option.value === value) || null;
+    options.find((option) => String(option.value) === stringValue) || null;
+
+  // Log for debugging
+  useEffect(() => {
+    if (value && !selectedOption) {
+      console.log(
+        `SearchableSelect: No match found for value "${value}" in ${options.length} options`
+      );
+      console.log(
+        `Available values: ${options.map((o) => o.value).join(", ")}`
+      );
+    }
+  }, [value, options, selectedOption]);
 
   // Handle the selection change by extracting the new string value
   const handleChange = (option: Option | null) => {

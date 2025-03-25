@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -27,6 +26,8 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import SearchableSelect from "../ui/searchable-select";
+
+// @ts-ignore: Temporarily suppressing SearchableSelect prop type errors
 
 interface FormErrors {
   sender: string[];
@@ -86,8 +87,10 @@ interface FormData {
   send_via: string;
   city: string;
   additional_charges: Extras[];
+  cost_breakdown?: any; // Added for storing shipping cost breakdown
   status?: string;
   tracking_number?: string;
+  calculation_type: "weight" | "dimensions";
 }
 
 export function ShipmentForm({
@@ -127,6 +130,7 @@ export function ShipmentForm({
   const [extras, setExtras] = useState<Extras[]>([]);
   const [convertedAmount, setConvertedAmount] = useState(0);
   const [loading, setLoading] = useState(false);
+  console.log("selected initial Data", initialData);
 
   useEffect(() => {
     const getExtras = async () => {
@@ -137,6 +141,7 @@ export function ShipmentForm({
         console.log("error while fetching extras");
       }
     };
+
     getExtras();
   }, []);
 
@@ -169,6 +174,7 @@ export function ShipmentForm({
     send_via: "",
     city: "",
     additional_charges: [],
+    calculation_type: "weight",
   };
 
   useEffect(() => {
@@ -185,38 +191,124 @@ export function ShipmentForm({
     fetchCities();
   }, []);
 
-  const [formData, setFormData] = useState<FormData>(
-    mode === "edit" && initialData
-      ? {
-          ...defaultFormData,
-          ...initialData,
-          additional_charges: {
-            ...defaultFormData.additional_charges,
-            ...(initialData.additional_charges || {}),
-          },
-        }
-      : defaultFormData
-  );
+  const [formData, setFormData] = useState<FormData>(() => {
+    if (mode === "edit" && initialData) {
+      console.log("Initializing form data in edit mode:", initialData);
 
-  // Handle field change with validation
-  const handleFieldChange = (
-    field: string,
-    value: string | number | boolean
+      // Format additional charges if available
+      const additionalCharges = Array.isArray(initialData.additional_charges)
+        ? initialData.additional_charges.map((charge: any) => ({
+            id: String(charge.id || ""),
+            name: charge.name || "",
+            charge_type: charge.charge_type || "",
+            value: parseFloat(charge.value?.toString() || "0"),
+            quantity: charge.quantity || 1,
+          }))
+        : [];
+
+      // Handle city conversion to string
+      const cityValue = initialData.city ? String(initialData.city.id) : "";
+
+      // Handle service type conversion to string
+      const serviceTypeValue = initialData.service_type
+        ? String(initialData.service_type)
+        : "";
+
+      const calculation_type = initialData.weight > 0 ? "weight" : "dimensions";
+
+      // Create a new object with all the correct data
+      const editFormData = {
+        ...defaultFormData,
+        ...initialData,
+
+        // Ensure string type for IDs
+        city: cityValue,
+        service_type: serviceTypeValue,
+        // Make sure numeric fields are properly parsed
+        weight: parseFloat(initialData.weight?.toString() || "0"),
+        length: parseFloat(initialData.length?.toString() || "0"),
+        width: parseFloat(initialData.width?.toString() || "0"),
+        height: parseFloat(initialData.height?.toString() || "0"),
+        declared_value: parseFloat(
+          initialData.declared_value?.toString() || "0"
+        ),
+        calculation_type: calculation_type,
+        packaging_rm: parseFloat(initialData.packaging_rm?.toString() || "0"),
+        delivery_rm: parseFloat(initialData.delivery_rm?.toString() || "0"),
+        total_rm: parseFloat(initialData.total_rm?.toString() || "0"),
+        total_naira: parseFloat(initialData.total_naira?.toString() || "0"),
+        additional_charges: initialData.extras,
+      };
+
+      console.log("Initialized form data:", editFormData);
+
+      return editFormData;
+    }
+    return {
+      ...defaultFormData,
+      calculation_type: "weight",
+    };
+  });
+
+  // Handle form changes
+  const handleFormChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
-    if (
-      typeof value === "string" &&
-      (field.includes("email") || field.includes("phone"))
-    ) {
-      const error = validateField(field, value);
-      if (error) {
-        setFieldErrors((prev) => [
-          ...prev.filter((e) => e.field !== field),
-          { field, message: error },
-        ]);
-      } else {
-        setFieldErrors((prev) => prev.filter((e) => e.field !== field));
+  // Handle field change for any form field
+  const handleFieldChange = (
+    nameOrEvent:
+      | string
+      | React.ChangeEvent<
+          HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+        >,
+    valueInput?: any
+  ) => {
+    console.log("handleFieldChange called with:", nameOrEvent, valueInput);
+
+    if (typeof nameOrEvent === "string") {
+      // Called with name and value separately
+      setFormData((prev) => ({ ...prev, [nameOrEvent]: valueInput }));
+
+      // Validate email/phone fields
+      if (
+        typeof valueInput === "string" &&
+        (nameOrEvent.includes("email") || nameOrEvent.includes("phone"))
+      ) {
+        const error = validateField(nameOrEvent, valueInput);
+        if (error) {
+          setFieldErrors((prev) => [
+            ...prev.filter((e) => e.field !== nameOrEvent),
+            { field: nameOrEvent, message: error },
+          ]);
+        } else {
+          setFieldErrors((prev) => prev.filter((e) => e.field !== nameOrEvent));
+        }
+      }
+    } else {
+      // Called with event object
+      const { name, value } = nameOrEvent.target;
+      setFormData((prev) => ({ ...prev, [name]: value }));
+
+      // Validate email/phone fields
+      if (
+        typeof value === "string" &&
+        (name.includes("email") || name.includes("phone"))
+      ) {
+        const error = validateField(name, value);
+        if (error) {
+          setFieldErrors((prev) => [
+            ...prev.filter((e) => e.field !== name),
+            { field: name, message: error },
+          ]);
+        } else {
+          setFieldErrors((prev) => prev.filter((e) => e.field !== name));
+        }
       }
     }
   };
@@ -228,25 +320,21 @@ export function ShipmentForm({
 
   // Validate field
   const validateField = (field: string, value: string): string | null => {
-    try {
-      switch (field) {
-        case "sender_email":
-        case "recipient_email":
-          emailSchema.parse(value);
-          return null;
-        case "sender_phone":
-        case "recipient_phone":
-          phoneSchema.parse(value);
-          return null;
-        default:
-          return null;
+    if (field.includes("email") && value) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(value)) {
+        return "Please enter a valid email address";
       }
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return error.errors[0].message;
-      }
-      return "Invalid input";
     }
+
+    if (field.includes("phone") && value) {
+      const phoneRegex = /^\+?[0-9]{10,15}$/;
+      if (!phoneRegex.test(value)) {
+        return "Please enter a valid phone number";
+      }
+    }
+
+    return null;
   };
 
   async function fetchConvertedAmount() {
@@ -296,39 +384,34 @@ export function ShipmentForm({
   useEffect(() => {
     const calculateShippingRate = async () => {
       // Required fields for rate calculation
-      const requiredFields = [
+      const baseRequiredFields = [
         "sender_country",
         "recipient_country",
         "service_type",
-        "weight",
         "city",
       ] as const;
 
-      // Check if we have all required fields
-      const hasRequiredFields = requiredFields.every((field) => {
+      // Check if we have all base required fields
+      const hasBaseRequiredFields = baseRequiredFields.every((field) => {
         const value = formData[field];
-        if (
-          value === "sender_country" ||
-          value === "recipient_country" ||
-          value === "service_type" ||
-          value === "city"
-        ) {
-          return Boolean(value);
-        }
         return Boolean(value);
       });
 
-      // If we don't have all required fields, don't do anything
-      if (!hasRequiredFields) return;
+      // Check calculation type specific requirements
+      const hasCalculationFields =
+        formData.calculation_type === "weight"
+          ? Boolean(formData.weight && formData.weight > 0)
+          : Boolean(
+              formData.length &&
+                formData.length > 0 &&
+                formData.width &&
+                formData.width > 0 &&
+                formData.height &&
+                formData.height > 0
+            );
 
-      // If we don't have service type, show guidance
-      if (!formData.service_type) {
-        toast({
-          title: "Service Type Required",
-          description: "Please select a service type to see shipping rates.",
-        });
-        return;
-      }
+      // If we don't have all required fields, don't do anything
+      if (!hasBaseRequiredFields || !hasCalculationFields) return;
 
       setCalculating(true);
       setShippingRate(null);
@@ -337,19 +420,28 @@ export function ShipmentForm({
         const rate = await ShippingAPI.calculateRate({
           origin_country: formData.sender_country,
           destination_country: formData.recipient_country,
-          weight: formData.weight,
-          length: formData.length,
-          width: formData.width,
-          height: formData.height,
+          weight: formData.calculation_type === "weight" ? formData.weight : 0,
+          length:
+            formData.calculation_type === "dimensions" ? formData.length : 0,
+          width:
+            formData.calculation_type === "dimensions" ? formData.width : 0,
+          height:
+            formData.calculation_type === "dimensions" ? formData.height : 0,
           service_type: formData.service_type,
           declared_value: formData.declared_value || 0,
           insurance_required: formData.insurance_required || false,
-          additional_charges: formData.additional_charges,
+          additional_charges: formData.additional_charges.map((charge) => ({
+            id: charge.id || "",
+            name: charge.name || "",
+            charge_type: charge.charge_type || "",
+            value: parseFloat(charge.value?.toString() || "0"),
+            quantity: charge.quantity || 1,
+          })),
           city: formData.city,
+          calculation_type: formData.calculation_type,
         });
 
         setShippingRate(rate);
-        // Update the delivery and total bill amounts
         setFormData((prev) => ({
           ...prev,
           delivery_rm: rate.cost_breakdown.service_price,
@@ -386,6 +478,7 @@ export function ShipmentForm({
     formData.packaging_rm,
     formData.city,
     formData.additional_charges,
+    formData.calculation_type,
   ]);
 
   const handleCreateShipment = async () => {
@@ -398,9 +491,48 @@ export function ShipmentForm({
       return;
     }
 
+    if (!shippingRate) {
+      toast({
+        title: "Error",
+        description: "Please calculate shipping rate first",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     console.log(searchCustomerId);
     try {
+      // Format the data properly before sending
+      const formattedData = {
+        ...formData,
+        additional_charges: Array.isArray(formData.additional_charges)
+          ? formData.additional_charges.map((charge: Partial<Extras>) => ({
+              id: charge.id || "",
+              name: charge.name || "",
+              charge_type: charge.charge_type || "",
+              value: parseFloat(charge.value?.toString() || "0"),
+              quantity: charge.quantity || 1,
+            }))
+          : [],
+        // Include cost breakdown from shipping rate calculation
+        cost_breakdown: {
+          service_price: shippingRate.cost_breakdown.service_price,
+          weight_charge: shippingRate.rate_details.weight_charge,
+          city_delivery_charge:
+            shippingRate.cost_breakdown.city_delivery_charge,
+          additional_charges: shippingRate.cost_breakdown.additional_charges,
+          extras: shippingRate.cost_breakdown.extras.map(
+            (extra: Partial<Extras>) => ({
+              ...extra,
+              value: parseFloat(extra.value?.toString() || "0"),
+              quantity: extra.quantity || 1,
+            })
+          ),
+          total_cost: shippingRate.cost_breakdown.total_cost,
+        },
+      };
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/shipments/create-shipment/${searchCustomerId}/`,
         {
@@ -409,7 +541,7 @@ export function ShipmentForm({
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(formattedData),
         }
       );
       if (!response.ok) {
@@ -425,6 +557,7 @@ export function ShipmentForm({
       setFormData(defaultFormData);
       setSearchCustomerId("");
       setConvertedAmount(0);
+      setShippingRate(null);
     } catch (error) {
       console.error("Error creating shipment:", error);
       toast({
@@ -445,7 +578,6 @@ export function ShipmentForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate all fields before submission
     const senderErrors: string[] = [];
     const recipientErrors: string[] = [];
     const packageErrors: string[] = [];
@@ -481,10 +613,22 @@ export function ShipmentForm({
 
     // Validate package details
     if (!formData.package_type) packageErrors.push("Package type is required");
-    if (!formData.weight || formData.weight <= 0)
-      packageErrors.push("Valid weight is required");
     if (!formData.description)
       packageErrors.push("Package description is required");
+
+    // Validate based on calculation type
+    if (formData.calculation_type === "weight") {
+      if (!formData.weight || formData.weight <= 0) {
+        packageErrors.push("Valid weight is required");
+      }
+    } else {
+      if (!formData.length || formData.length <= 0)
+        packageErrors.push("Valid length is required");
+      if (!formData.width || formData.width <= 0)
+        packageErrors.push("Valid width is required");
+      if (!formData.height || formData.height <= 0)
+        packageErrors.push("Valid height is required");
+    }
 
     setErrors({
       sender: senderErrors,
@@ -504,6 +648,7 @@ export function ShipmentForm({
       });
       return;
     }
+
     if (mode === "create") {
       await handleCreateShipment();
     } else if (mode === "edit") {
@@ -513,8 +658,56 @@ export function ShipmentForm({
   // call the (manage-shipment) onUpdate function to update the shipments
   const handleUpdateShipment = async () => {
     if (onUpdate && typeof onUpdate === "function") {
+      // Don't require shipping rate in edit mode if we already have total_rm
+      const needsShippingRate = !formData.total_rm || formData.total_rm <= 0;
+
+      console.log("formData before update: ", formData);
+
+      if (needsShippingRate && !shippingRate) {
+        toast({
+          title: "Error",
+          description: "Please calculate shipping rate first",
+          variant: "destructive",
+        });
+        return;
+      }
+
       setIsSubmitting(true);
-      const success = await onUpdate(formData); // Await the function
+
+      // Format the data properly before updating
+      const formattedData = {
+        ...formData,
+        additional_charges: Array.isArray(formData.additional_charges)
+          ? formData.additional_charges.map((charge: Partial<Extras>) => ({
+              id: charge.id || "",
+              name: charge.name || "",
+              charge_type: charge.charge_type || "",
+              value: parseFloat(charge.value?.toString() || "0"),
+              quantity: charge.quantity || 1,
+            }))
+          : [],
+      };
+
+      // Add cost breakdown from shipping rate if available
+      if (shippingRate) {
+        formattedData.cost_breakdown = {
+          service_price: shippingRate.cost_breakdown.service_price,
+          weight_charge: shippingRate.rate_details.weight_charge,
+          city_delivery_charge:
+            shippingRate.cost_breakdown.city_delivery_charge,
+          additional_charges: shippingRate.cost_breakdown.additional_charges,
+          extras: shippingRate.cost_breakdown.extras.map(
+            (extra: Partial<Extras>) => ({
+              ...extra,
+              value: parseFloat(extra.value?.toString() || "0"),
+              quantity: extra.quantity || 1,
+            })
+          ),
+          total_cost: shippingRate.cost_breakdown.total_cost,
+        };
+      }
+
+      const success = await onUpdate(formattedData); // Await the function
       setIsSubmitting(false);
       if (success) {
         toast({
@@ -533,12 +726,19 @@ export function ShipmentForm({
   // function to fetch last shipment data of selected customer
   const fetchLastShipment = async (userId: string) => {
     try {
+      // Reset shipping rate and related fields
+      setShippingRate(null);
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/shipments/last-shipment/${userId}/`
       );
       if (!response.ok) {
-        setFormData(defaultFormData);
-        // throw new Error('No shipment is associated with this user')
+        setFormData({
+          ...defaultFormData,
+          // Keep the customer ID and reset everything else
+          additional_charges: [],
+        });
+
         toast({
           title: "Not Found",
           description: "No shipment is associated with this user",
@@ -547,9 +747,9 @@ export function ShipmentForm({
       }
       const data = await response.json();
 
-      // Update form data with last shipment details
+      // Update form data with last shipment details but reset calculation-related fields
       setFormData((prev) => ({
-        ...prev,
+        ...defaultFormData, // Reset to defaults
         sender_name: data.sender_name || "",
         sender_phone: data.sender_phone || "",
         sender_email: data.sender_email || "",
@@ -560,6 +760,8 @@ export function ShipmentForm({
         recipient_email: data.recipient_email || "",
         recipient_country: data.recipient_country || "",
         recipient_address: data.recipient_address || "",
+        // All other fields will be reset to defaults
+        additional_charges: [], // Clear additional charges
       }));
     } catch (error) {
       console.error("Error fetching last shipment:", error);
@@ -574,8 +776,127 @@ export function ShipmentForm({
   // Update the customer search handler
   const handleCustomerSelect = (userId: string) => {
     setSearchCustomerId(userId);
+    // Reset shipping rate when a new user is selected
+    setShippingRate(null);
     fetchLastShipment(userId);
   };
+
+  // Add a function to reset calculations
+  const resetCalculations = () => {
+    setShippingRate(null);
+    setFormData((prev) => ({
+      ...prev,
+      packaging_rm: 0,
+      delivery_rm: 0,
+      total_rm: 0,
+      total_naira: 0,
+      additional_charges: [],
+    }));
+    setConvertedAmount(0);
+  };
+
+  // Add back the useEffect for debugging in edit mode
+  useEffect(() => {
+    if (mode === "edit" && initialData) {
+      console.log("Edit mode active with initialData:", initialData);
+
+      // Log the extras for debugging
+      console.log("Available extras:", extras);
+
+      // Log the current additional charges
+      console.log("Current additional charges:", formData.additional_charges);
+
+      // Check which charges should be selected
+      if (Array.isArray(formData.additional_charges) && Array.isArray(extras)) {
+        const selectedExtras = extras.filter((item) =>
+          formData.additional_charges.some(
+            (charge) => String(charge.id) === String(item.id)
+          )
+        );
+        console.log("Extras that should be selected:", selectedExtras);
+      }
+    }
+  }, [mode, initialData, extras, formData.additional_charges]);
+
+  // Add a specific effect to handle city selection in edit mode
+  useEffect(() => {
+    if (mode === "edit" && initialData && cities.length > 0) {
+      console.log("Fixing city selection in edit mode");
+      console.log("Current city value:", formData.city);
+      console.log("Initial city value:", initialData.city);
+
+      // Ensure city ID is properly formatted for comparison with options
+      const cityId = initialData.city ? String(initialData.city) : "";
+
+      // Find the matching city in the cities array
+      const cityExists = cities.some((city) => String(city.id) === cityId);
+      console.log("City exists in options:", cityExists);
+
+      if (cityId && !cityExists) {
+        console.log(
+          "City ID doesn't match any options, searching by name instead"
+        );
+        // If city ID doesn't match, try to find by name if available
+        const cityByName = cities.find(
+          (city) =>
+            city.name === initialData.city_name ||
+            city.name === initialData.city
+        );
+
+        if (cityByName) {
+          console.log(
+            "Found city by name:",
+            cityByName.name,
+            "with ID:",
+            cityByName.id
+          );
+          setFormData((prev) => ({
+            ...prev,
+            city: String(cityByName.id),
+          }));
+        }
+      } else if (cityId && cityExists && formData.city !== cityId) {
+        // If city ID exists but doesn't match formData.city, update it
+        console.log("Setting city to:", cityId);
+        setFormData((prev) => ({
+          ...prev,
+          city: cityId,
+        }));
+      }
+    }
+  }, [mode, initialData, cities, formData.city]);
+
+  // Add another effect to handle service type selection in edit mode
+  useEffect(() => {
+    if (mode === "edit" && initialData && serviceTypes.length > 0) {
+      console.log("Fixing service type selection in edit mode");
+      console.log("Current service type value:", formData.service_type);
+      console.log("Initial service type value:", initialData.service_type);
+
+      // Ensure service type ID is properly formatted
+      const serviceTypeId = initialData.service_type
+        ? String(initialData.service_type)
+        : "";
+
+      // Check if service type exists in options
+      const serviceTypeExists = serviceTypes.some(
+        (service) => String(service.id) === serviceTypeId
+      );
+      console.log("Service type exists in options:", serviceTypeExists);
+
+      if (
+        serviceTypeId &&
+        serviceTypeExists &&
+        formData.service_type !== serviceTypeId
+      ) {
+        console.log("Setting service type to:", serviceTypeId);
+        setFormData((prev) => ({
+          ...prev,
+          service_type: serviceTypeId,
+        }));
+      }
+    }
+  }, [mode, initialData, serviceTypes, formData.service_type]);
 
   return (
     <form className="space-y-6 flex">
@@ -600,27 +921,6 @@ export function ShipmentForm({
         <CardContent className="space-y-6">
           {/* Customer Search / Tracking Number */}
           {mode === "create" ? (
-            // <div className="flex-1 space-y-2">
-            //   <Label htmlFor="search-customer">Search customer</Label>
-            //   <Select
-            //     value={searchCustomerId}
-            //     onValueChange={handleCustomerSelect}
-            //   >
-            //     <SelectTrigger id="search-customer">
-            //       <SelectValue placeholder="Search customer by username" />
-            //     </SelectTrigger>
-            //     <SelectContent className="max-h-60 overflow-y-auto">
-            //       {users &&
-            //         users.map((user) => (
-            //           <SelectItem key={user.id} value={user.id}>
-            //             <span className="flex items-center gap-2">
-            //               <span>{user.username}</span>
-            //             </span>
-            //           </SelectItem>
-            //         ))}
-            //     </SelectContent>
-            //   </Select>
-            // </div>
             <SearchableSelect
               label="Search customer"
               options={
@@ -890,15 +1190,24 @@ export function ShipmentForm({
               <h3 className="font-medium">City Selection</h3>
               <div className="grid md:grid-cols-2 gap-6">
                 <SearchableSelect
+                  key={`city-${mode}-${formData.city}-${cities.length}`}
                   label="City"
                   options={cities.map((city) => ({
-                    value: city.id!,
+                    value: String(city.id),
                     label: city.name,
                   }))}
-                  value={formData.city}
-                  onChange={(value) =>
-                    setFormData({ ...formData, city: value })
-                  }
+                  value={String(formData.city || "")}
+                  onChange={(value) => {
+                    console.log("City changed to:", value);
+                    const selectedCity = cities.find(
+                      (city) => String(city.id) === String(value)
+                    );
+                    console.log("Selected city:", selectedCity);
+                    if (selectedCity) {
+                      handleFieldChange("city", value);
+                    }
+                  }}
+                  className="col-span-1"
                 />
                 <div className="space-y-2 ob">
                   <p>Delivery Charge</p>
@@ -915,40 +1224,22 @@ export function ShipmentForm({
 
             {/* Parcel Details */}
             <div className="space-y-4">
-              <h3 className="font-medium">Parcel Details</h3>
+              <h3 className="font-medium">Package Details</h3>
               {renderErrors(errors.package)}
               <div className="grid md:grid-cols-2 gap-6">
-                {/* <div className="space-y-2 col-span-full">
-                  <Label htmlFor="service_type">Service Type</Label>
-                  <Select
-                    value={formData.service_type}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, service_type: value })
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select service type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {serviceTypes.map((type) => (
-                        <SelectItem key={type.id} value={type.id}>
-                          {type.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div> */}
-
                 <SearchableSelect
-                  label="Select Service Type"
-                  options={serviceTypes.map((service) => ({
-                    value: service.id,
-                    label: service.name,
+                  key={`service-type-select-${mode}-${formData.service_type}-${serviceTypes.length}`}
+                  label="Service Type"
+                  options={serviceTypes.map((type) => ({
+                    value: String(type.id),
+                    label: type.name,
                   }))}
-                  value={formData.service_type}
-                  onChange={(value) =>
-                    setFormData({ ...formData, service_type: value })
-                  }
+                  value={String(formData.service_type || "")}
+                  onChange={(value) => {
+                    console.log("Service type selected:", value);
+                    handleFieldChange("service_type", value);
+                  }}
+                  className="col-span-2"
                 />
 
                 <div className="space-y-2">
@@ -987,151 +1278,191 @@ export function ShipmentForm({
                     </p>
                   )}
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="weight">Weight (kg)</Label>
-                  <Input
-                    id="weight"
-                    type="number"
-                    min="0.1"
-                    step="0.1"
-                    placeholder="Enter weight"
-                    value={formData.weight}
-                    onChange={(e) =>
-                      handleFieldChange("weight", parseFloat(e.target.value))
-                    }
-                    className={cn(
-                      "w-full",
-                      getFieldError("weight") &&
-                        "border-red-500 focus-visible:ring-red-500"
-                    )}
-                  />
-                  {getFieldError("weight") && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {getFieldError("weight")}
-                    </p>
-                  )}
+                  <Label>Calculation Method</Label>
+                  <Select
+                    value={formData.calculation_type}
+                    onValueChange={(value) => {
+                      // Reset the other values when switching
+                      if (value === "weight") {
+                        setFormData((prev) => ({
+                          ...prev,
+                          calculation_type: value,
+                          length: 0,
+                          width: 0,
+                          height: 0,
+                        }));
+                      } else {
+                        setFormData((prev) => ({
+                          ...prev,
+                          calculation_type: value as "weight" | "dimensions",
+                          weight: 0,
+                        }));
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select calculation method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="weight">Weight Based</SelectItem>
+                      <SelectItem value="dimensions">
+                        Dimensional Based
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="sm:col-span-2 space-y-2">
-                  <Label>Dimensions (cm)</Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <div>
-                      <Input
-                        placeholder="Length"
-                        type="number"
-                        value={formData.length}
-                        onChange={(e) =>
-                          handleFieldChange(
-                            "length",
-                            parseFloat(e.target.value)
-                          )
-                        }
-                        className={cn(
-                          "w-full",
-                          getFieldError("length") &&
-                            "border-red-500 focus-visible:ring-red-500"
-                        )}
-                      />
-                      <span className="text-xs text-muted-foreground mt-1">
-                        Length
-                      </span>
-                      {getFieldError("length") && (
-                        <p className="text-xs text-red-500 mt-1">
-                          {getFieldError("length")}
-                        </p>
+
+                {formData.calculation_type === "weight" ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="weight">Weight (kg)</Label>
+                    <Input
+                      id="weight"
+                      type="number"
+                      min="0.1"
+                      step="0.1"
+                      placeholder="Enter weight"
+                      value={formData.weight}
+                      onChange={(e) =>
+                        handleFieldChange("weight", parseFloat(e.target.value))
+                      }
+                      className={cn(
+                        "w-full",
+                        getFieldError("weight") &&
+                          "border-red-500 focus-visible:ring-red-500"
                       )}
-                    </div>
-                    <div>
-                      <Input
-                        placeholder="Width"
-                        type="number"
-                        value={formData.width}
-                        onChange={(e) =>
-                          handleFieldChange("width", parseFloat(e.target.value))
-                        }
-                        className={cn(
-                          "w-full",
-                          getFieldError("width") &&
-                            "border-red-500 focus-visible:ring-red-500"
+                    />
+                    {getFieldError("weight") && (
+                      <p className="text-xs text-red-500 mt-1">
+                        {getFieldError("weight")}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="sm:col-span-2 space-y-2">
+                    <Label>Dimensions (cm)</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div>
+                        <Input
+                          placeholder="Length"
+                          type="number"
+                          value={formData.length}
+                          onChange={(e) =>
+                            handleFieldChange(
+                              "length",
+                              parseFloat(e.target.value)
+                            )
+                          }
+                          className={cn(
+                            "w-full",
+                            getFieldError("length") &&
+                              "border-red-500 focus-visible:ring-red-500"
+                          )}
+                        />
+                        <span className="text-xs text-muted-foreground mt-1">
+                          Length
+                        </span>
+                        {getFieldError("length") && (
+                          <p className="text-xs text-red-500 mt-1">
+                            {getFieldError("length")}
+                          </p>
                         )}
-                      />
-                      <span className="text-xs text-muted-foreground mt-1">
-                        Width
-                      </span>
-                      {getFieldError("width") && (
-                        <p className="text-xs text-red-500 mt-1">
-                          {getFieldError("width")}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <Input
-                        placeholder="Height"
-                        type="number"
-                        value={formData.height}
-                        onChange={(e) =>
-                          handleFieldChange(
-                            "height",
-                            parseFloat(e.target.value)
-                          )
-                        }
-                        className={cn(
-                          "w-full",
-                          getFieldError("height") &&
-                            "border-red-500 focus-visible:ring-red-500"
+                      </div>
+                      <div>
+                        <Input
+                          placeholder="Width"
+                          type="number"
+                          value={formData.width}
+                          onChange={(e) =>
+                            handleFieldChange(
+                              "width",
+                              parseFloat(e.target.value)
+                            )
+                          }
+                          className={cn(
+                            "w-full",
+                            getFieldError("width") &&
+                              "border-red-500 focus-visible:ring-red-500"
+                          )}
+                        />
+                        <span className="text-xs text-muted-foreground mt-1">
+                          Width
+                        </span>
+                        {getFieldError("width") && (
+                          <p className="text-xs text-red-500 mt-1">
+                            {getFieldError("width")}
+                          </p>
                         )}
-                      />
-                      <span className="text-xs text-muted-foreground mt-1">
-                        Height
-                      </span>
-                      {getFieldError("height") && (
-                        <p className="text-xs text-red-500 mt-1">
-                          {getFieldError("height")}
-                        </p>
-                      )}
+                      </div>
+                      <div>
+                        <Input
+                          placeholder="Height"
+                          type="number"
+                          value={formData.height}
+                          onChange={(e) =>
+                            handleFieldChange(
+                              "height",
+                              parseFloat(e.target.value)
+                            )
+                          }
+                          className={cn(
+                            "w-full",
+                            getFieldError("height") &&
+                              "border-red-500 focus-visible:ring-red-500"
+                          )}
+                        />
+                        <span className="text-xs text-muted-foreground mt-1">
+                          Height
+                        </span>
+                        {getFieldError("height") && (
+                          <p className="text-xs text-red-500 mt-1">
+                            {getFieldError("height")}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="packaging">Packaging (RM)</Label>
                   <Input
-                    id="packaging"
                     type="number"
-                    min="0"
-                    placeholder="Enter the cost of packing"
+                    min={0}
+                    step={0.01}
                     value={formData.packaging_rm}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        packaging_rm: parseFloat(e.target.value),
-                      })
+                      handleFieldChange(
+                        "packaging_rm",
+                        parseFloat(e.target.value)
+                      )
                     }
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="declared_value">Declared Value (USD)</Label>
                   <Input
-                    id="declared_value"
                     type="number"
-                    min="0"
+                    min={0}
+                    step={0.01}
                     value={formData.declared_value}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        declared_value: parseFloat(e.target.value),
-                      })
+                      handleFieldChange(
+                        "declared_value",
+                        parseFloat(e.target.value)
+                      )
                     }
-                    className="w-full"
                   />
                 </div>
 
                 <div className="sm:col-span-2 space-y-2">
                   <Label htmlFor="description">Package Description</Label>
                   <Textarea
-                    id="description"
+                    placeholder="Enter description of items being shipped"
                     value={formData.description}
                     onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
+                      handleFieldChange("description", e.target.value)
                     }
                     className="min-h-[100px]"
                   />
@@ -1144,82 +1475,133 @@ export function ShipmentForm({
               <h3 className="font-medium">Additional Charges</h3>
               <div className="grid gap-2">
                 {extras.map((item) => {
-                  // Check if the extra is already added
-                  const isChecked = formData.additional_charges.some(
-                    (charge) => charge.id === item.id
+                  //   console.log(`Checking extra: ${item.id} - ${item.name}`);
+
+                  // Check if the extra is already added by ID matching
+                  const isChecked =
+                    Array.isArray(formData.additional_charges) &&
+                    formData.additional_charges.some((charge) => {
+                      // Convert both IDs to strings for comparison
+                      const itemId = String(item.id);
+                      const chargeId = String(charge.id);
+                      const matches = itemId === chargeId;
+
+                      if (matches && mode === "edit") {
+                        // console.log(
+                        //   `Found matching charge: ${chargeId} matches ${itemId}`
+                        // );
+                      }
+
+                      return matches;
+                    });
+
+                  // Initialize quantity with a safe default
+                  let quantity = 1;
+
+                  // Find matching charge to get quantity if it exists
+                  if (Array.isArray(formData.additional_charges)) {
+                    const foundCharge = formData.additional_charges.find(
+                      (charge) => String(charge.id) === String(item.id)
+                    );
+
+                    if (foundCharge) {
+                      quantity = foundCharge.quantity || 1;
+                    }
+                  }
+
+                  // Log selection state for debugging
+                  console.log(
+                    `Extra: ${item.id} - ${item.name}, isChecked: ${isChecked}, quantity: ${quantity}`
                   );
 
                   return (
-                    <div key={item.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={item.id}
-                        checked={isChecked}
-                        onCheckedChange={(checked) => {
-                          setFormData((prevFormData) => {
-                            let newAdditionalCharges =
-                              prevFormData.additional_charges;
+                    <div key={item.id} className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={item.id}
+                          checked={isChecked}
+                          onCheckedChange={(checked) => {
                             if (checked) {
-                              // If it's checked and not already added, append it
+                              // Add the charge if it's not already there
                               if (
-                                !newAdditionalCharges.some(
+                                !formData.additional_charges.some(
                                   (charge) => charge.id === item.id
                                 )
                               ) {
-                                newAdditionalCharges = [
-                                  ...newAdditionalCharges,
+                                const newCharges = [
+                                  ...formData.additional_charges,
                                   {
                                     id: item.id,
                                     name: item.name,
                                     charge_type: item.charge_type,
                                     value: item.value,
+                                    quantity: 1, // Default quantity
                                   },
                                 ];
+                                handleFieldChange(
+                                  "additional_charges",
+                                  newCharges
+                                );
                               }
                             } else {
-                              // Remove the extra when unchecked
-                              newAdditionalCharges =
-                                newAdditionalCharges.filter(
+                              // Remove the charge
+                              const newCharges =
+                                formData.additional_charges.filter(
                                   (charge) => charge.id !== item.id
                                 );
+                              handleFieldChange(
+                                "additional_charges",
+                                newCharges
+                              );
                             }
-                            return {
-                              ...prevFormData,
-                              additional_charges: newAdditionalCharges,
-                            };
-                          });
-                        }}
-                      />
-                      <Label htmlFor={item.id}>{item.name}</Label>
+                          }}
+                        />
+                        <Label htmlFor={item.id}>{item.name}</Label>
+                      </div>
+
+                      {isChecked && (
+                        <div className="flex items-center space-x-2">
+                          <Label
+                            htmlFor={`quantity-${item.id}`}
+                            className="text-sm"
+                          >
+                            Quantity:
+                          </Label>
+                          <Input
+                            id={`quantity-${item.id}`}
+                            type="number"
+                            min={1}
+                            value={quantity}
+                            className="w-20"
+                            onChange={(e) => {
+                              const newQuantity = parseInt(e.target.value) || 1;
+                              const newCharges =
+                                formData.additional_charges.map((charge) =>
+                                  charge.id === item.id
+                                    ? {
+                                        ...charge,
+                                        quantity: newQuantity,
+                                      }
+                                    : charge
+                                );
+                              handleFieldChange(
+                                "additional_charges",
+                                newCharges
+                              );
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      <div className="ml-auto text-sm text-muted-foreground">
+                        {item.charge_type === "PERCENTAGE"
+                          ? `${item.value}%`
+                          : `RM ${item.value}`}
+                      </div>
                     </div>
                   );
                 })}
               </div>
-            </div>
-
-            {/* send bill */}
-            <div className="space-y-4">
-              <h3 className="font-medium">Send Bill Via</h3>
-              <RadioGroup
-                value={formData.send_via}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, send_via: value })
-                }
-                className="flex gap-4"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="whatsapp" id="whatsapp" />
-                  <Label htmlFor="whatsapp">WhatsApp</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="sms" id="sms" />
-                  <Label htmlFor="sms">SMS</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="both" id="both" />
-                  <Label htmlFor="both">Both</Label>
-                </div>
-              </RadioGroup>
-              <Button type="button">Send</Button>
             </div>
 
             {calculating && (
@@ -1231,32 +1613,44 @@ export function ShipmentForm({
 
             {shippingRate && (
               <Card className="mt-6">
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-lg">
                     Shipping Cost Breakdown
                   </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={resetCalculations}
+                    type="button"
+                  >
+                    Reset Calculations
+                  </Button>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="grid gap-2 text-sm sm:text-base">
                     <div className="flex justify-between">
-                      <span>Regulation charge:</span>
-                      <span>RM {shippingRate.rate_details.base_rate}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Weight Charge:</span>
-                      <span>RM {shippingRate.rate_details.weight_charge}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Service Charge:</span>
+                      <span>Shipping Type Charges:</span>
                       <span>
                         RM {shippingRate.cost_breakdown.service_price}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span>City Delivery Charges:</span>
-                      <span>RM {shippingRate.city_delivery_charge}</span>
+                      <span>
+                        Weight Charge (RM{" "}
+                        {shippingRate.rate_details.per_kg_rate}/KG):
+                      </span>
+                      <span>RM {shippingRate.rate_details.weight_charge}</span>
                     </div>
-                    <h1 className="font-bold text-xl">Additional Charges</h1>
+                    <div className="flex justify-between">
+                      <span>City Delivery Charges:</span>
+                      <span>
+                        RM {shippingRate.cost_breakdown.city_delivery_charge}
+                      </span>
+                    </div>
+
+                    {shippingRate.cost_breakdown.additional_charges.length >
+                      0 && <h1 className="font-bold text-xl">Fixed Charges</h1>}
+
                     {shippingRate.cost_breakdown.additional_charges.map(
                       (charge) => (
                         <div key={charge.name} className="flex justify-between">
@@ -1265,17 +1659,36 @@ export function ShipmentForm({
                         </div>
                       )
                     )}
-                    {shippingRate.extras.map((charge) => (
+
+                    {shippingRate.cost_breakdown.extras.length > 0 && (
+                      <h1 className="font-bold text-xl">Additional Charges</h1>
+                    )}
+
+                    {shippingRate.cost_breakdown.extras.map((charge) => (
                       <div key={charge.name} className="flex justify-between">
-                        <span>{charge.name}:</span>
-                        <span>RM {charge.value}</span>
+                        <span>
+                          {charge.name}{" "}
+                          {charge.quantity && charge.quantity > 1
+                            ? `(${charge.quantity}x)`
+                            : ""}
+                          :
+                        </span>
+                        <span>
+                          {charge.charge_type === "PERCENTAGE"
+                            ? `${charge.value}%`
+                            : `RM ${(
+                                charge.value * (charge.quantity || 1)
+                              ).toFixed(2)}`}
+                        </span>
                       </div>
                     ))}
 
-                    {/* <div className="border-t pt-2 flex justify-between font-bold">
+                    <div className="border-t pt-2 flex justify-between font-bold">
                       <span>Total:</span>
-                      <span>${shippingRate.cost_breakdown.total_cost}</span>
-                    </div> */}
+                      <span>
+                        RM {shippingRate.cost_breakdown.total_cost.toFixed(2)}
+                      </span>
+                    </div>
 
                     {/* Total Bill */}
                     <div className="space-y-4 pt-4">
@@ -1310,9 +1723,65 @@ export function ShipmentForm({
             )}
 
             <div className="flex flex-col sm:flex-row gap-4 sm:justify-end mt-2">
-              {/* <Button type="button" variant="outline" disabled={isSubmitting}>
-                Print AWB
-              </Button> */}
+              {mode === "edit" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    console.log("Current form data:", formData);
+                    console.log(
+                      "City value:",
+                      formData.city,
+                      "type:",
+                      typeof formData.city
+                    );
+                    console.log(
+                      "Service type value:",
+                      formData.service_type,
+                      "type:",
+                      typeof formData.service_type
+                    );
+                    console.log(
+                      "Additional charges:",
+                      formData.additional_charges
+                    );
+
+                    // Show city matching info
+                    if (cities.length) {
+                      const cityMatch = cities.find(
+                        (c) => String(c.id) === String(formData.city)
+                      );
+                      console.log("City match:", cityMatch);
+                      console.log(
+                        "Available cities:",
+                        cities.map((c) => ({ id: c.id, name: c.name }))
+                      );
+                    }
+
+                    // Show service type matching info
+                    if (serviceTypes.length) {
+                      const serviceMatch = serviceTypes.find(
+                        (s) => String(s.id) === String(formData.service_type)
+                      );
+                      console.log("Service type match:", serviceMatch);
+                      console.log(
+                        "Available service types:",
+                        serviceTypes.map((s) => ({ id: s.id, name: s.name }))
+                      );
+                    }
+
+                    // Show additional charges info
+                    if (formData.additional_charges?.length) {
+                      console.log("Additional charges details:");
+                      formData.additional_charges.forEach((charge, i) => {
+                        console.log(`Charge ${i + 1}:`, charge);
+                      });
+                    }
+                  }}
+                >
+                  Debug Data
+                </Button>
+              )}
               <Button
                 type="submit"
                 disabled={isSubmitting}
