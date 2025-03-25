@@ -7,6 +7,7 @@ import {
   ShipmentProps,
 } from "@/components/staff/manage-shipment";
 import { ShipmentForm } from "@/components/staff/shipment-form";
+import { UserShipments } from "@/components/staff/user-shipments";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
@@ -17,9 +18,11 @@ import {
   History,
   Package,
   PackagePlus,
+  Users,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+
 export default function StaffDashboard() {
   const [activeTab, setActiveTab] = useState("createShipment");
   const { user, getUser, loading, isStaffUser } = useAuth();
@@ -192,7 +195,7 @@ export default function StaffDashboard() {
           >
             {/* Desktop and Tablet Navigation */}
             <div className="hidden sm:block">
-              <TabsList className="grid w-full grid-cols-2 gap-1">
+              <TabsList className="grid w-full grid-cols-3 gap-1">
                 <TabsTrigger
                   value="createShipment"
                   className="flex items-center gap-2 text-sm"
@@ -206,26 +209,40 @@ export default function StaffDashboard() {
                 >
                   <Package className="h-4 w-4" />
                   <span>Manage Shipments</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="userShipments"
+                  className="flex items-center gap-2 text-sm"
+                >
+                  <Users className="h-4 w-4" />
+                  <span>User Shipments</span>
                 </TabsTrigger>
               </TabsList>
             </div>
 
-            {/* Mobile Navigation - Primary */}
+            {/* Mobile Navigation */}
             <div className="sm:hidden">
-              <TabsList className="grid w-full grid-cols-2 gap-1">
+              <TabsList className="grid w-full grid-cols-3 gap-1">
                 <TabsTrigger
                   value="createShipment"
                   className="flex items-center justify-center gap-1 text-xs"
                 >
                   <PackagePlus className="h-4 w-4" />
-                  <span>Create Shipment</span>
+                  <span>Create</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="manageShipments"
                   className="flex items-center justify-center gap-1 text-xs"
                 >
                   <Package className="h-4 w-4" />
-                  <span>Manage Shipments</span>
+                  <span>Manage</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="userShipments"
+                  className="flex items-center justify-center gap-1 text-xs"
+                >
+                  <Users className="h-4 w-4" />
+                  <span>Users</span>
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -237,6 +254,9 @@ export default function StaffDashboard() {
               </TabsContent>
               <TabsContent value="manageShipments" className="space-y-4">
                 <ManageShipment user={user} setTotal={setTotal} />
+              </TabsContent>
+              <TabsContent value="userShipments" className="space-y-4">
+                <UserShipments />
               </TabsContent>
             </div>
           </Tabs>
