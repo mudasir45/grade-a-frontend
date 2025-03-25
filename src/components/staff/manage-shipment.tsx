@@ -44,6 +44,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Extras } from "@/lib/types/shipping";
 import {
   Eye,
+  MessageSquare,
   MoreHorizontal,
   Pencil,
   RefreshCcw,
@@ -53,12 +54,14 @@ import {
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import ShipmentDetailsDialog from "../ui/shipment-details";
+import { GenerateMessageDialog } from "./generate-message-dialog";
 import { ShipmentForm } from "./shipment-form";
 import { UpdateStatusDialog } from "./update-status-dialog";
 // Update the imports and add interface for shipment type
 export interface ShipmentProps {
   id: string;
   user: string;
+  user_id?: string;
   cod_amount: string;
   payment_method: string;
   payment_status: string;
@@ -136,6 +139,7 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
   const [shipments, setShipments] = useState<ShipmentProps[]>([]);
   const token = localStorage.getItem("auth_token");
   const router = useRouter();
+  const [messageDialogOpen, setMessageDialogOpen] = useState(false);
   console.log(selectedShipment);
   // Filter shipments based on search term and status filter
 
@@ -318,6 +322,12 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
     }
   };
 
+  // Function to handle message generation click
+  const handleGenerateMessageClick = (shipment: ShipmentProps) => {
+    setSelectedShipment(shipment);
+    setMessageDialogOpen(true);
+  };
+
   return (
     <>
       <Card className="w-full">
@@ -433,6 +443,13 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
                           <Trash2 className="h-4 w-4" />
                           Delete
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="flex items-center gap-2"
+                          onClick={() => handleGenerateMessageClick(shipment)}
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                          Generate Message
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -527,6 +544,15 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
                             >
                               <Trash2 className="h-4 w-4" />
                               Delete
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="flex items-center gap-2"
+                              onClick={() =>
+                                handleGenerateMessageClick(shipment)
+                              }
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                              Generate Message
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -640,6 +666,13 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <GenerateMessageDialog
+        isOpen={messageDialogOpen}
+        onClose={() => setMessageDialogOpen(false)}
+        shipmentId={selectedShipment?.id || ""}
+        userId={selectedShipment?.user_id}
+      />
     </>
   );
 }
