@@ -113,6 +113,7 @@ export function ShippingCalculator() {
         width: 0,
         height: 0,
         service_type: formData.method,
+        calculation_type: "weight",
       });
 
       setResult({

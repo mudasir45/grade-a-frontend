@@ -180,8 +180,10 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
       name: "",
       postal_code: "",
       delivery_charge: "0",
+      is_active: true,
     },
     extras: [],
+    delivery_charge: "0",
   });
 
   useEffect(() => {
@@ -834,6 +836,7 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                                   delivery_charge: "0",
                                 },
                                 extras: [],
+                                delivery_charge: "0",
                               });
                             } else {
                               handlePaymentContinuation(shipment);
