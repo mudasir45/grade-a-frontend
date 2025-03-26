@@ -261,6 +261,7 @@ export interface ShipmentResponse {
 
 export interface NewShipmentResponse {
   id: string;
+  tracking_number: string;
   user: string;
   cod_amount: string;
   payment_method: string;
@@ -287,7 +288,6 @@ export interface NewShipmentResponse {
   declared_value: string;
   insurance_required: boolean;
   signature_required: boolean;
-  tracking_number: string;
   current_location: string;
   estimated_delivery?: string | null;
   status: ShipmentStatus;
@@ -304,6 +304,7 @@ export interface NewShipmentResponse {
   service_type: string;
   city: City;
   extras: Extras[];
+  delivery_charge: string;
 }
 
 export interface Extras {

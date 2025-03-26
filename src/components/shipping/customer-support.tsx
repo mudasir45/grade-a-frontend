@@ -16,27 +16,133 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { formatDate } from "@/lib/utils";
 import { Mail, MessageSquare, Phone, Send } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+interface SupportTicket {
+  ticket_number: string;
+  subject: string;
+  message: string;
+  category: "SHIPPING" | "PAYMENT" | "TRACKING" | "DELIVERY" | "OTHER";
+  status: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+  created_at: string;
+  updated_at: string;
+  resolved_at: string | null;
+  comments: any[];
+}
 
 export function CustomerSupport() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [formData, setFormData] = useState({
     subject: "",
     category: "",
     message: "",
   });
+  const [formErrors, setFormErrors] = useState({
+    subject: "",
+    category: "",
+    message: "",
+  });
+
+  // Fetch tickets on component mount
+  useEffect(() => {
+    fetchTickets();
+  }, []);
+
+  const fetchTickets = async () => {
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/accounts/tickets/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch tickets");
+      }
+
+      const data = await response.json();
+      setTickets(data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch support tickets",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const validateForm = () => {
+    const errors = {
+      subject: "",
+      category: "",
+      message: "",
+    };
+
+    if (!formData.subject.trim()) {
+      errors.subject = "Subject is required";
+    }
+
+    if (!formData.category) {
+      errors.category = "Category is required";
+    }
+
+    if (!formData.message.trim()) {
+      errors.message = "Message is required";
+    }
+
+    setFormErrors(errors);
+    return !Object.values(errors).some((error) => error !== "");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/accounts/tickets/`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            subject: formData.subject.trim(),
+            category: formData.category.toUpperCase(),
+            message: formData.message.trim(),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to create ticket");
+      }
 
       toast({
         title: "Support Ticket Created",
@@ -48,6 +154,9 @@ export function CustomerSupport() {
         category: "",
         message: "",
       });
+
+      // Refresh tickets list
+      fetchTickets();
     } catch (error) {
       toast({
         title: "Error",
@@ -56,6 +165,21 @@ export function CustomerSupport() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "OPEN":
+        return "bg-yellow-500";
+      case "IN_PROGRESS":
+        return "bg-blue-500";
+      case "RESOLVED":
+        return "bg-green-500";
+      case "CLOSED":
+        return "bg-gray-500";
+      default:
+        return "bg-gray-500";
     }
   };
 
@@ -81,7 +205,11 @@ export function CustomerSupport() {
                     setFormData({ ...formData, subject: e.target.value })
                   }
                   placeholder="Brief description of your issue"
+                  className={formErrors.subject ? "border-red-500" : ""}
                 />
+                {formErrors.subject && (
+                  <p className="text-sm text-red-500">{formErrors.subject}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -92,16 +220,22 @@ export function CustomerSupport() {
                     setFormData({ ...formData, category: value })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger
+                    className={formErrors.category ? "border-red-500" : ""}
+                  >
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="shipping">Shipping Issue</SelectItem>
                     <SelectItem value="tracking">Tracking Issue</SelectItem>
                     <SelectItem value="payment">Payment Issue</SelectItem>
+                    <SelectItem value="delivery">Delivery Issue</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
+                {formErrors.category && (
+                  <p className="text-sm text-red-500">{formErrors.category}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -114,7 +248,11 @@ export function CustomerSupport() {
                   }
                   placeholder="Describe your issue in detail"
                   rows={5}
+                  className={formErrors.message ? "border-red-500" : ""}
                 />
+                {formErrors.message && (
+                  <p className="text-sm text-red-500">{formErrors.message}</p>
+                )}
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
@@ -122,6 +260,64 @@ export function CustomerSupport() {
                 {loading ? "Submitting..." : "Submit Ticket"}
               </Button>
             </form>
+          </CardContent>
+        </Card>
+
+        {/* Support Tickets List */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Your Support Tickets</CardTitle>
+            <CardDescription>
+              View and track your support requests
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Ticket #</TableHead>
+                    <TableHead>Subject</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tickets.map((ticket) => (
+                    <TableRow key={ticket.ticket_number}>
+                      <TableCell className="font-medium">
+                        {ticket.ticket_number}
+                      </TableCell>
+                      <TableCell>{ticket.subject}</TableCell>
+                      <TableCell className="capitalize">
+                        {ticket.category.toLowerCase()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center">
+                          <div
+                            className={`h-2 w-2 rounded-full mr-2 ${getStatusColor(
+                              ticket.status
+                            )}`}
+                          />
+                          <span className="capitalize">
+                            {ticket.status.toLowerCase()}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{formatDate(ticket.created_at)}</TableCell>
+                    </TableRow>
+                  ))}
+                  {tickets.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8">
+                        No support tickets found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>

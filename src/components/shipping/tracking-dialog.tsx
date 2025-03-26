@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ShippingAPI } from "@/lib/api/shipping";
+import { NewShipmentResponse } from "@/lib/types/shipping";
 import { formatDate } from "@/lib/utils";
 import { Loader2, Package, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -15,11 +16,13 @@ import { useEffect, useState } from "react";
 interface TrackingDialogProps {
   trackingNumber: string;
   open: boolean;
+  shipment: NewShipmentResponse | null;
   onClose: () => void;
 }
 
 export function TrackingDialog({
   trackingNumber,
+  shipment,
   open,
   onClose,
 }: TrackingDialogProps) {
@@ -68,11 +71,11 @@ export function TrackingDialog({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Tracking Number</p>
-                <p className="font-medium">{trackingData.tracking_number}</p>
+                <p className="font-medium">{shipment?.tracking_number}</p>
               </div>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Status</p>
-                <p className="font-medium">{trackingData.status}</p>
+                <p className="font-medium">{shipment?.status}</p>
               </div>
             </div>
 
@@ -82,27 +85,27 @@ export function TrackingDialog({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Status</p>
-                  <p className="font-medium">{trackingData.status}</p>
+                  <p className="font-medium">{shipment?.status}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
                     Payment Status
                   </p>
                   <p className="font-medium">
-                    {trackingData.payment_status || "Unknown"}
+                    {shipment?.payment_status || "Unknown"}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Location</p>
                   <p className="font-medium">{trackingData.current_location}</p>
                 </div>
-                {trackingData.estimated_delivery && (
+                {shipment?.estimated_delivery && (
                   <div>
                     <p className="text-sm text-muted-foreground">
                       Estimated Delivery
                     </p>
                     <p className="font-medium">
-                      {formatDate(trackingData.estimated_delivery)}
+                      {formatDate(shipment?.estimated_delivery)}
                     </p>
                   </div>
                 )}
@@ -110,43 +113,94 @@ export function TrackingDialog({
             </div>
 
             {/* Shipment Details */}
-            <div>
+            <div className="space-y-4">
               <h3 className="text-sm font-medium mb-3">Shipment Details</h3>
               <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
                 <div>
                   <p className="text-sm text-muted-foreground">From</p>
-                  <p className="font-medium">
-                    {trackingData.shipment_details.origin.name}
-                  </p>
-                  <p className="text-sm">
-                    {trackingData.shipment_details.origin.country}
-                  </p>
+                  <p className="font-medium">{shipment?.sender_name}</p>
+                  <p className="text-sm">{shipment?.sender_address}</p>
+                  <p className="text-sm">{shipment?.sender_country}</p>
+                  <p className="text-sm">{shipment?.sender_email}</p>
+                  <p className="text-sm">{shipment?.sender_phone}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">To</p>
-                  <p className="font-medium">
-                    {trackingData.shipment_details.destination.name}
-                  </p>
-                  <p className="text-sm">
-                    {trackingData.shipment_details.destination.country}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Service Type</p>
-                  <p className="font-medium capitalize">
-                    {trackingData.shipment_details.service}
-                  </p>
+                  <p className="font-medium">{shipment?.recipient_name}</p>
+                  <p className="text-sm">{shipment?.recipient_address}</p>
+                  <p className="text-sm">{shipment?.recipient_country}</p>
+                  <p className="text-sm">{shipment?.recipient_email}</p>
+                  <p className="text-sm">{shipment?.recipient_phone}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
                     Package Details
                   </p>
-                  <p className="font-medium">
-                    {trackingData.shipment_details.package.weight}kg,
-                    {trackingData.shipment_details.package.dimensions.length}x
-                    {trackingData.shipment_details.package.dimensions.width}x
-                    {trackingData.shipment_details.package.dimensions.height}cm
+                  <p className="font-medium">{shipment?.package_type}</p>
+                  <p className="text-sm">Weight: {shipment?.weight} kg</p>
+                  <p className="text-sm">
+                    Dimensions: {shipment?.length}x{shipment?.width}x
+                    {shipment?.height} cm
                   </p>
+                  <p className="text-sm">
+                    Declared Value: ${shipment?.declared_value}
+                  </p>
+                  <p className="text-sm">{shipment?.description}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Service Details
+                  </p>
+                  <p className="font-medium capitalize">
+                    {shipment?.service_type}
+                  </p>
+                  <p className="text-sm">
+                    Insurance:{" "}
+                    {shipment?.insurance_required ? "Required" : "Not Required"}
+                  </p>
+                  <p className="text-sm">
+                    Signature:{" "}
+                    {shipment?.signature_required ? "Required" : "Not Required"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Cost Breakdown */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium mb-3">Cost Breakdown</h3>
+              <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    City Delivery Charge
+                  </p>
+                  <p className="font-medium">${shipment?.delivery_charge}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Per KG Rate</p>
+                  <p className="font-medium">${shipment?.per_kg_rate}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Weight Charge</p>
+                  <p className="font-medium">${shipment?.weight_charge}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Service Charge
+                  </p>
+                  <p className="font-medium">${shipment?.service_charge}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Additional Charges
+                  </p>
+                  <p className="font-medium">
+                    ${shipment?.total_additional_charges}
+                  </p>
+                </div>
+                <div className="p-2 border rounded bg-background">
+                  <p className="text-sm text-muted-foreground">Total Cost</p>
+                  <p className="font-medium text-lg">${shipment?.total_cost}</p>
                 </div>
               </div>
             </div>

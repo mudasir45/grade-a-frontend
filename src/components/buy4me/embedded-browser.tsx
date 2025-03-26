@@ -41,9 +41,11 @@ export function EmbeddedBrowser() {
     name: "",
     price: "",
     quantity: "1",
-    specifications: "",
+    color: "",
+    size: "",
     notes: "",
   });
+  const [urlError, setUrlError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchSupportedStores = async () => {
@@ -53,14 +55,44 @@ export function EmbeddedBrowser() {
     fetchSupportedStores();
   }, [getSupportedStores]);
 
+  // Add URL validation function
+  const validateProductUrl = (url: string): boolean => {
+    try {
+      const urlObj = new URL(url);
+      const isSupportedStore = supportedStores.some((store) => {
+        const storeUrl = new URL(store.url);
+        return urlObj.hostname === storeUrl.hostname;
+      });
+
+      if (!isSupportedStore) {
+        setUrlError(
+          "This URL is not from a supported store. Please use a URL from one of our supported stores."
+        );
+        return false;
+      }
+
+      setUrlError(null);
+      return true;
+    } catch (error) {
+      setUrlError("Please enter a valid URL");
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
       setLoading(true);
+      setUrlError(null);
 
       if (!productForm.url || !productForm.name || !productForm.price) {
         throw new Error("Please fill in all required fields");
+      }
+
+      // Validate URL before proceeding
+      if (!validateProductUrl(productForm.url)) {
+        return;
       }
 
       const price = parseFloat(productForm.price);
@@ -79,7 +111,8 @@ export function EmbeddedBrowser() {
         currency: "USD",
         product_url: productForm.url,
         quantity: quantity,
-        specifications: productForm.specifications,
+        color: productForm.color,
+        size: productForm.size,
         notes: productForm.notes,
       };
 
@@ -92,7 +125,8 @@ export function EmbeddedBrowser() {
         name: "",
         price: "",
         quantity: "1",
-        specifications: "",
+        color: "",
+        size: "",
         notes: "",
       });
 
@@ -111,6 +145,17 @@ export function EmbeddedBrowser() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Add URL validation on input change
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value;
+    setProductForm({ ...productForm, url });
+    if (url) {
+      validateProductUrl(url);
+    } else {
+      setUrlError(null);
     }
   };
 
@@ -194,11 +239,11 @@ export function EmbeddedBrowser() {
                   required
                   type="url"
                   value={productForm.url}
-                  onChange={(e) =>
-                    setProductForm({ ...productForm, url: e.target.value })
-                  }
+                  onChange={handleUrlChange}
                   placeholder="Product URL"
+                  className={urlError ? "border-red-500" : ""}
                 />
+                {urlError && <p className="text-sm text-red-500">{urlError}</p>}
               </div>
 
               <div className="space-y-2">
@@ -240,14 +285,27 @@ export function EmbeddedBrowser() {
                 />
               </div>
 
-              <div className="space-y-2 md:col-span-2">
-                <label className="text-sm font-medium">Specifications</label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Color</label>
                 <Input
-                  value={productForm.specifications}
+                  value={productForm.color}
                   onChange={(e) =>
                     setProductForm({
                       ...productForm,
-                      specifications: e.target.value,
+                      color: e.target.value,
+                    })
+                  }
+                  placeholder="Size, color, or other specifications"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Size</label>
+                <Input
+                  value={productForm.size}
+                  onChange={(e) =>
+                    setProductForm({
+                      ...productForm,
+                      size: e.target.value,
                     })
                   }
                   placeholder="Size, color, or other specifications"

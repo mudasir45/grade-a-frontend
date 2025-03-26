@@ -22,13 +22,9 @@ export function useBuy4Me() {
       setLoading(true);
       const token = localStorage.getItem("auth_token");
 
-      console.log(
-        "Active request before calling the first api: ",
-        activeRequest
-      );
       // Fetch existing requests
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/buy4me/requests/`,
+        `${process.env.NEXT_PUBLIC_API_URL}/buy4me/active-request/`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -42,46 +38,8 @@ export function useBuy4Me() {
       const data = await response.json();
       console.log("Data", data);
 
-      // Find an existing draft request
-      let draftRequest = data.results.find(
-        (req: Buy4MeRequest) => req.status === "DRAFT"
-      );
-
-      if (draftRequest) {
-        // Ensure the items property is an array
-        draftRequest = { ...draftRequest, items: draftRequest.items || [] };
-        setActiveRequest(draftRequest);
-        console.log("Active Request", draftRequest);
-        localStorage.setItem("activeRequest", JSON.stringify(draftRequest));
-        return draftRequest;
-      } else {
-        // Create new draft request if none exists
-        const newRequestResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/buy4me/requests/`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              shipping_address: "will change later", // Will be set later
-              notes: "",
-              status: "DRAFT",
-            }),
-          }
-        );
-
-        if (!newRequestResponse.ok) throw new Error("Failed to create request");
-
-        let newRequest = await newRequestResponse.json();
-        // Ensure newRequest.items is always an array
-        newRequest = { ...newRequest, items: newRequest.items || [] };
-        console.log("Active Request", newRequest);
-        setActiveRequest(newRequest);
-        localStorage.setItem("activeRequest", JSON.stringify(newRequest));
-        return newRequest;
-      }
+      setActiveRequest(data);
+      localStorage.setItem("activeRequest", JSON.stringify(data));
     } catch (error) {
       console.error("Error initializing request:", error);
     } finally {
