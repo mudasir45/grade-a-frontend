@@ -214,7 +214,7 @@ export default function ShippingDashboard() {
             {/* Tab Content */}
             <div className="mt-4 sm:mt-6">
               <TabsContent value="ship" className="space-y-4">
-                <ShipmentForm />
+                <ShipmentForm onSuccess={() => getShipmentStats()} />
               </TabsContent>
 
               <TabsContent value="track" className="space-y-4">
