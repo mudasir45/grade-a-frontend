@@ -64,9 +64,13 @@ export function HeroSection() {
             className="mt-10 flex flex-col md:flex-row gap-6 items-center justify-center gap-x-6"
           >
             <Button
-              onClick={() => router.push("/shipping")}
+              onClick={() => {
+                window.location.href = `https://wa.me/+601136907583?text=${encodeURIComponent(
+                  "Hello, I would like to get more information about shipping services"
+                )}`;
+              }}
               size="lg"
-              className="gap-2"
+              className="gap-2 cursor-pointer"
             >
               <Package className="h-5 w-5" />
               Ship Now

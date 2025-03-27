@@ -1,3 +1,5 @@
+import CallButton from "@/components/base/CallButton";
+import WhatsAppButton from "@/components/base/WhatsAppButton";
 import { Footer } from "@/components/footer";
 import { Navbar } from "@/components/navbar";
 import { Providers } from "@/components/providers";
@@ -32,6 +34,8 @@ export default function RootLayout({
           </Providers>
         </PaymentProvider>
       </body>
+      <CallButton />
+      <WhatsAppButton />
     </html>
   );
 }

@@ -135,6 +135,9 @@ export function UpdateStatusDialog({
               <SelectItem key={index} value={String(status.id)}>
                 <span className="flex items-center gap-2">
                   <span>{status.status_type}</span>
+                  <span className="text-xs text-gray-500">
+                    ({status.location_name})
+                  </span>
                 </span>
               </SelectItem>
             ))}

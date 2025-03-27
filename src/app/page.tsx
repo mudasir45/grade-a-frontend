@@ -12,6 +12,7 @@ export default function Home() {
       <HowItWorks />
       <ShippingCalculator />
       {/* <Testimonials /> */}
+   
     </div>
   );
 }
