@@ -11,85 +11,80 @@ import { Container } from "@/components/ui/container";
 import { motion } from "framer-motion";
 import { HelpCircle, Mail, MessageSquare } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-const faqs = [
-  {
-    question: "How can I track my shipment?",
-    answer:
-      "You can track your shipment by entering your tracking number on our tracking page. The tracking number is provided in your shipping confirmation email. Our system provides real-time updates on your package's location and estimated delivery date.",
-    category: "tracking",
-  },
-  {
-    question: "What should I do if my tracking number isn't working?",
-    answer:
-      "If your tracking number isn't working, please wait 24-48 hours after receiving it as it may take time to activate in our system. If it still doesn't work after this period, please contact our customer support team with your order details.",
-    category: "tracking",
-  },
-  {
-    question: "How long does shipping from Malaysia to Nigeria take?",
-    answer:
-      "Shipping times vary based on the service you choose. Express delivery typically takes 3-5 business days, while standard shipping takes 7-10 business days. Delivery times may be affected by customs clearance and local delivery conditions.",
-    category: "shipping",
-  },
-  {
-    question: "What are the shipping rates?",
-    answer:
-      "Our shipping rates depend on the package weight, dimensions, destination, and chosen service level. You can get an instant quote using our shipping calculator on the shipping page. We offer competitive rates with no hidden fees.",
-    category: "shipping",
-  },
-  {
-    question: "Do you provide customs clearance assistance?",
-    answer:
-      "Yes, we provide customs clearance assistance for all international shipments. Our team handles the necessary documentation and works with customs authorities to ensure smooth processing. However, any import duties or taxes are the responsibility of the recipient.",
-    category: "customs",
-  },
-  {
-    question: "How does the Buy4Me service work?",
-    answer:
-      "Our Buy4Me service allows you to purchase items from Malaysian stores that don't ship internationally. Simply send us the details of what you want to buy, we'll purchase it on your behalf, and ship it to your address in Nigeria or other destinations.",
-    category: "services",
-  },
-  {
-    question: "What is package consolidation and how does it save money?",
-    answer:
-      "Package consolidation combines multiple packages into a single shipment. This saves money by reducing the overall shipping cost and potentially lowering customs fees. It's ideal if you're shopping from multiple stores in Malaysia.",
-    category: "services",
-  },
-  {
-    question: "What happens if my package is lost or damaged?",
-    answer:
-      "All shipments include basic insurance coverage. If your package is lost or damaged during transit, please contact our customer support within 7 days of the expected delivery date. We'll investigate and process a claim based on our shipping insurance policy.",
-    category: "issues",
-  },
-  {
-    question: "Can I change my delivery address after shipping?",
-    answer:
-      "Address changes may be possible if the package hasn't been dispatched for final delivery. Contact our customer support team as soon as possible with your tracking number and the new delivery address. Additional fees may apply.",
-    category: "shipping",
-  },
-  {
-    question: "Do you ship to other countries besides Nigeria?",
-    answer:
-      "Yes, while we specialize in Malaysia to Nigeria shipping, we also serve many other countries. Contact our customer service team for specific destination availability and rates.",
-    category: "shipping",
-  },
-];
+// Define interfaces for API data
+interface FAQCategory {
+  id: string;
+  name: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+}
 
-const categories = [
-  { id: "all", name: "All Questions" },
-  { id: "tracking", name: "Tracking" },
-  { id: "shipping", name: "Shipping" },
-  { id: "customs", name: "Customs" },
-  { id: "services", name: "Our Services" },
-  { id: "issues", name: "Issues & Claims" },
-];
+interface FAQ {
+  id: string;
+  question: string;
+  answer: string;
+  created_at: string;
+  updated_at: string;
+  category: string;
+}
 
 export default function FAQPage() {
+  const [categories, setCategories] = useState<
+    (FAQCategory | { id: string; name: string })[]
+  >([{ id: "all", name: "All Questions" }]);
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [activeCategory, setActiveCategory] = useState("all");
   const [expandedItem, setExpandedItem] = useState<string | undefined>(
     undefined
   );
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch categories and FAQs on component mount
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+    const fetchCategoriesAndFaqs = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch categories
+        const categoriesResponse = await fetch(
+          `${apiUrl}/website-content/faq-categories/`
+        );
+        if (!categoriesResponse.ok) {
+          throw new Error("Failed to fetch categories");
+        }
+        const categoriesData: FAQCategory[] = await categoriesResponse.json();
+
+        // Add "All Questions" category at the beginning
+        setCategories([
+          { id: "all", name: "All Questions" },
+          ...categoriesData.map((cat) => ({
+            id: cat.id,
+            name: cat.name.charAt(0).toUpperCase() + cat.name.slice(1), // Capitalize first letter
+          })),
+        ]);
+
+        // Fetch FAQs
+        const faqsResponse = await fetch(`${apiUrl}/website-content/faqs/`);
+        if (!faqsResponse.ok) {
+          throw new Error("Failed to fetch FAQs");
+        }
+        const faqsData: FAQ[] = await faqsResponse.json();
+        setFaqs(faqsData);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError("Failed to load FAQ data. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCategoriesAndFaqs();
+  }, []);
 
   // Filter FAQs based on selected category
   const filteredFaqs =
@@ -97,10 +92,42 @@ export default function FAQPage() {
       ? faqs
       : faqs.filter((faq) => faq.category === activeCategory);
 
+  // Function to get category name by ID
+  const getCategoryName = (categoryId: string): string => {
+    const category = categories.find((cat) => cat.id === categoryId);
+    return category ? category.name : "Uncategorized";
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-16 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading FAQ data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-16 flex items-center justify-center">
+        <div className="text-center max-w-lg mx-auto p-6 bg-white rounded-lg shadow">
+          <HelpCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
+          <h2 className="text-xl font-bold text-gray-800 mb-2">
+            Error Loading FAQs
+          </h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-indigo-700 py-16 text-white">
+      <section className="bg-white py-16 text-black">
         <Container>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -156,13 +183,13 @@ export default function FAQPage() {
               >
                 {filteredFaqs.map((faq, index) => (
                   <motion.div
-                    key={`${activeCategory}-${index}`}
+                    key={faq.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                   >
                     <AccordionItem
-                      value={`item-${index}`}
+                      value={faq.id}
                       className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm"
                     >
                       <AccordionTrigger className="px-6 py-4 hover:bg-gray-50 text-left font-medium text-gray-800">
