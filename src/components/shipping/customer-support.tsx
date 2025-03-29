@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,6 +9,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -26,20 +34,18 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { formatDate } from "@/lib/utils";
-import { Mail, MessageSquare, Phone, Send } from "lucide-react";
+import { format } from "date-fns";
+import { Eye, Mail, MapPin, Phone, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface SupportTicket {
-  ticket_number: string;
+  id: string;
   subject: string;
   message: string;
-  category: "SHIPPING" | "PAYMENT" | "TRACKING" | "DELIVERY" | "OTHER";
-  status: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+  category: string;
+  status: string;
   created_at: string;
-  updated_at: string;
-  resolved_at: string | null;
-  comments: any[];
+  admin_reply: string | null;
 }
 
 export function CustomerSupport() {
@@ -56,6 +62,10 @@ export function CustomerSupport() {
     category: "",
     message: "",
   });
+  const [ticketDetailsOpen, setTicketDetailsOpen] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(
+    null
+  );
 
   // Fetch tickets on component mount
   useEffect(() => {
@@ -183,6 +193,11 @@ export function CustomerSupport() {
     }
   };
 
+  const handleViewTicketDetails = (ticket: SupportTicket) => {
+    setSelectedTicket(ticket);
+    setTicketDetailsOpen(true);
+  };
+
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <div className="space-y-6">
@@ -281,31 +296,40 @@ export function CustomerSupport() {
                     <TableHead>Category</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {tickets.map((ticket) => (
-                    <TableRow key={ticket.ticket_number}>
-                      <TableCell className="font-medium">
-                        {ticket.ticket_number}
-                      </TableCell>
+                    <TableRow key={ticket.id}>
+                      <TableCell className="font-medium">{ticket.id}</TableCell>
                       <TableCell>{ticket.subject}</TableCell>
-                      <TableCell className="capitalize">
-                        {ticket.category.toLowerCase()}
+                      <TableCell>{ticket.category}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            ticket.status === "OPEN"
+                              ? "default"
+                              : ticket.status === "IN_PROGRESS"
+                              ? "secondary"
+                              : "outline"
+                          }
+                        >
+                          {ticket.status}
+                        </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center">
-                          <div
-                            className={`h-2 w-2 rounded-full mr-2 ${getStatusColor(
-                              ticket.status
-                            )}`}
-                          />
-                          <span className="capitalize">
-                            {ticket.status.toLowerCase()}
-                          </span>
-                        </div>
+                        {format(new Date(ticket.created_at), "PPP")}
                       </TableCell>
-                      <TableCell>{formatDate(ticket.created_at)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleViewTicketDetails(ticket)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                   {tickets.length === 0 && (
@@ -338,7 +362,7 @@ export function CustomerSupport() {
               <div>
                 <h3 className="font-medium">Phone Support</h3>
                 <p className="text-sm text-muted-foreground">
-                  +1 (555) 123-4567
+                  +60 11-3690 7583
                 </p>
                 <p className="text-sm text-muted-foreground">
                   Mon-Fri, 9:00 AM - 6:00 PM
@@ -353,7 +377,7 @@ export function CustomerSupport() {
               <div>
                 <h3 className="font-medium">Email Support</h3>
                 <p className="text-sm text-muted-foreground">
-                  support@redboxexpress.com
+                  gradeaplus21@gmail.com
                 </p>
                 <p className="text-sm text-muted-foreground">
                   24/7 Response Time
@@ -362,15 +386,16 @@ export function CustomerSupport() {
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                <MessageSquare className="h-6 w-6 text-primary" />
+              <div className="flex h-14 w-24 items-center justify-center rounded-full bg-primary/10">
+                <MapPin className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h3 className="font-medium">Live Chat</h3>
-                <p className="text-sm text-muted-foreground">Available 24/7</p>
-                <Button variant="link" className="h-auto p-0">
-                  Start Chat
-                </Button>
+                <h3 className="font-medium">Location</h3>
+                <p className="text-sm text-muted-foreground">
+                  Shop 23, Victory plaza, beside Mobil filling station, ilepo
+                  oke odo bus stop, along abule egba/iyana paja express way,
+                  Lagos, Nigeria.
+                </p>
               </div>
             </div>
           </CardContent>
@@ -406,6 +431,97 @@ export function CustomerSupport() {
           </CardContent>
         </Card>
       </div>
+
+      <TicketDetailsDialog
+        ticket={selectedTicket}
+        open={ticketDetailsOpen}
+        onOpenChange={setTicketDetailsOpen}
+      />
     </div>
+  );
+}
+
+function TicketDetailsDialog({
+  ticket,
+  open,
+  onOpenChange,
+}: {
+  ticket: SupportTicket | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  if (!ticket) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold">
+            Support Ticket Details
+          </DialogTitle>
+          <DialogDescription>
+            Ticket #{ticket.id} - {format(new Date(ticket.created_at), "PPP")}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h4 className="font-medium text-sm text-muted-foreground">
+                Subject
+              </h4>
+              <p className="mt-1">{ticket.subject}</p>
+            </div>
+            <div>
+              <h4 className="font-medium text-sm text-muted-foreground">
+                Category
+              </h4>
+              <p className="mt-1">{ticket.category}</p>
+            </div>
+            <div>
+              <h4 className="font-medium text-sm text-muted-foreground">
+                Status
+              </h4>
+              <p className="mt-1">
+                <Badge
+                  variant={
+                    ticket.status === "OPEN"
+                      ? "default"
+                      : ticket.status === "IN_PROGRESS"
+                      ? "secondary"
+                      : "outline"
+                  }
+                >
+                  {ticket.status}
+                </Badge>
+              </p>
+            </div>
+            <div>
+              <h4 className="font-medium text-sm text-muted-foreground">
+                Created
+              </h4>
+              <p className="mt-1">
+                {format(new Date(ticket.created_at), "PPP p")}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-medium text-sm text-muted-foreground">
+              Your Message
+            </h4>
+            <p className="mt-1 whitespace-pre-wrap">{ticket.message}</p>
+          </div>
+
+          {ticket.admin_reply && (
+            <div className="bg-muted/50 p-4 rounded-lg">
+              <h4 className="font-medium text-sm text-muted-foreground">
+                Admin Reply
+              </h4>
+              <p className="mt-1 whitespace-pre-wrap">{ticket.admin_reply}</p>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

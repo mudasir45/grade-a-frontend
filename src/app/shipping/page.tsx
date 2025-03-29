@@ -33,7 +33,7 @@ export default function ShippingDashboard() {
 
   const getShipmentStats = async () => {
     const response = await ShippingAPI.getShipmentStats();
-    setShipmentStats({ ...response, support_tickets: 1 });
+    setShipmentStats(response);
   };
 
   useEffect(() => {
