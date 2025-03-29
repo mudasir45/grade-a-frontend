@@ -41,13 +41,7 @@ interface FieldError {
 }
 
 // Validation schemas
-const emailSchema = z.string().email("Invalid email address");
-const phoneSchema = z
-  .string()
-  .regex(
-    /^\+?[1-9]\d{1,14}$/,
-    "Phone number must be in international format (e.g., +1234567890)"
-  );
+const emailSchema = z.string().email("Invalid email address").optional();
 
 interface ShipmentFormProps {
   mode?: "create" | "edit";
@@ -80,7 +74,6 @@ interface FormData {
   service_type: string;
   insurance_required: boolean;
   signature_required: boolean;
-  packaging_rm: number;
   delivery_rm: number;
   total_rm: number;
   total_naira: number;
@@ -167,7 +160,6 @@ export function ShipmentForm({
     service_type: defaultServiceType || "",
     insurance_required: false,
     signature_required: false,
-    packaging_rm: 0,
     delivery_rm: 0,
     total_rm: 0,
     total_naira: 0,
@@ -233,7 +225,6 @@ export function ShipmentForm({
           initialData.declared_value?.toString() || "0"
         ),
         calculation_type: calculation_type,
-        packaging_rm: parseFloat(initialData.packaging_rm?.toString() || "0"),
         delivery_rm: parseFloat(initialData.delivery_rm?.toString() || "0"),
         total_rm: parseFloat(initialData.total_rm?.toString() || "0"),
         total_naira: parseFloat(initialData.total_naira?.toString() || "0"),
@@ -275,11 +266,8 @@ export function ShipmentForm({
       // Called with name and value separately
       setFormData((prev) => ({ ...prev, [nameOrEvent]: valueInput }));
 
-      // Validate email/phone fields
-      if (
-        typeof valueInput === "string" &&
-        (nameOrEvent.includes("email") || nameOrEvent.includes("phone"))
-      ) {
+      // Only validate email fields
+      if (typeof valueInput === "string" && nameOrEvent.includes("email")) {
         const error = validateField(nameOrEvent, valueInput);
         if (error) {
           setFieldErrors((prev) => [
@@ -295,11 +283,8 @@ export function ShipmentForm({
       const { name, value } = nameOrEvent.target;
       setFormData((prev) => ({ ...prev, [name]: value }));
 
-      // Validate email/phone fields
-      if (
-        typeof value === "string" &&
-        (name.includes("email") || name.includes("phone"))
-      ) {
+      // Only validate email fields
+      if (typeof value === "string" && name.includes("email")) {
         const error = validateField(name, value);
         if (error) {
           setFieldErrors((prev) => [
@@ -324,13 +309,6 @@ export function ShipmentForm({
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(value)) {
         return "Please enter a valid email address";
-      }
-    }
-
-    if (field.includes("phone") && value) {
-      const phoneRegex = /^\+?[0-9]{10,15}$/;
-      if (!phoneRegex.test(value)) {
-        return "Please enter a valid phone number";
       }
     }
 
@@ -474,8 +452,6 @@ export function ShipmentForm({
     formData.width,
     formData.height,
     formData.service_type,
-    formData.insurance_required,
-    formData.packaging_rm,
     formData.city,
     formData.additional_charges,
     formData.calculation_type,
@@ -586,11 +562,6 @@ export function ShipmentForm({
     if (!formData.sender_name) senderErrors.push("Sender name is required");
     if (!formData.sender_phone)
       senderErrors.push("Sender phone number is required");
-    const senderEmailError = validateField(
-      "sender_email",
-      formData.sender_email
-    );
-    if (senderEmailError) senderErrors.push(senderEmailError);
     if (!formData.sender_country)
       senderErrors.push("Sender Country is required");
     if (!formData.sender_address)
@@ -601,11 +572,6 @@ export function ShipmentForm({
       recipientErrors.push("Recipient name is required");
     if (!formData.recipient_phone)
       recipientErrors.push("Recipient phone number is required");
-    const receiverEmailError = validateField(
-      "recipient_email",
-      formData.recipient_email
-    );
-    if (receiverEmailError) recipientErrors.push(receiverEmailError);
     if (!formData.recipient_country)
       recipientErrors.push("Recipient city is required");
     if (!formData.recipient_address)
@@ -786,7 +752,6 @@ export function ShipmentForm({
     setShippingRate(null);
     setFormData((prev) => ({
       ...prev,
-      packaging_rm: 0,
       delivery_rm: 0,
       total_rm: 0,
       total_naira: 0,
@@ -1426,21 +1391,6 @@ export function ShipmentForm({
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="packaging">Packaging (RM)</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    value={formData.packaging_rm}
-                    onChange={(e) =>
-                      handleFieldChange(
-                        "packaging_rm",
-                        parseFloat(e.target.value)
-                      )
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="declared_value">Declared Value (USD)</Label>
                   <Input
                     type="number"
@@ -1471,8 +1421,8 @@ export function ShipmentForm({
             </div>
 
             {/* Additional Charges */}
-            <div className="space-y-4">
-              <h3 className="font-medium">Additional Charges</h3>
+            <div className="space-y-4 mt-6">
+              <h3 className="font-medium">Additional Charges & others</h3>
               <div className="grid gap-2">
                 {extras.map((item) => {
                   //   console.log(`Checking extra: ${item.id} - ${item.name}`);
@@ -1535,7 +1485,12 @@ export function ShipmentForm({
                                     name: item.name,
                                     charge_type: item.charge_type,
                                     value: item.value,
-                                    quantity: 1, // Default quantity
+                                    // For percentage charges, always set quantity to 1
+                                    quantity:
+                                      item.charge_type.toUpperCase() ===
+                                      "PERCENTAGE"
+                                        ? 1
+                                        : 1,
                                   },
                                 ];
                                 handleFieldChange(
@@ -1559,42 +1514,52 @@ export function ShipmentForm({
                         <Label htmlFor={item.id}>{item.name}</Label>
                       </div>
 
-                      {isChecked && (
-                        <div className="flex items-center space-x-2">
-                          <Label
-                            htmlFor={`quantity-${item.id}`}
-                            className="text-sm"
-                          >
-                            Quantity:
-                          </Label>
-                          <Input
-                            id={`quantity-${item.id}`}
-                            type="number"
-                            min={1}
-                            value={quantity}
-                            className="w-20"
-                            onChange={(e) => {
-                              const newQuantity = parseInt(e.target.value) || 1;
-                              const newCharges =
-                                formData.additional_charges.map((charge) =>
-                                  charge.id === item.id
-                                    ? {
-                                        ...charge,
-                                        quantity: newQuantity,
-                                      }
-                                    : charge
+                      {isChecked &&
+                        item.charge_type.toUpperCase() !== "PERCENTAGE" && (
+                          <div className="flex items-center space-x-2">
+                            <Label
+                              htmlFor={`quantity-${item.id}`}
+                              className="text-sm"
+                            >
+                              Quantity:
+                            </Label>
+                            <Input
+                              id={`quantity-${item.id}`}
+                              type="number"
+                              min={1}
+                              value={quantity}
+                              className="w-20"
+                              onChange={(e) => {
+                                // Skip for percentage charges
+                                if (
+                                  item.charge_type.toUpperCase() ===
+                                  "PERCENTAGE"
+                                ) {
+                                  return;
+                                }
+
+                                const newQuantity =
+                                  parseInt(e.target.value) || 1;
+                                const newCharges =
+                                  formData.additional_charges.map((charge) =>
+                                    charge.id === item.id
+                                      ? {
+                                          ...charge,
+                                          quantity: newQuantity,
+                                        }
+                                      : charge
+                                  );
+                                handleFieldChange(
+                                  "additional_charges",
+                                  newCharges
                                 );
-                              handleFieldChange(
-                                "additional_charges",
-                                newCharges
-                              );
-                            }}
-                          />
-                        </div>
-                      )}
+                              }}
+                            />
+                          </div>
+                        )}
 
                       <div className="ml-auto text-sm text-muted-foreground">
-                        {item.charge_type === "PERCENTAGE"
+                        {item.charge_type.toUpperCase() === "PERCENTAGE"
                           ? `${item.value}%`
                           : `RM ${item.value}`}
                       </div>
@@ -1622,9 +1587,7 @@ export function ShipmentForm({
                   <div className="grid gap-2 text-sm sm:text-base">
                     <div className="flex justify-between">
                       <span>Shipping Type Charges:</span>
-                      <span>
-                        RM {shippingRate.cost_breakdown.service_price}
-                      </span>
+                      <span>RM {shippingRate.rate_details.per_kg_rate}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>
@@ -1666,7 +1629,7 @@ export function ShipmentForm({
                           :
                         </span>
                         <span>
-                          {charge.charge_type === "PERCENTAGE"
+                          {charge.charge_type.toUpperCase() === "PERCENTAGE"
                             ? `${charge.value}%`
                             : `RM ${(
                                 charge.value * (charge.quantity || 1)
@@ -1715,7 +1678,7 @@ export function ShipmentForm({
             )}
 
             <div className="flex flex-col sm:flex-row gap-4 sm:justify-end mt-2">
-              {mode === "edit" && (
+              {/* {mode === "edit" && (
                 <Button
                   type="button"
                   variant="outline"
@@ -1773,7 +1736,7 @@ export function ShipmentForm({
                 >
                   Debug Data
                 </Button>
-              )}
+              )} */}
               <Button
                 type="submit"
                 disabled={isSubmitting}

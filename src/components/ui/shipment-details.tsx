@@ -4,8 +4,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import React from "react";
-import { X } from "react-feather";
+import useShippingData from "@/hooks/use-shipping-data";
+import { X } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { ShipmentProps } from "../staff/manage-shipment";
 
 // Define interfaces for shipment details and tracking history.
@@ -20,7 +21,7 @@ interface ShipmentDetailsDialogProps {
   viewDialogOpen: boolean;
   setViewDialogOpen: (open: boolean) => void;
   selectedShipment: ShipmentProps | null;
-  getStatusBadge: (status: string) => React.ReactNode;
+  getStatusBadge: (status: string) => JSX.Element;
 }
 
 // Reusable section component
@@ -28,10 +29,8 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
   title,
   children,
 }) => (
-  <div className="mb-8">
-    <h3 className="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">
-      {title}
-    </h3>
+  <div className="space-y-4">
+    <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
     {children}
   </div>
 );
@@ -43,26 +42,25 @@ const InfoItem: React.FC<{ label: string; value: React.ReactNode }> = ({
 }) => (
   <div className="p-4 border rounded-lg bg-gray-50">
     <div className="text-xs uppercase font-medium text-gray-500">{label}</div>
-    <div className="mt-1 text-lg font-semibold text-gray-700">{value}</div>
+    <div className="mt-1 text-sm text-gray-900">{value}</div>
   </div>
 );
 
 // Tracking Timeline Item component
 const TimelineItem: React.FC<{ history: TrackingHistory }> = ({ history }) => (
-  <div className="relative pl-8 pb-8">
-    {/* Vertical line marker */}
-    <div className="absolute top-0 left-0 w-4 h-4 bg-blue-500 rounded-full border-2 border-white"></div>
-    <div className="ml-4">
-      <div className="flex items-center justify-between">
-        <span className="text-lg font-bold text-gray-800">
-          {history.status}
-        </span>
-        <span className="text-sm text-gray-500">
-          {new Date(history.timestamp).toLocaleString()}
-        </span>
+  <div className="relative pb-8 last:pb-0">
+    <div className="absolute left-0 top-0 h-full w-0.5 bg-gray-200"></div>
+    <div className="relative flex space-x-3">
+      <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
+        <div>
+          <p className="text-sm text-gray-500">
+            {new Date(history.timestamp).toLocaleString()}
+          </p>
+          <p className="text-sm font-medium text-gray-900">{history.status}</p>
+          <p className="text-sm text-gray-500">{history.location}</p>
+          <p className="text-sm text-gray-500">{history.description}</p>
+        </div>
       </div>
-      <div className="mt-1 text-sm text-gray-600">{history.location}</div>
-      <p className="mt-2 text-gray-700">{history.description}</p>
     </div>
   </div>
 );
@@ -73,6 +71,51 @@ const ShipmentDetailsDialog: React.FC<ShipmentDetailsDialogProps> = ({
   selectedShipment,
   getStatusBadge,
 }) => {
+  const {
+    departureCountries,
+    destinationCountries,
+    serviceTypes,
+    isLoading,
+    error: dataError,
+  } = useShippingData();
+
+  const [cities, setCities] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/accounts/cities/`
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch cities");
+        }
+        const data = await response.json();
+        setCities(data);
+      } catch (error) {
+        console.error("Error fetching cities:", error);
+      }
+    };
+    fetchCities();
+  }, []);
+
+  // Helper functions to get names from IDs
+  const getCountryName = (countryId: string, isDeparture: boolean) => {
+    const countries = isDeparture ? departureCountries : destinationCountries;
+    const country = countries.find((c) => c.id === countryId);
+    return country?.name || countryId;
+  };
+
+  const getServiceTypeName = (serviceTypeId: string) => {
+    const serviceType = serviceTypes.find((s) => s.id === serviceTypeId);
+    return serviceType?.name || serviceTypeId;
+  };
+
+  const getCityName = (cityId: string) => {
+    const city = cities.find((c) => c.id === cityId);
+    return city?.name || cityId;
+  };
+
   return (
     <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
       <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg p-8 bg-white shadow-xl">
@@ -151,7 +194,7 @@ const ShipmentDetailsDialog: React.FC<ShipmentDetailsDialogProps> = ({
                 />
                 <InfoItem
                   label="Country"
-                  value={selectedShipment.sender_country}
+                  value={getCountryName(selectedShipment.sender_country, true)}
                 />
               </div>
             </Section>
@@ -177,7 +220,10 @@ const ShipmentDetailsDialog: React.FC<ShipmentDetailsDialogProps> = ({
                 />
                 <InfoItem
                   label="Country"
-                  value={selectedShipment.recipient_country}
+                  value={getCountryName(
+                    selectedShipment.recipient_country,
+                    false
+                  )}
                 />
               </div>
             </Section>
@@ -215,7 +261,11 @@ const ShipmentDetailsDialog: React.FC<ShipmentDetailsDialogProps> = ({
                 />
                 <InfoItem
                   label="Service Type"
-                  value={selectedShipment.service_type}
+                  value={getServiceTypeName(selectedShipment.service_type)}
+                />
+                <InfoItem
+                  label="City"
+                  value={getCityName(selectedShipment.city)}
                 />
               </div>
             </Section>
@@ -224,8 +274,8 @@ const ShipmentDetailsDialog: React.FC<ShipmentDetailsDialogProps> = ({
             <Section title="Charges Breakdown">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                 <InfoItem
-                  label="Base Rate"
-                  value={selectedShipment.base_rate}
+                  label="Regulation Charges"
+                  value={selectedShipment.total_additional_charges}
                 />
                 <InfoItem
                   label="Per KG Rate"
@@ -235,10 +285,10 @@ const ShipmentDetailsDialog: React.FC<ShipmentDetailsDialogProps> = ({
                   label="Weight Charge"
                   value={selectedShipment.weight_charge}
                 />
-                <InfoItem
+                {/* <InfoItem
                   label="Service Charge"
                   value={selectedShipment.service_charge}
-                />
+                /> */}
                 <InfoItem
                   label="Additional Charges"
                   value={selectedShipment.total_additional_charges}
@@ -259,9 +309,11 @@ const ShipmentDetailsDialog: React.FC<ShipmentDetailsDialogProps> = ({
               selectedShipment.tracking_history.length > 0 && (
                 <Section title="Tracking History">
                   <div className="relative border-l-2 border-gray-200 pl-4">
-                    {selectedShipment.tracking_history.map((history, index) => (
-                      <TimelineItem key={index} history={history} />
-                    ))}
+                    {selectedShipment.tracking_history.map(
+                      (history: any, index: number) => (
+                        <TimelineItem key={index} history={history} />
+                      )
+                    )}
                   </div>
                 </Section>
               )}

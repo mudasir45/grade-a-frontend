@@ -271,6 +271,12 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
         throw new Error(errorData.message || "Failed to update shipment");
       }
 
+      // Refresh the shipments list
+      await getStaffShipments();
+
+      // Close the edit dialog
+      setEditDialogOpen(false);
+
       return true; // Return success
     } catch (error) {
       console.error("Error updating shipment:", error);
@@ -326,6 +332,43 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
   const handleGenerateMessageClick = (shipment: ShipmentProps) => {
     setSelectedShipment(shipment);
     setMessageDialogOpen(true);
+  };
+
+  // Function to handle AWB generation
+  const handleGenerateAWB = async (shipment: ShipmentProps) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/shipments/generate-awb/${shipment.id}/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to generate AWB");
+      }
+
+      const data = await response.json();
+
+      // Open the AWB PDF in a new tab
+      window.open(data.awb_url, "_blank");
+
+      toast({
+        title: "Success",
+        description: "AWB generated successfully",
+      });
+    } catch (error) {
+      console.error("Error generating AWB:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to generate AWB",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -410,7 +453,19 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
                           className="flex items-center gap-2"
-                          onClick={() => (window.location.href = "google.com")}
+                          onClick={() => handleGenerateAWB(shipment)}
+                        >
+                          <RefreshCcw className="h-4 w-4" />
+                          Generate AWB
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="flex items-center gap-2"
+                          onClick={() =>
+                            window.open(
+                              `${process.env.NEXT_PUBLIC_SERVER_URL}${shipment.receipt}`,
+                              "_blank"
+                            )
+                          }
                         >
                           <RefreshCcw className="h-4 w-4" />
                           Download Receipt
@@ -505,6 +560,13 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              className="flex items-center gap-2"
+                              onClick={() => handleGenerateAWB(shipment)}
+                            >
+                              <RefreshCcw className="h-4 w-4" />
+                              Generate AWB
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               className="flex items-center gap-2"
                               onClick={() =>

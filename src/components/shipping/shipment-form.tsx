@@ -88,6 +88,13 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
     const getExtras = async () => {
       try {
         const extras = await ShippingAPI.getExtras();
+        console.log(
+          "Loaded extras with charge types:",
+          extras.map((e: { name: string; charge_type: string }) => ({
+            name: e.name,
+            type: e.charge_type,
+          }))
+        );
         setExtras(extras);
       } catch (error) {
         console.log("error while fetching extras");
@@ -319,6 +326,10 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
       if (checked) {
         const extra = extras.find((e) => e.id === extraId);
         if (extra) {
+          // For percentage charge types, always set quantity to 1
+          const finalQuantity =
+            extra.charge_type.toUpperCase() === "PERCENTAGE" ? 1 : quantity;
+
           newExtras = [
             ...currentExtras,
             {
@@ -326,7 +337,7 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
               name: extra.name,
               charge_type: extra.charge_type,
               value: extra.value,
-              quantity: quantity,
+              quantity: finalQuantity,
             },
           ];
         }
@@ -346,6 +357,15 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
   const handleQuantityChange = (extraId: string, value: string | number) => {
     const newQuantity =
       typeof value === "string" ? parseInt(value) || 1 : value;
+
+    // Find the extra to check its charge type
+    const extraItem = extras.find((e) => e.id === extraId);
+
+    // Don't update quantity for percentage charges
+    if (extraItem && extraItem.charge_type.toUpperCase() === "PERCENTAGE") {
+      return;
+    }
+
     setFormData((prev) => {
       const currentExtras = prev.extras || [];
       const updatedExtras = currentExtras.map((extra) =>
@@ -1117,36 +1137,39 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                               handleExtraChange(
                                 item.id,
                                 checked as boolean,
-                                quantity
+                                item.charge_type.toUpperCase() === "PERCENTAGE"
+                                  ? 1
+                                  : quantity
                               )
                             }
                           />
                           <Label htmlFor={item.id}>{item.name}</Label>
                         </div>
 
-                        {isChecked && (
-                          <div className="flex items-center space-x-2">
-                            <Label
-                              htmlFor={`quantity-${item.id}`}
-                              className="text-sm"
-                            >
-                              Quantity:
-                            </Label>
-                            <Input
-                              id={`quantity-${item.id}`}
-                              type="number"
-                              min={1}
-                              value={quantity}
-                              className="w-20"
-                              onChange={(e) =>
-                                handleQuantityChange(item.id, e.target.value)
-                              }
-                            />
-                          </div>
-                        )}
+                        {isChecked &&
+                          item.charge_type.toUpperCase() !== "PERCENTAGE" && (
+                            <div className="flex items-center space-x-2">
+                              <Label
+                                htmlFor={`quantity-${item.id}`}
+                                className="text-sm"
+                              >
+                                Quantity:
+                              </Label>
+                              <Input
+                                id={`quantity-${item.id}`}
+                                type="number"
+                                min={1}
+                                value={quantity}
+                                className="w-20"
+                                onChange={(e) =>
+                                  handleQuantityChange(item.id, e.target.value)
+                                }
+                              />
+                            </div>
+                          )}
 
                         <div className="ml-auto text-sm text-muted-foreground">
-                          {item.charge_type === "PERCENTAGE"
+                          {item.charge_type.toUpperCase() === "PERCENTAGE"
                             ? `${item.value}%`
                             : `RM ${item.value}`}
                         </div>
@@ -1259,22 +1282,22 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                     <div className="grid gap-2">
                       <div className="flex justify-between">
                         <span>Base Rate:</span>
-                        <span>${shippingRate.rate_details.base_rate}</span>
+                        <span>RM {shippingRate.rate_details.base_rate}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Weight Charge:</span>
-                        <span>${shippingRate.rate_details.weight_charge}</span>
+                        <span>
+                          RM {shippingRate.rate_details.weight_charge}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span>Service Charge:</span>
-                        <span>
-                          ${shippingRate.cost_breakdown.service_price}
-                        </span>
+                        <span>RM {shippingRate.rate_details.per_kg_rate}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>City Delivery Charges:</span>
                         <span>
-                          ${shippingRate.cost_breakdown.city_delivery_charge}
+                          RM {shippingRate.cost_breakdown.city_delivery_charge}
                         </span>
                       </div>
                       {shippingRate.cost_breakdown.additional_charges.map(
@@ -1284,20 +1307,20 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                             className="flex justify-between"
                           >
                             <span>{charge.name}:</span>
-                            <span>${charge.amount}</span>
+                            <span>RM {charge.amount}</span>
                           </div>
                         )
                       )}
                       {shippingRate.cost_breakdown.extras?.map((charge) => (
                         <div key={charge.name} className="flex justify-between">
                           <span>{charge.name}:</span>
-                          <span>${charge.value}</span>
+                          <span>RM {charge.value}</span>
                         </div>
                       ))}
                       <Separator />
                       <div className="flex justify-between font-bold">
                         <span>Total:</span>
-                        <span>${shippingRate.cost_breakdown.total_cost}</span>
+                        <span>RM {shippingRate.cost_breakdown.total_cost}</span>
                       </div>
                     </div>
                   </CardContent>
