@@ -23,7 +23,7 @@ export function DriverPaymentHistory() {
       try {
         setLoading(true);
         const response = await fetch(
-          "http://127.0.0.1:8000/api/accounts/driver/payments/",
+          `${process.env.NEXT_PUBLIC_API_URL}/api/accounts/driver/payments/`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("auth_token")}`,

@@ -94,6 +94,7 @@ export interface Buy4MeItem {
   color?: string;
   size?: string;
   notes?: string;
+  store_to_warehouse_delivery_charge?: string;
   total_price?: string;
   created_at?: string;
 }

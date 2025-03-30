@@ -84,7 +84,7 @@ function PaymentConfirmationContent() {
       if (paymentData.requestType === "driver") {
         // Handle driver payment
         const response = await fetch(
-          "http://127.0.0.1:8000/api/accounts/driver/payments/",
+          `${process.env.NEXT_PUBLIC_API_URL}/api/accounts/driver/payments/`,
           {
             method: "POST",
             headers: {

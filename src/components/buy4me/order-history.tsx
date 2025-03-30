@@ -1,99 +1,100 @@
-'use client'
+"use client";
 
-import { OrderDetails } from '@/components/buy4me/order-details'
-import { OrderStatusBadge } from '@/components/buy4me/status-badge'
-import { Button } from '@/components/ui/button'
+import { OrderDetails } from "@/components/buy4me/order-details";
+import { OrderStatusBadge } from "@/components/buy4me/status-badge";
+import { Button } from "@/components/ui/button";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table'
-import { useAuth } from '@/hooks/use-auth'
-import { useToast } from '@/hooks/use-toast'
-import { Buy4MeAPI } from '@/lib/api/buy4me'
-import { formatCurrency, formatDate } from '@/lib/utils'
-import { Loader2, Search } from 'lucide-react'
-import { useEffect, useState } from 'react'
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import { Buy4MeAPI } from "@/lib/api/buy4me";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { Loader2, Search } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface Order {
-  id: string
-  status: string
-  total_cost: string
-  created_at: string
-  shipping_address: string
+  id: string;
+  status: string;
+  total_cost: string;
+  created_at: string;
+  shipping_address: string;
   items: Array<{
-    product_name: string
-    quantity: number
-    unit_price: string
-    currency: string
-  }>
+    product_name: string;
+    quantity: number;
+    unit_price: string;
+    currency: string;
+  }>;
+  tracking_number?: string;
 }
 
 export function OrderHistory() {
-  const { toast } = useToast()
-  const { user } = useAuth()
-  const [orders, setOrders] = useState<Order[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const fetchOrders = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       const response = await Buy4MeAPI.getRequests({
-        status: 'all',
+        status: "all",
         page: currentPage,
-        search: searchTerm
-      })
+        search: searchTerm,
+      });
 
-      const formattedOrders = response.results.map(order => ({
+      const formattedOrders = response.results.map((order) => ({
         ...order,
         total_amount: parseFloat(order.total_cost),
         items_count: order.items.length,
         order_number: order.id,
-        currency: order.items[0]?.currency || 'USD'
-      }))
+        currency: order.items[0]?.currency || "USD",
+      }));
 
-      setOrders(formattedOrders)
-      setTotalPages(Math.ceil(response.count / 10))
+      setOrders(formattedOrders);
+      setTotalPages(Math.ceil(response.count / 10));
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to fetch orders',
-        variant: 'destructive',
-      })
+        title: "Error",
+        description: "Failed to fetch orders",
+        variant: "destructive",
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     if (user) {
-      fetchOrders()
+      fetchOrders();
     }
-  }, [currentPage, searchTerm, user])
+  }, [currentPage, searchTerm, user]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value)
-    setCurrentPage(1)
-  }
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
+  };
 
   const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage)
-  }
+    setCurrentPage(newPage);
+  };
 
   return (
     <Card>
@@ -114,7 +115,7 @@ export function OrderHistory() {
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent>
         {loading ? (
           <div className="flex justify-center py-8">
@@ -135,24 +136,22 @@ export function OrderHistory() {
               </TableHeader>
               <TableBody>
                 {orders.map((order) => (
-                  <TableRow 
+                  <TableRow
                     key={order.id}
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => setSelectedOrder(order)}
                   >
-                    <TableCell className="font-medium">
-                      #{order.id}
-                    </TableCell>
+                    <TableCell className="font-medium">#{order.id}</TableCell>
                     <TableCell>{formatDate(order.created_at)}</TableCell>
                     <TableCell>
                       <OrderStatusBadge status={order.status} />
                     </TableCell>
                     <TableCell>{order.items.length} items</TableCell>
                     <TableCell>
-                      {/* {formatCurrency(order.total_cost)} */}
+                      {formatCurrency(parseFloat(order.total_cost))}
                     </TableCell>
                     <TableCell>
-                      {/* {order.tracking_number || 'Not available'} */}
+                      {order.tracking_number || "Not available"}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -192,5 +191,5 @@ export function OrderHistory() {
         onClose={() => setSelectedOrder(null)}
       />
     </Card>
-  )
+  );
 }

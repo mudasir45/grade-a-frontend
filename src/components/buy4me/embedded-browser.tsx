@@ -44,7 +44,9 @@ export function EmbeddedBrowser() {
     color: "",
     size: "",
     notes: "",
+    store_to_warehouse_delivery_charge: "0",
   });
+  const [confirmedCharges, setConfirmedCharges] = useState(false);
   const [urlError, setUrlError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -105,6 +107,19 @@ export function EmbeddedBrowser() {
         throw new Error("Please enter a valid quantity");
       }
 
+      const deliveryCharges = parseFloat(
+        productForm.store_to_warehouse_delivery_charge
+      );
+      if (isNaN(deliveryCharges) || deliveryCharges < 0) {
+        throw new Error("Please enter a valid delivery charge amount");
+      }
+
+      if (!confirmedCharges) {
+        throw new Error(
+          "Please confirm that the delivery charges are accurate"
+        );
+      }
+
       const product = {
         product_name: productForm.name,
         unit_price: price.toString(),
@@ -114,6 +129,7 @@ export function EmbeddedBrowser() {
         color: productForm.color,
         size: productForm.size,
         notes: productForm.notes,
+        store_to_warehouse_delivery_charge: deliveryCharges.toString(),
       };
 
       await addToRequestList(product);
@@ -128,7 +144,9 @@ export function EmbeddedBrowser() {
         color: "",
         size: "",
         notes: "",
+        store_to_warehouse_delivery_charge: "0",
       });
+      setConfirmedCharges(false);
 
       toast({
         title: "Product Added",
@@ -295,7 +313,7 @@ export function EmbeddedBrowser() {
                       color: e.target.value,
                     })
                   }
-                  placeholder="Size, color, or other specifications"
+                  placeholder="Specify color"
                 />
               </div>
               <div className="space-y-2">
@@ -308,7 +326,26 @@ export function EmbeddedBrowser() {
                       size: e.target.value,
                     })
                   }
-                  placeholder="Size, color, or other specifications"
+                  placeholder="Specify size"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Delivery Charges (USD)
+                </label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={productForm.store_to_warehouse_delivery_charge}
+                  onChange={(e) =>
+                    setProductForm({
+                      ...productForm,
+                      store_to_warehouse_delivery_charge: e.target.value,
+                    })
+                  }
+                  placeholder="Enter delivery charges"
                 />
               </div>
 
@@ -323,10 +360,25 @@ export function EmbeddedBrowser() {
                   rows={3}
                 />
               </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="confirm-charges"
+                    checked={confirmedCharges}
+                    onChange={(e) => setConfirmedCharges(e.target.checked)}
+                    className="rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <label htmlFor="confirm-charges" className="text-sm">
+                    I confirm that the delivery charges are accurate
+                  </label>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end">
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading || !confirmedCharges}>
                 <ShoppingCart className="mr-2 h-4 w-4" />
                 {loading ? "Adding..." : "Add to Request List"}
               </Button>

@@ -15,7 +15,7 @@ import { useBuy4Me } from "@/hooks/use-buy4me";
 import { Buy4MeItem } from "@/lib/types/index";
 import { formatCurrency } from "@/lib/utils";
 import { Edit2, Save, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface RequestListProps {
   onCheckout: () => void;
@@ -29,7 +29,15 @@ export function RequestList({ onCheckout }: RequestListProps) {
     color: "",
     size: "",
     notes: "",
+    store_to_warehouse_delivery_charge: "0",
   });
+  const [totalCost, setTotalCost] = useState<string>("0");
+
+  useEffect(() => {
+    if (activeRequest) {
+      setTotalCost(activeRequest.total_cost);
+    }
+  }, [activeRequest]);
 
   const handleEdit = (item: Buy4MeItem) => {
     setEditingId(item.id || null);
@@ -38,7 +46,33 @@ export function RequestList({ onCheckout }: RequestListProps) {
       color: item.color || "",
       size: item.size || "",
       notes: item.notes || "",
+      store_to_warehouse_delivery_charge:
+        item.store_to_warehouse_delivery_charge || "0",
     });
+  };
+
+  const refreshActiveRequest = async () => {
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/buy4me/active-request/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to fetch updated request");
+
+      const data = await response.json();
+      if (data && data.total_cost) {
+        setTotalCost(data.total_cost);
+      }
+    } catch (error) {
+      console.error("Error refreshing request data:", error);
+    }
   };
 
   const handleSave = async (itemId: string) => {
@@ -47,7 +81,12 @@ export function RequestList({ onCheckout }: RequestListProps) {
       color: editForm.color,
       size: editForm.size,
       notes: editForm.notes,
+      store_to_warehouse_delivery_charge:
+        editForm.store_to_warehouse_delivery_charge,
     });
+
+    await refreshActiveRequest();
+
     setEditingId(null);
   };
 
@@ -79,6 +118,7 @@ export function RequestList({ onCheckout }: RequestListProps) {
               <TableHead>Quantity</TableHead>
               <TableHead>Specifications</TableHead>
               <TableHead>Notes</TableHead>
+              <TableHead>Delivery Charge</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -156,6 +196,27 @@ export function RequestList({ onCheckout }: RequestListProps) {
                   )}
                 </TableCell>
                 <TableCell>
+                  {editingId === item.id ? (
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={editForm.store_to_warehouse_delivery_charge}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          store_to_warehouse_delivery_charge: e.target.value,
+                        })
+                      }
+                      className="w-24"
+                    />
+                  ) : (
+                    formatCurrency(
+                      parseFloat(item.store_to_warehouse_delivery_charge || "0")
+                    )
+                  )}
+                </TableCell>
+                <TableCell>
                   {formatCurrency(parseFloat(item.unit_price) * item.quantity)}
                 </TableCell>
                 <TableCell>
@@ -205,7 +266,7 @@ export function RequestList({ onCheckout }: RequestListProps) {
 
       <div className="flex items-center justify-between">
         <div className="text-lg font-semibold">
-          Total: {formatCurrency(parseFloat(activeRequest.total_cost))}
+          Total: {formatCurrency(parseFloat(totalCost))}
         </div>
         <Button onClick={onCheckout}>Proceed to Checkout</Button>
       </div>

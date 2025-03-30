@@ -22,20 +22,34 @@ export default function PaymentModal({
     e.preventDefault();
     setLoading(true);
 
-    // Call our API route to initialize payment, using the passed price
-    const res = await fetch("/api/paystack/initiate-payment", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, amount: price }),
-    });
-    const data = await res.json();
-    if (data.status && data.data.authorization_url) {
+    try {
+      // Store the metadata for use in success page
       localStorage.setItem("paymentData", JSON.stringify(metadata));
-      window.location.href = data.data.authorization_url;
-    } else {
-      alert("Payment initialization failed");
+
+      // Call our API route to initialize payment, using the passed price
+      const res = await fetch("/api/paystack/initiate-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          amount: price,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.status && data.data.authorization_url) {
+        window.location.href = data.data.authorization_url;
+      } else {
+        throw new Error(data.message || "Payment initialization failed");
+      }
+    } catch (error) {
+      console.error("Payment initialization error:", error);
+      alert(
+        error instanceof Error ? error.message : "Payment initialization failed"
+      );
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   if (!isOpen) return null;

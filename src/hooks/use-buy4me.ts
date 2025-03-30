@@ -1,4 +1,3 @@
-import { baseShippingRate, serviceFeePercentage } from "@/lib/buy4me-data";
 import {
   Buy4MeItem,
   Buy4MeRequest,
@@ -178,8 +177,7 @@ export function useBuy4Me() {
   );
 
   const calculateTotals = useCallback(() => {
-    if (!activeRequest)
-      return { productsTotal: 0, serviceFee: 0, shipping: 0, total: 0 };
+    if (!activeRequest) return { productsTotal: 0, shipping: 0, total: 0 };
 
     const items = activeRequest.items || [];
     const productsTotal = items.reduce(
@@ -187,29 +185,37 @@ export function useBuy4Me() {
       0
     );
 
-    const serviceFee = (productsTotal * serviceFeePercentage) / 100;
-    const shipping = baseShippingRate * items.length;
+    // No service fee as per the new requirements
+    const shipping = 0;
 
     return {
       productsTotal,
-      serviceFee,
       shipping,
-      total: productsTotal + serviceFee + shipping,
+      total: productsTotal + shipping,
     };
   }, [activeRequest]);
 
-  const submitRequest = async (shippingAddress: string) => {
-    const newActiveRequest = JSON.parse(
-      localStorage.getItem("activeRequest") || "{}"
-    );
-    console.log("New Active Request", newActiveRequest);
-    if (!newActiveRequest) throw new Error("No active request");
-    if ((newActiveRequest.items || []).length === 0)
-      throw new Error("No items in request");
+  const submitRequest = async (shippingAddress: string, cityId: string) => {
     try {
       const token = localStorage.getItem("auth_token");
+
+      // Always get the latest activeRequest from localStorage to ensure we have the data
+      // This is important for PayStack flow where state might be lost
+      const storedActiveRequest = JSON.parse(
+        localStorage.getItem("activeRequest") || "{}"
+      );
+      console.log("Active Request for submission:", storedActiveRequest);
+
+      if (!storedActiveRequest || !storedActiveRequest.id) {
+        throw new Error("No active request found");
+      }
+
+      if (!(storedActiveRequest.items || []).length) {
+        throw new Error("No items in request");
+      }
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/buy4me/requests/${newActiveRequest.id}/`,
+        `${process.env.NEXT_PUBLIC_API_URL}/buy4me/requests/${storedActiveRequest.id}/`,
         {
           method: "PATCH",
           headers: {
@@ -218,6 +224,7 @@ export function useBuy4Me() {
           },
           body: JSON.stringify({
             shipping_address: shippingAddress,
+            city: cityId,
             status: "SUBMITTED",
           }),
         }
