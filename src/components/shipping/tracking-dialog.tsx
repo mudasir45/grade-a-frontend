@@ -174,33 +174,35 @@ export function TrackingDialog({
                   <p className="text-sm text-muted-foreground">
                     City Delivery Charge
                   </p>
-                  <p className="font-medium">${shipment?.delivery_charge}</p>
+                  <p className="font-medium">RM {shipment?.delivery_charge}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Per KG Rate</p>
-                  <p className="font-medium">${shipment?.per_kg_rate}</p>
+                  <p className="font-medium">RM {shipment?.per_kg_rate}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Weight Charge</p>
-                  <p className="font-medium">${shipment?.weight_charge}</p>
+                  <p className="font-medium">RM {shipment?.weight_charge}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
                     Service Charge
                   </p>
-                  <p className="font-medium">${shipment?.service_charge}</p>
+                  <p className="font-medium">RM {shipment?.service_charge}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
                     Additional Charges
                   </p>
                   <p className="font-medium">
-                    ${shipment?.total_additional_charges}
+                    RM {shipment?.total_additional_charges}
                   </p>
                 </div>
                 <div className="p-2 border rounded bg-background">
                   <p className="text-sm text-muted-foreground">Total Cost</p>
-                  <p className="font-medium text-lg">${shipment?.total_cost}</p>
+                  <p className="font-medium text-lg">
+                    RM {shipment?.total_cost}
+                  </p>
                 </div>
               </div>
             </div>

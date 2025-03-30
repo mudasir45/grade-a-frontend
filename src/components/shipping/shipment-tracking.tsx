@@ -96,14 +96,14 @@ export function ShipmentTracking({
                   <p className="text-sm text-muted-foreground">Status</p>
                   <p className="font-medium">{trackingData.status}</p>
                 </div>
-                <div>
+                {/* <div>
                   <p className="text-sm text-muted-foreground">
                     Payment Status
                   </p>
                   <p className="font-medium">
-                    {trackingData.payment_status || "Unknown"}
+                    {trackingData.PaymentStats || "Unknown"}
                   </p>
-                </div>
+                </div> */}
                 <div>
                   <p className="text-sm text-muted-foreground">Location</p>
                   <p className="font-medium">{trackingData.current_location}</p>

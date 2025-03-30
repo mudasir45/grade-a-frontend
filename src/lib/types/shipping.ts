@@ -53,9 +53,10 @@ export interface ShipmentRequest {
   declared_value: number;
   service_type: string;
   city: string;
-  additional_charges?: Extras[];
-  notes?: string;
+  additional_charges: AdditionalCharge[];
   payment_method?: "ONLINE" | "COD";
+  payment_status?: "PENDING" | "PAID" | "COD_PENDING";
+  notes?: string;
   payment_details?: {
     card?: {
       number: string;

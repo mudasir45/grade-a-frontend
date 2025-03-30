@@ -32,7 +32,6 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import PaymentForm from "../payment/payment-gateway";
 import PaymentModal from "../payment/PaymentForm";
-import SearchableSelect from "../ui/searchable-select";
 
 // Validation schemas
 const emailSchema = z.string().email("Invalid email address");
@@ -83,19 +82,22 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
     useState<NewShipmentResponse | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"ONLINE" | "COD">(
+    "ONLINE"
+  );
 
   useEffect(() => {
     const getExtras = async () => {
       try {
         const extras = await ShippingAPI.getExtras();
-        console.log(
-          "Loaded extras with charge types:",
-          extras.map((e: { name: string; charge_type: string }) => ({
-            name: e.name,
-            type: e.charge_type,
-          }))
-        );
-        setExtras(extras);
+        // Add COD extra if it doesn't exist
+        const codExtra = {
+          id: "cod_charge",
+          name: "Cash on Delivery Charge",
+          charge_type: "PERCENTAGE",
+          value: "5",
+        };
+        setExtras([...extras, codExtra]);
       } catch (error) {
         console.log("error while fetching extras");
       }
@@ -348,6 +350,7 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
       return {
         ...prev,
         extras: newExtras || currentExtras,
+        payment_method: extraId === "cod_charge" ? "COD" : "ONLINE",
       };
     });
     setHasChanges(true);
@@ -493,13 +496,13 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
         service_type: formData.service_type,
         city: formData.city.id,
         additional_charges: formData.extras.map((extra) => ({
-          id: extra.id,
           name: extra.name,
-          charge_type: extra.charge_type,
-          value: extra.value,
-          quantity: extra.quantity,
+          type: extra.charge_type,
+          value: parseFloat(extra.value.toString()),
+          amount: parseFloat(extra.value.toString()) * (extra.quantity || 1),
+          description: extra.name,
         })),
-        payment_method: formData.payment_method as "ONLINE" | "COD" | undefined,
+        payment_method: paymentMethod,
         notes: formData.notes,
       };
 
@@ -510,12 +513,24 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
           description: "Shipment updated successfully",
         });
       } else {
-        await ShippingAPI.createShipment(shipmentData);
-        toast({
-          title: "Success",
-          description: "Shipment created successfully",
-        });
-        setShowPayment(true);
+        if (paymentMethod === "COD") {
+          await ShippingAPI.updateShipment(selectedShipment!.id, {
+            ...shipmentData,
+            payment_method: "COD",
+            payment_status: "COD_PENDING",
+          });
+          toast({
+            title: "Success",
+            description: "Shipment created successfully with COD",
+          });
+        } else {
+          await ShippingAPI.createShipment(shipmentData);
+          toast({
+            title: "Success",
+            description: "Shipment created successfully",
+          });
+          setShowPayment(true);
+        }
       }
 
       // Refresh the shipments list
@@ -661,9 +676,10 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
         additional_charges: formData.extras.map((extra) => ({
           id: extra.id,
           name: extra.name,
-          charge_type: extra.charge_type,
-          value: extra.value,
-          quantity: extra.quantity,
+          type: extra.charge_type,
+          value: parseFloat(extra.value.toString()),
+          amount: parseFloat(extra.value.toString()) * (extra.quantity || 1),
+          description: extra.name,
         })),
         payment_method: formData.payment_method as "ONLINE" | "COD" | undefined,
         notes: formData.notes,
@@ -691,6 +707,12 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Add helper functions after the existing ones
+  const getCountryName = (countryId: string, countries: any[]) => {
+    const country = countries.find((c) => c.id === countryId);
+    return country ? country.name : countryId;
   };
 
   if (isLoading) {
@@ -895,35 +917,13 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
         <form onSubmit={handleSubmit}>
           <Card>
             <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle className="text-xl font-semibold">
-                    Shipment Details
-                  </CardTitle>
-                  <CardDescription>
-                    Review and update shipment information
-                  </CardDescription>
-                </div>
-                {hasChanges && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleUpdate}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <span className="flex items-center">
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Updating...
-                      </span>
-                    ) : (
-                      <span className="flex items-center">
-                        Save Changes
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </span>
-                    )}
-                  </Button>
-                )}
+              <div>
+                <CardTitle className="text-xl font-semibold">
+                  Shipment Details
+                </CardTitle>
+                <CardDescription>
+                  Review and update shipment information
+                </CardDescription>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -936,18 +936,9 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                     <Input
                       id="sender_name"
                       value={formData.sender_name}
-                      onChange={(e) =>
-                        handleFieldChange("sender_name", e.target.value)
-                      }
-                      className={cn(
-                        getFieldError("sender_name") && "border-red-500"
-                      )}
+                      readOnly
+                      className="bg-muted"
                     />
-                    {getFieldError("sender_name") && (
-                      <p className="text-xs text-red-500">
-                        {getFieldError("sender_name")}
-                      </p>
-                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -956,18 +947,9 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                       id="sender_email"
                       type="email"
                       value={formData.sender_email}
-                      onChange={(e) =>
-                        handleFieldChange("sender_email", e.target.value)
-                      }
-                      className={cn(
-                        getFieldError("sender_email") && "border-red-500"
-                      )}
+                      readOnly
+                      className="bg-muted"
                     />
-                    {getFieldError("sender_email") && (
-                      <p className="text-xs text-red-500">
-                        {getFieldError("sender_email")}
-                      </p>
-                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -975,25 +957,19 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                     <Input
                       id="sender_phone"
                       value={formData.sender_phone}
-                      onChange={(e) =>
-                        handleFieldChange("sender_phone", e.target.value)
-                      }
-                      className={cn(
-                        getFieldError("sender_phone") && "border-red-500"
-                      )}
+                      readOnly
+                      className="bg-muted"
                     />
-                    {getFieldError("sender_phone") && (
-                      <p className="text-xs text-red-500">
-                        {getFieldError("sender_phone")}
-                      </p>
-                    )}
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="sender_country">Country</Label>
                     <Input
                       id="sender_country"
-                      value={formData.sender_country}
+                      value={getCountryName(
+                        formData.sender_country,
+                        departureCountries
+                      )}
                       readOnly
                       className="bg-muted"
                     />
@@ -1005,10 +981,7 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                       id="sender_address"
                       value={formData.sender_address}
                       readOnly
-                      className={cn(
-                        "min-h-[80px] bg-muted",
-                        getFieldError("sender_address") && "border-red-500"
-                      )}
+                      className="min-h-[80px] bg-muted"
                     />
                   </div>
                 </div>
@@ -1025,12 +998,8 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                     <Input
                       id="recipient_name"
                       value={formData.recipient_name}
-                      onChange={(e) =>
-                        handleFieldChange("recipient_name", e.target.value)
-                      }
-                      className={cn(
-                        getFieldError("recipient_name") && "border-red-500"
-                      )}
+                      readOnly
+                      className="bg-muted"
                     />
                   </div>
 
@@ -1040,12 +1009,8 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                       id="recipient_email"
                       type="email"
                       value={formData.recipient_email}
-                      onChange={(e) =>
-                        handleFieldChange("recipient_email", e.target.value)
-                      }
-                      className={cn(
-                        getFieldError("recipient_email") && "border-red-500"
-                      )}
+                      readOnly
+                      className="bg-muted"
                     />
                   </div>
 
@@ -1054,12 +1019,8 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                     <Input
                       id="recipient_phone"
                       value={formData.recipient_phone}
-                      onChange={(e) =>
-                        handleFieldChange("recipient_phone", e.target.value)
-                      }
-                      className={cn(
-                        getFieldError("recipient_phone") && "border-red-500"
-                      )}
+                      readOnly
+                      className="bg-muted"
                     />
                   </div>
 
@@ -1067,7 +1028,10 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                     <Label htmlFor="recipient_country">Country</Label>
                     <Input
                       id="recipient_country"
-                      value={formData.recipient_country}
+                      value={getCountryName(
+                        formData.recipient_country,
+                        destinationCountries
+                      )}
                       readOnly
                       className="bg-muted"
                     />
@@ -1079,36 +1043,48 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                       id="recipient_address"
                       value={formData.recipient_address}
                       readOnly
-                      className={cn(
-                        "min-h-[80px] bg-muted",
-                        getFieldError("recipient_address") && "border-red-500"
-                      )}
+                      className="min-h-[80px] bg-muted"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* City Selection */}
-              <div className="space-y-4 mb-5">
-                <h3 className="font-medium">City Selection</h3>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <SearchableSelect
-                    label="City"
-                    options={cities.map((city) => ({
-                      value: city.id || "",
-                      label: city.name,
-                    }))}
-                    value={formData.city?.id || ""}
-                    onChange={handleCityChange}
-                  />
-                  <div className="space-y-2">
-                    <p>Delivery Charge</p>
-                    <p>
-                      RM{" "}
-                      {cities.find((city) => city.id === formData.city?.id)
-                        ?.delivery_charge || 0}
-                    </p>
-                  </div>
+              {/* Insurance Section */}
+              <div className="space-y-4">
+                <h3 className="font-medium">Insurance</h3>
+                <div className="grid gap-2">
+                  {extras
+                    .filter(
+                      (item) =>
+                        item.charge_type.toUpperCase() === "PERCENTAGE" &&
+                        item.id !== "cod_charge"
+                    )
+                    .map((item) => {
+                      const isChecked = formData.extras?.some(
+                        (extra) => extra.id === item.id
+                      );
+
+                      return (
+                        <div
+                          key={item.id}
+                          className="flex items-center space-x-4"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id={item.id}
+                              checked={isChecked}
+                              onCheckedChange={(checked) =>
+                                handleExtraChange(item.id, checked as boolean)
+                              }
+                            />
+                            <Label htmlFor={item.id}>{item.name}</Label>
+                          </div>
+                          <div className="ml-auto text-sm text-muted-foreground">
+                            {item.value}%
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
 
@@ -1116,66 +1092,40 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
               <div className="space-y-4">
                 <h3 className="font-medium">Additional Charges</h3>
                 <div className="grid gap-2">
-                  {extras.map((item) => {
-                    const isChecked = formData.extras?.some(
-                      (extra) => extra.id === item.id
-                    );
-                    const quantity =
-                      formData.extras?.find((extra) => extra.id === item.id)
-                        ?.quantity || 1;
+                  {extras
+                    .filter(
+                      (item) => item.charge_type.toUpperCase() === "FIXED"
+                    )
+                    .map((item) => {
+                      const isChecked = formData.extras?.some(
+                        (extra) => extra.id === item.id
+                      );
 
-                    return (
-                      <div
-                        key={item.id}
-                        className="flex items-center space-x-4"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id={item.id}
-                            checked={isChecked}
-                            onCheckedChange={(checked) =>
-                              handleExtraChange(
-                                item.id,
-                                checked as boolean,
-                                item.charge_type.toUpperCase() === "PERCENTAGE"
-                                  ? 1
-                                  : quantity
-                              )
-                            }
-                          />
-                          <Label htmlFor={item.id}>{item.name}</Label>
+                      return (
+                        <div
+                          key={item.id}
+                          className="flex items-center space-x-4"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id={item.id}
+                              checked={isChecked}
+                              disabled
+                              className="opacity-50"
+                            />
+                            <Label
+                              htmlFor={item.id}
+                              className="text-muted-foreground"
+                            >
+                              {item.name}
+                            </Label>
+                          </div>
+                          <div className="ml-auto text-sm text-muted-foreground">
+                            RM {item.value}
+                          </div>
                         </div>
-
-                        {isChecked &&
-                          item.charge_type.toUpperCase() !== "PERCENTAGE" && (
-                            <div className="flex items-center space-x-2">
-                              <Label
-                                htmlFor={`quantity-${item.id}`}
-                                className="text-sm"
-                              >
-                                Quantity:
-                              </Label>
-                              <Input
-                                id={`quantity-${item.id}`}
-                                type="number"
-                                min={1}
-                                value={quantity}
-                                className="w-20"
-                                onChange={(e) =>
-                                  handleQuantityChange(item.id, e.target.value)
-                                }
-                              />
-                            </div>
-                          )}
-
-                        <div className="ml-auto text-sm text-muted-foreground">
-                          {item.charge_type.toUpperCase() === "PERCENTAGE"
-                            ? `${item.value}%`
-                            : `RM ${item.value}`}
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
               </div>
 
@@ -1264,13 +1214,7 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                 </div>
               </div>
 
-              {calculating && (
-                <div className="flex items-center justify-center space-x-2 text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Calculating shipping rate...</span>
-                </div>
-              )}
-
+              {/* Cost Breakdown */}
               {shippingRate && (
                 <Card>
                   <CardHeader>
@@ -1318,9 +1262,30 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                         </div>
                       ))}
                       <Separator />
-                      <div className="flex justify-between font-bold">
-                        <span>Total:</span>
+                      <div className="flex justify-between">
+                        <span>Subtotal:</span>
                         <span>RM {shippingRate.cost_breakdown.total_cost}</span>
+                      </div>
+                      <div className="flex justify-between text-orange-600">
+                        <span>COD Charge (5%):</span>
+                        <span>
+                          RM{" "}
+                          {(
+                            Number(shippingRate.cost_breakdown.total_cost) *
+                            0.05
+                          ).toFixed(2)}
+                        </span>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between font-bold">
+                        <span>Total (with COD):</span>
+                        <span>
+                          RM{" "}
+                          {(
+                            Number(shippingRate.cost_breakdown.total_cost) *
+                            1.05
+                          ).toFixed(2)}
+                        </span>
                       </div>
                     </div>
                   </CardContent>
@@ -1328,50 +1293,175 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
               )}
             </CardContent>
             <CardFooter>
-              <div className="flex justify-between w-full">
-                <Button
-                  type="submit"
-                  disabled={
-                    loading ||
-                    !shippingRate ||
-                    fieldErrors.length > 0 ||
-                    hasChanges
-                  }
-                >
-                  {loading ? (
-                    <span className="flex items-center">
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </span>
-                  ) : (
-                    <span className="flex items-center">
-                      Complete Payment (BizaPay)
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </span>
-                  )}
-                </Button>
-                <Button
-                  onClick={() => setPaymentModalOpen(true)}
-                  type="button"
-                  disabled={
-                    loading ||
-                    !shippingRate ||
-                    fieldErrors.length > 0 ||
-                    hasChanges
-                  }
-                >
-                  {loading ? (
-                    <span className="flex items-center">
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </span>
-                  ) : (
-                    <span className="flex items-center">
-                      Payment (Using PayStack)
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </span>
-                  )}
-                </Button>
+              <div className="flex flex-col sm:flex-row gap-4 w-full">
+                {hasChanges && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleUpdate}
+                    disabled={loading}
+                    className="w-full sm:w-auto"
+                  >
+                    {loading ? (
+                      <span className="flex items-center justify-center">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Updating...
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center">
+                        Save Changes
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </span>
+                    )}
+                  </Button>
+                )}
+                <div className="flex flex-col sm:flex-row gap-4 w-full">
+                  <Button
+                    type="submit"
+                    disabled={
+                      loading ||
+                      !shippingRate ||
+                      fieldErrors.length > 0 ||
+                      hasChanges
+                    }
+                    className="w-full sm:w-auto"
+                  >
+                    {loading ? (
+                      <span className="flex items-center justify-center">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center">
+                        Complete Payment (BizaPay)
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </span>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={() => setPaymentModalOpen(true)}
+                    type="button"
+                    disabled={
+                      loading ||
+                      !shippingRate ||
+                      fieldErrors.length > 0 ||
+                      hasChanges
+                    }
+                    className="w-full sm:w-auto"
+                  >
+                    {loading ? (
+                      <span className="flex items-center justify-center">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center">
+                        Payment (Using PayStack)
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </span>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      if (!selectedShipment) return;
+                      try {
+                        setLoading(true);
+                        await ShippingAPI.updateShipment(selectedShipment.id, {
+                          payment_status: "COD_PENDING",
+                          payment_method: "COD",
+                        });
+                        toast({
+                          title: "Success",
+                          description: "Shipment updated to COD successfully",
+                        });
+                        // Reset form and refresh data
+                        setSelectedShipment(null);
+                        setFormData({
+                          id: "",
+                          user: "",
+                          cod_amount: "",
+                          payment_method: "ONLINE",
+                          payment_status: "PENDING",
+                          payment_date: "",
+                          transaction_id: "",
+                          receipt: "",
+                          sender_name: "",
+                          sender_email: "",
+                          sender_phone: "",
+                          sender_address: "",
+                          sender_country: "",
+                          recipient_name: "",
+                          recipient_email: "",
+                          recipient_phone: "",
+                          recipient_address: "",
+                          recipient_country: "",
+                          package_type: "",
+                          weight: "0",
+                          length: "0",
+                          width: "0",
+                          height: "0",
+                          description: "",
+                          declared_value: "0",
+                          insurance_required: false,
+                          signature_required: false,
+                          tracking_number: "",
+                          current_location: "",
+                          estimated_delivery: null,
+                          status: "PENDING",
+                          base_rate: "0",
+                          per_kg_rate: "0",
+                          weight_charge: "0",
+                          service_charge: "0",
+                          total_additional_charges: "0",
+                          total_cost: "0",
+                          notes: "",
+                          created_at: "",
+                          updated_at: "",
+                          staff: null,
+                          service_type: "",
+                          city: {
+                            name: "",
+                            postal_code: "",
+                            delivery_charge: "0",
+                          },
+                          extras: [],
+                          delivery_charge: "0",
+                        });
+                        fetchShipments();
+                        onSuccess();
+                      } catch (error) {
+                        console.error("Error updating shipment to COD:", error);
+                        toast({
+                          title: "Error",
+                          description: "Failed to update shipment to COD",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    type="button"
+                    disabled={
+                      loading ||
+                      !shippingRate ||
+                      fieldErrors.length > 0 ||
+                      hasChanges
+                    }
+                    className="w-full sm:w-auto"
+                  >
+                    {loading ? (
+                      <span className="flex items-center justify-center">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center">
+                        Pay with COD (5% extra)
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </span>
+                    )}
+                  </Button>
+                </div>
               </div>
             </CardFooter>
           </Card>
