@@ -1,5 +1,6 @@
 import { DRIVER_API } from "@/lib/api/driver";
 import type {
+  BulkPaymentRequest,
   Buy4MeStatusUpdate,
   DriverDashboardResponse,
   DriverEarningsResponse,
@@ -115,5 +116,39 @@ export const usePaymentStats = () => {
   return useQuery({
     queryKey: ["paymentStats"],
     queryFn: DRIVER_API.getPaymentStats,
+  });
+};
+
+// Bulk Payment Processing Mutation
+export const useBulkPayment = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: BulkPaymentRequest) =>
+      DRIVER_API.processBulkPayment(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["driverShipments"] });
+      queryClient.invalidateQueries({ queryKey: ["driverBuy4me"] });
+      queryClient.invalidateQueries({ queryKey: ["driverDashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["driverEarnings"] });
+    },
+  });
+};
+
+// Shipment Details Query
+export const useShipmentDetails = (shipmentId: string) => {
+  return useQuery({
+    queryKey: ["shipmentDetails", shipmentId],
+    queryFn: () => DRIVER_API.getShipmentDetails(shipmentId),
+    enabled: !!shipmentId,
+  });
+};
+
+// Buy4Me Order Details Query
+export const useBuy4meOrderDetails = (orderId: string) => {
+  return useQuery({
+    queryKey: ["buy4meOrderDetails", orderId],
+    queryFn: () => DRIVER_API.getBuy4meOrderDetails(orderId),
+    enabled: !!orderId,
   });
 };

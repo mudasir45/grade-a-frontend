@@ -36,7 +36,7 @@ function PaymentSuccessContent() {
         console.log("in the driver payment");
         // Handle driver payment
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/accounts/driver/payments/`,
+          `${process.env.NEXT_PUBLIC_API_URL}/accounts/driver/payments/`,
           {
             method: "POST",
             headers: {

@@ -37,6 +37,11 @@ const navItems = [
     href: "/driver/earnings",
     icon: DollarSign,
   },
+  {
+    title: "Payment Processing",
+    href: "/driver/payment",
+    icon: DollarSign,
+  },
 ];
 
 export function Sidebar() {

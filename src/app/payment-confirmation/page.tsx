@@ -84,7 +84,7 @@ function PaymentConfirmationContent() {
       if (paymentData.requestType === "driver") {
         // Handle driver payment
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/accounts/driver/payments/`,
+          `${process.env.NEXT_PUBLIC_API_URL}/accounts/driver/payments/`,
           {
             method: "POST",
             headers: {
@@ -111,7 +111,10 @@ function PaymentConfirmationContent() {
           description: "Driver payment recorded successfully",
         });
       } else if (paymentData.paymentType === "buy4me") {
-        await submitBuy4MeRequest(paymentData.shippingAddress!);
+        await submitBuy4MeRequest(
+          paymentData.shippingAddress!,
+          paymentData.cityId!
+        );
         toast({
           title: "Request Submitted",
           description: "Your buy4me request has been submitted successfully.",

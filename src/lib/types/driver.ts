@@ -122,3 +122,18 @@ export interface PaymentStats {
   lastPaymentAmount: number;
   lastPaymentDate: string;
 }
+
+export interface BulkPaymentRequest {
+  payment_for: "SHIPMENT" | "BUY4ME";
+  request_ids: string[];
+}
+
+export interface BulkPaymentResponse {
+  message: string;
+  payments_created: number;
+  total_amount: number;
+  failed_requests: Array<{
+    id: string;
+    reason: string;
+  }>;
+}

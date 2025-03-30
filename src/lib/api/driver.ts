@@ -1,5 +1,7 @@
 import { api } from "@/lib/api";
 import type {
+  BulkPaymentRequest,
+  BulkPaymentResponse,
   Buy4MeStatusUpdate,
   DriverDashboardResponse,
   DriverEarningsResponse,
@@ -110,6 +112,40 @@ export const DRIVER_API = {
       return response.data;
     } catch (error) {
       throw new Error("Failed to fetch payment statistics");
+    }
+  },
+
+  // Bulk Payment Processing
+  processBulkPayment: async (
+    data: BulkPaymentRequest
+  ): Promise<BulkPaymentResponse> => {
+    try {
+      const response = await api.post("/accounts/driver/bulk-payments/", data);
+      return response.data;
+    } catch (error) {
+      throw new Error("Failed to process bulk payment");
+    }
+  },
+
+  // Get Shipment Details
+  getShipmentDetails: async (shipmentId: string): Promise<any> => {
+    try {
+      const response = await api.get(
+        `/accounts/driver/shipments/${shipmentId}/`
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error("Failed to fetch shipment details");
+    }
+  },
+
+  // Get Buy4Me Order Details
+  getBuy4meOrderDetails: async (orderId: string): Promise<any> => {
+    try {
+      const response = await api.get(`/accounts/driver/buy4me/${orderId}/`);
+      return response.data;
+    } catch (error) {
+      throw new Error("Failed to fetch Buy4me order details");
     }
   },
 };

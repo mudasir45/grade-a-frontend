@@ -23,7 +23,7 @@ export function DriverPaymentHistory() {
       try {
         setLoading(true);
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/accounts/driver/payments/`,
+          `${process.env.NEXT_PUBLIC_API_URL}/accounts/driver/payments/`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
