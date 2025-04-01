@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useBuy4Me } from "@/hooks/use-buy4me";
+import { useBulkPayment } from "@/hooks/use-driver";
 import { toast } from "@/hooks/use-toast";
 import { ShippingAPI } from "@/lib/api/shipping";
 import { CheckCircle, Loader2, XCircle } from "lucide-react";
@@ -17,6 +18,7 @@ function PaymentSuccessContent() {
   const [loading, setLoading] = useState(true);
   const { submitRequest: submitBuy4MeRequest } = useBuy4Me();
   const [returnPath, setReturnPath] = useState<string | null>(null);
+  const bulkPaymentMutation = useBulkPayment();
 
   const handlePaymentSuccess = async () => {
     const paymentData = JSON.parse(localStorage.getItem("paymentData") || "{}");
@@ -32,32 +34,50 @@ function PaymentSuccessContent() {
 
     try {
       if (paymentData.requestType === "driver") {
+        if (
+          !paymentData.payment_for ||
+          !paymentData.request_ids ||
+          !paymentData.request_ids.length
+        ) {
+          toast({
+            title: "Error",
+            description: "Invalid payment data. Missing required information.",
+            variant: "destructive",
+          });
+          return;
+        }
+
         setReturnPath("/driver");
         console.log("in the driver payment");
         // Handle driver payment
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/accounts/driver/payments/`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-            },
-            body: JSON.stringify({
-              payment_id: verification?.data?.reference || reference,
-              amount: paymentData.amount,
-              driver: paymentData.driver_id,
-              payment_for: paymentData.payment_for,
-              [paymentData.payment_for.toLowerCase()]: paymentData.item_id,
-            }),
-          }
-        );
-        console.log("response: ", response);
+        // const response = await fetch(
+        //   `${process.env.NEXT_PUBLIC_API_URL}/accounts/driver/payments/`,
+        //   {
+        //     method: "POST",
+        //     headers: {
+        //       "Content-Type": "application/json",
+        //       Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        //     },
+        //     body: JSON.stringify({
+        //       payment_id: verification?.data?.reference || reference,
+        //       amount: paymentData.amount,
+        //       driver: paymentData.driver_id,
+        //       payment_for: paymentData.payment_for,
+        //       [paymentData.payment_for.toLowerCase()]: paymentData.item_id,
+        //     }),
+        //   }
+        // );
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to record payment");
-        }
+        // Use the bulk payment API to process the payment
+        await bulkPaymentMutation.mutateAsync({
+          payment_for: paymentData.payment_for,
+          request_ids: paymentData.request_ids,
+        });
+
+        toast({
+          title: "Success",
+          description: "Driver payment recorded successfully",
+        });
 
         toast({
           title: "Success",

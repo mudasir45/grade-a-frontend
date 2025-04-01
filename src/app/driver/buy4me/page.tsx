@@ -1,5 +1,6 @@
 "use client";
 
+import { Buy4meDetailsDialog } from "@/components/driver/buy4me-details-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -59,6 +60,10 @@ export default function Buy4MePage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const updateStatusMutation = useUpdateBuy4meStatus();
 
+  // Add states for viewing Buy4me details
+  const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
+  const [detailsOrderId, setDetailsOrderId] = useState<string | null>(null);
+
   const handleStatusUpdate = async () => {
     if (!selectedOrder || !selectedStatus) return;
 
@@ -84,6 +89,12 @@ export default function Buy4MePage() {
   const handleOpenStatusDialog = (orderId: string) => {
     setSelectedOrder(orderId);
     setIsDialogOpen(true);
+  };
+
+  // Add function to handle viewing details
+  const handleViewDetails = (orderId: string) => {
+    setDetailsOrderId(orderId);
+    setViewDetailsOpen(true);
   };
 
   if (isLoading) {
@@ -175,6 +186,7 @@ export default function Buy4MePage() {
                   key={order.id}
                   order={order}
                   onUpdateStatus={handleOpenStatusDialog}
+                  onViewDetails={handleViewDetails}
                 />
               ))}
             </div>
@@ -199,6 +211,7 @@ export default function Buy4MePage() {
                   order={order}
                   onUpdateStatus={handleOpenStatusDialog}
                   isCompleted
+                  onViewDetails={handleViewDetails}
                 />
               ))}
             </div>
@@ -258,6 +271,18 @@ export default function Buy4MePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add Buy4meDetailsDialog */}
+      {detailsOrderId && (
+        <Buy4meDetailsDialog
+          orderId={detailsOrderId}
+          open={viewDetailsOpen}
+          onClose={() => {
+            setViewDetailsOpen(false);
+            setDetailsOrderId(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -266,12 +291,14 @@ interface Buy4MeCardProps {
   order: any;
   onUpdateStatus: (id: string) => void;
   isCompleted?: boolean;
+  onViewDetails?: (id: string) => void;
 }
 
 function Buy4MeCard({
   order,
   onUpdateStatus,
   isCompleted = false,
+  onViewDetails,
 }: Buy4MeCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -360,7 +387,7 @@ function Buy4MeCard({
           </div>
         )}
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex gap-2">
         {!isCompleted && (
           <Button className="w-full" onClick={() => onUpdateStatus(order.id)}>
             Update Status
@@ -372,9 +399,16 @@ function Buy4MeCard({
             variant="outline"
             onClick={() => onUpdateStatus(order.id)}
           >
-            View Details
+            View Status History
           </Button>
         )}
+        <Button
+          className="w-full"
+          variant={isCompleted ? "outline" : "secondary"}
+          onClick={() => onViewDetails && onViewDetails(order.id)}
+        >
+          View Details
+        </Button>
       </CardFooter>
     </Card>
   );

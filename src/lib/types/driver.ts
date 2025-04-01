@@ -53,22 +53,6 @@ export interface DriverDashboardResponse {
   recent_commissions: RecentCommission[];
 }
 
-export interface DriverShipmentResponse {
-  id: string;
-  tracking_number: string;
-  status: ShipmentStatus;
-  current_location: string;
-  estimated_delivery?: string;
-  pickup_address: string;
-  delivery_address: string;
-  customer_name: string;
-  customer_phone: string;
-  amount: number;
-  commission: number;
-  created_at: string;
-  type: "delivery" | "buy4me";
-}
-
 export type ShipmentStatus =
   | "PENDING"
   | "PICKED_UP"

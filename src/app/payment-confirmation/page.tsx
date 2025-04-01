@@ -16,6 +16,7 @@ import { ShippingAPI } from "@/lib/api/shipping";
 import { CheckCircle, Clock, HomeIcon, Loader2, XCircle } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
+import { useBulkPayment } from "@/hooks/use-driver";
 
 interface PaymentStatus {
   status: "success" | "pending" | "failed" | "unpaid";
@@ -64,6 +65,7 @@ function PaymentConfirmationContent() {
   const billStatus = searchParams.get("billstatus");
   const billCode = searchParams.get("billcode");
   const isProcessingRef = useRef(false);
+  const bulkPaymentMutation = useBulkPayment();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -83,28 +85,22 @@ function PaymentConfirmationContent() {
 
       if (paymentData.requestType === "driver") {
         // Handle driver payment
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/accounts/driver/payments/`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-            },
-            body: JSON.stringify({
-              payment_id: billCode,
-              amount: paymentData.amount,
-              driver: paymentData.driver_id,
-              payment_for: paymentData.payment_for,
-              [paymentData.payment_for.toLowerCase()]: paymentData.item_id,
-            }),
-          }
-        );
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to record payment");
+        if (
+          !paymentData.payment_for ||
+          !paymentData.request_ids ||
+          !paymentData.request_ids.length
+        ) {
+          toast({
+            title: "Error",
+            description: "Invalid payment data. Missing required information.",
+            variant: "destructive",
+          });
+          return;
         }
+        await bulkPaymentMutation.mutateAsync({
+          payment_for: paymentData.payment_for,
+          request_ids: paymentData.request_ids,
+        });
 
         toast({
           title: "Success",

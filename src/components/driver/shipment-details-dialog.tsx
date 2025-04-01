@@ -11,12 +11,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { useShipmentDetails } from "@/hooks/use-driver";
+import { NewShipmentResponse } from "@/lib/types/shipping";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import {
   Calendar,
   DollarSign,
-  Loader2,
   MapPin,
   Package,
   Truck,
@@ -24,17 +23,17 @@ import {
 } from "lucide-react";
 
 interface ShipmentDetailsDialogProps {
-  shipmentId: string;
+  shipment: NewShipmentResponse;
   open: boolean;
   onClose: () => void;
 }
 
 export function ShipmentDetailsDialog({
-  shipmentId,
+  shipment,
   open,
   onClose,
 }: ShipmentDetailsDialogProps) {
-  const { data: shipment, isLoading, error } = useShipmentDetails(shipmentId);
+  //   const { data: shipment, isLoading, error } = useShipmentDetails(shipmentId);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -66,35 +65,35 @@ export function ShipmentDetailsDialog({
       .join(" ");
   };
 
-  if (isLoading) {
-    return (
-      <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[600px]">
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  //   if (isLoading) {
+  //     return (
+  //       <Dialog open={open} onOpenChange={onClose}>
+  //         <DialogContent className="sm:max-w-[600px]">
+  //           <div className="flex items-center justify-center py-12">
+  //             <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  //           </div>
+  //         </DialogContent>
+  //       </Dialog>
+  //     );
+  //   }
 
-  if (error || !shipment) {
-    return (
-      <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Error</DialogTitle>
-            <DialogDescription>
-              Failed to load shipment details. Please try again.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={onClose}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  //   if (error || !shipment) {
+  //     return (
+  //       <Dialog open={open} onOpenChange={onClose}>
+  //         <DialogContent className="sm:max-w-[600px]">
+  //           <DialogHeader>
+  //             <DialogTitle>Error</DialogTitle>
+  //             <DialogDescription>
+  //               Failed to load shipment details. Please try again.
+  //             </DialogDescription>
+  //           </DialogHeader>
+  //           <DialogFooter>
+  //             <Button onClick={onClose}>Close</Button>
+  //           </DialogFooter>
+  //         </DialogContent>
+  //       </Dialog>
+  //     );
+  //   }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -136,7 +135,7 @@ export function ShipmentDetailsDialog({
                 <p className="text-sm text-muted-foreground">Name</p>
                 <p className="flex items-center">
                   <User className="h-4 w-4 mr-2 text-primary" />
-                  {shipment.customer_name || "N/A"}
+                  {shipment.sender_name || "N/A"}
                 </p>
               </div>
               <div className="space-y-1">

@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import ShipmentDetailsDialog from "@/components/ui/shipment-details";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -56,6 +57,10 @@ export default function ShipmentsPage() {
     any[]
   >([]);
   const updateStatusMutation = useUpdateShipmentStatus();
+
+  // Add states for viewing shipment details
+  const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
+  const [shipmentDetails, setShipmentDetails] = useState<any>(null);
 
   const handleStatusUpdate = async () => {
     if (!selectedShipment || !selectedStatusLocation) return;
@@ -99,6 +104,27 @@ export default function ShipmentsPage() {
       setIsDialogOpen(true);
     } catch (error) {
       toast.error("Failed to fetch status options");
+    }
+  };
+
+  // Add function to handle viewing details
+  const handleViewDetails = (shipment: any) => {
+    setShipmentDetails(shipment);
+    setViewDetailsOpen(true);
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "DELIVERED":
+        return <Badge className="bg-green-500">{status}</Badge>;
+      case "PENDING":
+        return <Badge className="bg-yellow-500">{status}</Badge>;
+      case "PROCESSING":
+        return <Badge className="bg-blue-500">{status}</Badge>;
+      case "CANCELLED":
+        return <Badge className="bg-red-500">{status}</Badge>;
+      default:
+        return <Badge className="bg-gray-500">{status}</Badge>;
     }
   };
 
@@ -189,6 +215,7 @@ export default function ShipmentsPage() {
                   key={shipment.id}
                   shipment={shipment}
                   onUpdateStatus={handleOpenStatusDialog}
+                  onViewDetails={handleViewDetails}
                 />
               ))}
             </div>
@@ -213,6 +240,7 @@ export default function ShipmentsPage() {
                   shipment={shipment}
                   onUpdateStatus={handleOpenStatusDialog}
                   isCompleted
+                  onViewDetails={handleViewDetails}
                 />
               ))}
             </div>
@@ -282,6 +310,16 @@ export default function ShipmentsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add ShipmentDetailsDialog */}
+      {shipmentDetails && (
+        <ShipmentDetailsDialog
+          viewDialogOpen={viewDetailsOpen}
+          setViewDialogOpen={setViewDetailsOpen}
+          selectedShipment={shipmentDetails}
+          getStatusBadge={getStatusBadge}
+        />
+      )}
     </div>
   );
 }
@@ -290,12 +328,14 @@ interface ShipmentCardProps {
   shipment: any;
   onUpdateStatus: (id: string) => void;
   isCompleted?: boolean;
+  onViewDetails?: (shipment: any) => void;
 }
 
 function ShipmentCard({
   shipment,
   onUpdateStatus,
   isCompleted = false,
+  onViewDetails,
 }: ShipmentCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -345,7 +385,7 @@ function ShipmentCard({
           <div>
             <p className="text-xs font-medium">Pickup</p>
             <p className="text-xs text-muted-foreground">
-              {shipment.pickup_address}
+              {shipment.sender_address}
             </p>
           </div>
         </div>
@@ -354,7 +394,7 @@ function ShipmentCard({
           <div>
             <p className="text-xs font-medium">Delivery</p>
             <p className="text-xs text-muted-foreground">
-              {shipment.delivery_address}
+              {shipment.recipient_address}
             </p>
           </div>
         </div>
@@ -372,12 +412,12 @@ function ShipmentCard({
           <div>
             <p className="text-xs font-medium">Amount</p>
             <p className="text-xs text-muted-foreground">
-              {formatCurrency(shipment.amount)}
+              {formatCurrency(shipment.total_cost)}
             </p>
           </div>
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex gap-2">
         {!isCompleted && (
           <Button
             className="w-full"
@@ -392,9 +432,16 @@ function ShipmentCard({
             variant="outline"
             onClick={() => onUpdateStatus(shipment.id)}
           >
-            View Details
+            View Status History
           </Button>
         )}
+        <Button
+          className="w-full"
+          variant={isCompleted ? "outline" : "secondary"}
+          onClick={() => onViewDetails && onViewDetails(shipment)}
+        >
+          View Details
+        </Button>
       </CardFooter>
     </Card>
   );

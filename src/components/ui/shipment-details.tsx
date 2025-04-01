@@ -111,7 +111,12 @@ const ShipmentDetailsDialog: React.FC<ShipmentDetailsDialogProps> = ({
     return serviceType?.name || serviceTypeId;
   };
 
-  const getCityName = (cityId: string) => {
+  const getCityName = (cityId: string | any) => {
+    // If city is already an object with a name property, return it
+    if (typeof cityId === "object" && cityId !== null) {
+      return cityId.name || "Unknown";
+    }
+    // Otherwise look it up by ID
     const city = cities.find((c) => c.id === cityId);
     return city?.name || cityId;
   };
@@ -265,7 +270,11 @@ const ShipmentDetailsDialog: React.FC<ShipmentDetailsDialogProps> = ({
                 />
                 <InfoItem
                   label="City"
-                  value={getCityName(selectedShipment.city)}
+                  value={
+                    selectedShipment.city
+                      ? getCityName(selectedShipment.city)
+                      : "N/A"
+                  }
                 />
               </div>
             </Section>

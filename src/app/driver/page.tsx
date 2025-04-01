@@ -6,7 +6,6 @@ import { DriverPaymentModal } from "@/components/driver/payment-modal";
 import { RecentDeliveries } from "@/components/driver/recent-deliveries";
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -101,9 +100,9 @@ export default function DriverDashboard() {
               {pending_deliveries.shipments}
             </div>
             <p className="text-xs text-muted-foreground">
-              {pending_deliveries.total} total pending deliveries
+              {pending_deliveries.shipments} total pending deliveries
             </p>
-            <div className="mt-4 space-x-2">
+            {/* <div className="mt-4 space-x-2">
               <Button
                 size="sm"
                 variant="outline"
@@ -118,7 +117,7 @@ export default function DriverDashboard() {
               >
                 Pay with BizaPay
               </Button>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
 
@@ -134,9 +133,9 @@ export default function DriverDashboard() {
               {pending_deliveries.buy4me}
             </div>
             <p className="text-xs text-muted-foreground">
-              {pending_deliveries.total} total pending deliveries
+              {pending_deliveries.buy4me} total pending deliveries
             </p>
-            <div className="mt-4 space-x-2">
+            {/* <div className="mt-4 space-x-2">
               <Button
                 size="sm"
                 variant="outline"
@@ -151,7 +150,7 @@ export default function DriverDashboard() {
               >
                 Pay with BizaPay
               </Button>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
       </div>

@@ -1,3 +1,4 @@
+import { ShipmentProps } from "@/components/staff/manage-shipment";
 import { api } from "@/lib/api";
 import type {
   BulkPaymentRequest,
@@ -5,7 +6,6 @@ import type {
   Buy4MeStatusUpdate,
   DriverDashboardResponse,
   DriverEarningsResponse,
-  DriverShipmentResponse,
   ShipmentStatusUpdate,
   WithdrawalRequest,
 } from "@/lib/types/driver";
@@ -25,7 +25,7 @@ export const DRIVER_API = {
   getShipments: async (params?: {
     status?: string;
     active_only?: boolean;
-  }): Promise<DriverShipmentResponse[]> => {
+  }): Promise<ShipmentProps[]> => {
     try {
       const response = await api.get("/accounts/driver/shipments/", {
         params,
@@ -40,7 +40,7 @@ export const DRIVER_API = {
   getBuy4meOrders: async (params?: {
     status?: string;
     active_only?: boolean;
-  }): Promise<DriverShipmentResponse[]> => {
+  }): Promise<ShipmentProps[]> => {
     try {
       const response = await api.get("/accounts/driver/buy4me/", { params });
       return response.data;

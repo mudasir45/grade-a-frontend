@@ -1,8 +1,9 @@
 "use client";
 
 import { Buy4meDetailsDialog } from "@/components/driver/buy4me-details-dialog";
-import { ShipmentDetailsDialog } from "@/components/driver/shipment-details-dialog";
+import BizapayPaymentForm from "@/components/payment/bizapay-for-driver";
 import PaymentModal from "@/components/payment/PaymentForm";
+import { ShipmentProps } from "@/components/staff/manage-shipment";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,13 +23,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import ShipmentDetailsDialog from "@/components/ui/shipment-details";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useBulkPayment,
   useDriverBuy4meOrders,
   useDriverShipments,
 } from "@/hooks/use-driver";
-import { DriverShipmentResponse } from "@/lib/types/driver";
 import { convertCurrency, formatCurrency, formatDate } from "@/lib/utils";
 import { Check, Loader2, PackageCheck, ShoppingBag } from "lucide-react";
 import React, { useEffect, useState } from "react";
@@ -45,16 +46,18 @@ export default function DriverPaymentPage() {
   const [showPaymentModal, setShowPaymentModal] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [totalAmount, setTotalAmount] = React.useState(0);
-  const [nairaEquivalent, setNairaEquivalent] = React.useState(0);
   const [convertedAmount, setConvertedAmount] = useState<number>(0);
   const [convertingCurrency, setConvertingCurrency] = useState(false);
   const [paymentResult, setPaymentResult] = useState<any>(null);
   const [showResultDialog, setShowResultDialog] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [selectedShipment, setSelectedShipment] =
+    useState<ShipmentProps | null>(null);
   const [selectedItemDetails, setSelectedItemDetails] = useState<string | null>(
     null
   );
-  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [showDetailsDialog, setShowDetailsDialog] = useState<boolean>(false);
 
   // Queries for shipments and buy4me requests with pending status
   const { data: shipments, isLoading: shipmentsLoading } = useDriverShipments({
@@ -104,6 +107,21 @@ export default function DriverPaymentPage() {
   // Handle tab changes
   const handleTabChange = (value: string) => {
     setActiveTab(value as "shipments" | "buy4me");
+  };
+
+  const getStatusBadge = (status: any) => {
+    switch (status) {
+      case "DELIVERED":
+        return <Badge className="bg-green-500">{status}</Badge>;
+      case "PENDING":
+        return <Badge className="bg-yellow-500">{status}</Badge>;
+      case "PROCESSING":
+        return <Badge className="bg-blue-500">{status}</Badge>;
+      case "CANCELLED":
+        return <Badge className="bg-red-500">{status}</Badge>;
+      default:
+        return <Badge className="bg-gray-500">{status}</Badge>;
+    }
   };
 
   // Handle select all for shipments
@@ -168,7 +186,7 @@ export default function DriverPaymentPage() {
 
     setTotalAmount(total);
     // Convert to Naira (approximately)
-    setNairaEquivalent(total * 365); // Assuming 1 MYR = 365 NGN
+    // setNairaEquivalent(total * 365); // Assuming 1 MYR = 365 NGN
   }, [selectedIds, selectedBuy4MeIds, shipmentsData, buy4meData]);
 
   // Convert currency whenever total amount changes
@@ -181,8 +199,7 @@ export default function DriverPaymentPage() {
           setConvertedAmount(nairaAmount);
         } catch (error) {
           console.error("Error converting currency:", error);
-          // Use approximate conversion if API fails (1 MYR = ~340 NGN as fallback)
-          setConvertedAmount(totalAmount * 340);
+          setConvertedAmount(0);
         } finally {
           setConvertingCurrency(false);
         }
@@ -259,13 +276,21 @@ export default function DriverPaymentPage() {
       returnUrl: "/driver/payment/success",
     };
 
-    localStorage.setItem("driver_payment_metadata", JSON.stringify(metadata));
+    localStorage.setItem("paymentData", JSON.stringify(metadata));
     setShowPaymentModal(true);
   };
 
   // Handle viewing item details
-  const handleViewDetails = (id: string) => {
-    setSelectedItemDetails(id);
+  const handleViewDetails = (item: ShipmentProps | string) => {
+    if (typeof item === "string") {
+      // This is a Buy4Me order ID
+      setSelectedItemDetails(item);
+      setSelectedShipment(null);
+    } else {
+      // This is a Shipment object
+      setSelectedShipment(item);
+      setSelectedItemDetails(null);
+    }
     setShowDetailsDialog(true);
   };
 
@@ -394,7 +419,7 @@ export default function DriverPaymentPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {shipmentsData.map((shipment: DriverShipmentResponse) => (
+                  {shipmentsData.map((shipment: ShipmentProps) => (
                     <div
                       key={shipment.id}
                       className="flex items-center justify-between border-b pb-4 hover:bg-gray-50 p-3 rounded"
@@ -420,7 +445,7 @@ export default function DriverPaymentPage() {
                           {formatCurrency(
                             parseFloat(
                               (shipment as any).total_cost ||
-                                shipment.amount ||
+                                shipment.total_cost ||
                                 "0"
                             )
                           )}
@@ -428,7 +453,7 @@ export default function DriverPaymentPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleViewDetails(shipment.id)}
+                          onClick={() => handleViewDetails(shipment)}
                           className="font-medium px-4 py-2 hover:bg-primary hover:text-white transition-colors"
                         >
                           View Details
@@ -561,24 +586,22 @@ export default function DriverPaymentPage() {
                     {totalAmount.toFixed(2)} MYR
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                {/* <div className="flex items-center gap-2">
                   <p className="text-sm text-muted-foreground">
                     Naira Equivalent:
                   </p>
                   <p className="text-base font-medium">
                     ₦{nairaEquivalent.toLocaleString()}
                   </p>
+                </div> */}
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-muted-foreground">
+                    Amount in NGN:
+                  </p>
+                  <p className="text-base font-medium">
+                    ₦{convertedAmount.toLocaleString()}
+                  </p>
                 </div>
-                {convertedAmount > 0 && (
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm text-muted-foreground">
-                      PayStack Amount:
-                    </p>
-                    <p className="text-base font-medium">
-                      ₦{convertedAmount.toLocaleString()}
-                    </p>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -590,7 +613,7 @@ export default function DriverPaymentPage() {
                     ? selectedIds.length === 0
                     : selectedBuy4MeIds.length === 0)
                 }
-                onClick={handleProcessPayment}
+                onClick={() => setIsPaymentOpen(true)}
                 className="flex-1 sm:flex-none text-base h-12"
                 size="lg"
               >
@@ -600,7 +623,7 @@ export default function DriverPaymentPage() {
                     Processing...
                   </>
                 ) : (
-                  "Process as COD"
+                  "Pay with Bizapay"
                 )}
               </Button>
 
@@ -636,6 +659,31 @@ export default function DriverPaymentPage() {
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         price={convertedAmount || 0}
+        metadata={{
+          requestType: "driver",
+          payment_for: activeTab === "shipments" ? "SHIPMENT" : "BUY4ME",
+          request_ids:
+            activeTab === "shipments" ? selectedIds : selectedBuy4MeIds,
+          total: totalAmount,
+          description: `Payment for ${
+            activeTab === "shipments"
+              ? `${selectedIds.length} shipment${
+                  selectedIds.length > 1 ? "s" : ""
+                }`
+              : `${selectedBuy4MeIds.length} Buy4Me order${
+                  selectedBuy4MeIds.length > 1 ? "s" : ""
+                }`
+          }`,
+          driver_id: "current", // Will be replaced with actual driver ID on the backend
+          returnUrl: "/driver/payment/success",
+        }}
+      />
+
+      <BizapayPaymentForm
+        isOpen={isPaymentOpen}
+        onClose={() => setIsPaymentOpen(false)}
+        amount={totalAmount.toString()}
+        paymentType="driver"
         metadata={{
           requestType: "driver",
           payment_for: activeTab === "shipments" ? "SHIPMENT" : "BUY4ME",
@@ -705,19 +753,16 @@ export default function DriverPaymentPage() {
 
       {/* Details Dialog */}
       {showDetailsDialog &&
-        selectedItemDetails &&
         (activeTab === "shipments" ? (
           <ShipmentDetailsDialog
-            shipmentId={selectedItemDetails}
-            open={showDetailsDialog}
-            onClose={() => {
-              setShowDetailsDialog(false);
-              setSelectedItemDetails(null);
-            }}
+            viewDialogOpen={showDetailsDialog}
+            setViewDialogOpen={setShowDetailsDialog}
+            selectedShipment={selectedShipment}
+            getStatusBadge={getStatusBadge}
           />
         ) : (
           <Buy4meDetailsDialog
-            orderId={selectedItemDetails}
+            orderId={selectedItemDetails || ""}
             open={showDetailsDialog}
             onClose={() => {
               setShowDetailsDialog(false);
