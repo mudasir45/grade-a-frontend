@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import SearchableSelect from "@/components/ui/searchable-select";
 import {
   Select,
   SelectContent,
@@ -313,44 +314,21 @@ export function ShippingCalculator() {
                     <label className="text-sm font-medium text-gray-700">
                       Shipping Method
                     </label>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {serviceTypes.map((service) => (
-                        <TooltipProvider key={service.id}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant={
-                                  formData.method === service.id
-                                    ? "default"
-                                    : "outline"
-                                }
-                                className={cn(
-                                  "w-full justify-start gap-2",
-                                  formData.method === service.id &&
-                                    "border-2 border-gray-300 bg-gray-900 text-white hover:bg-gray-900"
-                                )}
-                                onClick={() =>
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    method: service.id,
-                                  }))
-                                }
-                              >
-                                {
-                                  serviceIcons[
-                                    service.id as keyof typeof serviceIcons
-                                  ]
-                                }
-                                <span>{service.name}</span>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{service.description}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ))}
-                    </div>
+                    <SearchableSelect
+                      options={serviceTypes.map((service) => ({
+                        value: service.id,
+                        label: service.name,
+                      }))}
+                      value={formData.method}
+                      onChange={(value) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          method: value,
+                        }))
+                      }
+                      placeholder="Select shipping method"
+                      className={cn(formErrors.method && "border-red-500")}
+                    />
                     {formErrors.method && (
                       <p className="text-sm text-red-500">
                         {formErrors.method}

@@ -305,6 +305,29 @@ export function useBuy4Me() {
     }
   }, []);
 
+  const getCurrencies = useCallback(async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/shipping-rates/currencies/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!response.ok) throw new Error("Failed to fetch supported stores");
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error fetching supported stores:", error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     activeRequest,
     loading,
@@ -316,5 +339,6 @@ export function useBuy4Me() {
     getUserCountries,
     getServiceTypes,
     getSupportedStores,
+    getCurrencies,
   };
 }

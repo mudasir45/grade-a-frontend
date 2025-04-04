@@ -21,6 +21,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useBuy4Me } from "@/hooks/use-buy4me";
 import { useToast } from "@/hooks/use-toast";
 import { Country, ServiceType } from "@/lib/types/index";
+import { Currency } from "@/lib/utils";
 import { Lock } from "lucide-react";
 import { useEffect, useState } from "react";
 export function CustomerProfile() {
@@ -32,9 +33,15 @@ export function CustomerProfile() {
     updateUser: updateUserRequest,
   } = useAuth();
   const { toast } = useToast();
-  const { getUserCountries, loading: isLoading, getServiceTypes } = useBuy4Me();
+  const {
+    getUserCountries,
+    loading: isLoading,
+    getServiceTypes,
+    getCurrencies,
+  } = useBuy4Me();
   const [loading, setLoading] = useState(false);
   const [userCountries, setUserCountries] = useState<Country[]>([]);
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [changePassword, setChangePassword] = useState({
     oldPassword: "",
     newPassword: "",
@@ -45,7 +52,7 @@ export function CustomerProfile() {
     email: user?.email || "",
     phone: user?.phone_number || "",
     country: user?.country || "",
-    currency: user?.preferred_currency || "USD",
+    currency: user?.preferred_currency || "",
     country_details: user?.country_details || "",
     default_shipping_method: user?.default_shipping_method || "",
   });
@@ -58,6 +65,14 @@ export function CustomerProfile() {
       setUserCountries(countries);
     };
     fetchCountries();
+  }, []);
+
+  useEffect(() => {
+    const fetchCurrencies = async () => {
+      const currencies = await getCurrencies();
+      setCurrencies(currencies);
+    };
+    fetchCurrencies();
   }, []);
 
   useEffect(() => {
@@ -226,10 +241,13 @@ export function CustomerProfile() {
                   <SelectValue placeholder="Select currency" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="USD">USD - US Dollar</SelectItem>
-                  <SelectItem value="EUR">EUR - Euro</SelectItem>
-                  <SelectItem value="GBP">GBP - British Pound</SelectItem>
-                  <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
+                  {currencies.map((currency) => (
+                    <SelectItem key={currency.id} value={currency.id}>
+                      <span className="flex items-center gap-2">
+                        <span>{currency.name}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

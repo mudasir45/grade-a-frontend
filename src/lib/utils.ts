@@ -25,25 +25,11 @@ export function formatDate(dateString: string): string {
 
 // utils/currencyConverter.ts
 
-export type Currency = "USD" | "MYR" | "NGN";
-
-// Conversion rates relative to USD
-// (Pick an updated ratio so that 1 MYR ~ 352 NGN).
-// For example, if 1 USD = 4.5 MYR, but 1 MYR = 352 NGN, then 1 USD would be 4.5 MYR => 4.5 * 352 NGN = 1584 NGN
-const conversionRates: Record<Currency, number> = {
-  //   USD: 1,
-  // If 1 MYR = 352 NGN and 1 USD = 1584 NGN,
-  // then 1 MYR is 1/4.5 of a USD => but we must keep them consistent.
-  // Let's do it more directly:
-  //   1 USD = 1584 NGN
-  //   1 USD = 4.5 MYR
-  // So, 1 MYR = 1584 / 4.5 = 352 NGN
-  // But we need the value of MYR in terms of USD:
-  //   1 MYR = 1 / 4.5 USD = 0.2222... USD
-  //   1 NGN = 1 / 1584 USD = 0.00063... USD
-  USD: 1,
-  MYR: 0.2222, // (1 MYR = 0.2222 USD)
-  NGN: 1 / 1584, // (1 NGN = ~0.0   0063 USD)
+export type Currency = {
+  id: string;
+  name: string;
+  cod: string;
+  conversion_rate: string;
 };
 
 /**
