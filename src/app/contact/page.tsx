@@ -303,8 +303,14 @@ export default function ContactPage() {
                     <MapPin className="w-5 h-5 text-blue-600 mt-1" />
                     <div>
                       <p className="font-medium text-gray-700">Address</p>
-                      <p className="text-gray-500">123 Shipping Lane</p>
-                      <p className="text-gray-500">Dubai, UAE</p>
+                      <p className="text-gray-500">
+                        Shop 23, Victory plaza, beside Mobil filling station,
+                      </p>
+                      <p className="text-gray-500">
+                        ilepo oke odo bus stop, along abule egba/iyana paja
+                        express way,
+                      </p>
+                      <p className="text-gray-500">Lagos, Nigeria.</p>
                     </div>
                   </div>
 
@@ -312,7 +318,12 @@ export default function ContactPage() {
                     <Phone className="w-5 h-5 text-blue-600 mt-1" />
                     <div>
                       <p className="font-medium text-gray-700">Phone</p>
-                      <p className="text-gray-500">+971 4 123 4567</p>
+                      <p className="text-gray-500">
+                        +60 11-3690 7583 (Malaysia office)
+                      </p>
+                      <p className="text-gray-500">
+                        +234 902 020 2928 (Nigeria office)
+                      </p>
                     </div>
                   </div>
 
@@ -320,7 +331,7 @@ export default function ContactPage() {
                     <Mail className="w-5 h-5 text-blue-600 mt-1" />
                     <div>
                       <p className="font-medium text-gray-700">Email</p>
-                      <p className="text-gray-500">info@gradeaexpress.com</p>
+                      <p className="text-gray-500">gradeaplus21@gmail.com</p>
                     </div>
                   </div>
 

@@ -119,7 +119,7 @@ export function CreateCustomerDialog({
           body: JSON.stringify({
             username: formData.phone,
             phone_number: formData.phone,
-            email: formData.email ? formData.email : "test@gmail.com",
+            email: formData.email,
             password: formData.password,
             first_name: firstName,
             last_name: lastName,

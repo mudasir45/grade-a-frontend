@@ -42,7 +42,10 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Extras } from "@/lib/types/shipping";
+import { fetchCountries, getCountryNameById } from "@/lib/utils";
 import {
+  ChevronDown,
+  ChevronUp,
   Eye,
   MessageSquare,
   MoreHorizontal,
@@ -137,11 +140,55 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [shipments, setShipments] = useState<ShipmentProps[]>([]);
+  const [availableStatuses, setAvailableStatuses] = useState<string[]>([]);
+  const [countries, setCountries] = useState<any[]>([]);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Sorting state
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
   const token = localStorage.getItem("auth_token");
   const router = useRouter();
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
-  console.log(selectedShipment);
-  // Filter shipments based on search term and status filter
+
+  // Fetch countries data
+  useEffect(() => {
+    const loadCountries = async () => {
+      const countriesData = await fetchCountries();
+      setCountries(countriesData);
+    };
+
+    loadCountries();
+  }, []);
+
+  // Get all available statuses for filtering
+  const fetchAvailableStatuses = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/shipments/status-types/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch status types");
+      }
+
+      const data = await response.json();
+      setAvailableStatuses(data.map((status: any) => status.status_type));
+    } catch (error) {
+      console.error("Error fetching status types:", error);
+    }
+  };
 
   const getStaffShipments = async () => {
     if (user) {
@@ -164,6 +211,13 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
         })
         .then((data) => {
           setShipments(data);
+
+          // Extract unique statuses from shipments for the filter
+          const uniqueStatuses: string[] = Array.from(
+            new Set(data.map((s: any) => s.status as string))
+          );
+          setAvailableStatuses(uniqueStatuses);
+
           setTotal({
             pending: data.filter((d: any) => d.status === "PENDING").length,
             cancelled: data.filter((d: any) => d.status === "CANCELLED").length,
@@ -171,26 +225,113 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
               .length,
             delivered: data.filter((d: any) => d.status === "DELIVERED").length,
           });
+
+          // Calculate total pages
+          setTotalPages(Math.ceil(data.length / pageSize));
         });
     }
   };
+
   useEffect(() => {
     getStaffShipments();
+    fetchAvailableStatuses();
   }, []);
 
-  const filteredShipments = shipments.filter((shipment) => {
-    const matchesSearch =
-      shipment.tracking_number
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      shipment.sender_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      shipment.recipient_name.toLowerCase().includes(searchTerm.toLowerCase());
+  // Update total pages when page size changes
+  useEffect(() => {
+    setTotalPages(Math.ceil(filteredShipments.length / pageSize));
+    // Reset to first page when changing page size
+    setCurrentPage(1);
+  }, [pageSize, shipments, statusFilter, searchTerm]);
 
+  // Enhanced search function to search across all relevant fields
+  const matchesSearchTerm = (shipment: ShipmentProps) => {
+    if (!searchTerm.trim()) return true;
+
+    const searchLower = searchTerm.toLowerCase();
+
+    // Search across all relevant fields
+    return (
+      shipment.tracking_number?.toLowerCase().includes(searchLower) ||
+      shipment.sender_name?.toLowerCase().includes(searchLower) ||
+      shipment.sender_email?.toLowerCase().includes(searchLower) ||
+      shipment.sender_phone?.toLowerCase().includes(searchLower) ||
+      shipment.sender_address?.toLowerCase().includes(searchLower) ||
+      shipment.recipient_name?.toLowerCase().includes(searchLower) ||
+      shipment.recipient_email?.toLowerCase().includes(searchLower) ||
+      shipment.recipient_phone?.toLowerCase().includes(searchLower) ||
+      shipment.recipient_address?.toLowerCase().includes(searchLower) ||
+      shipment.description?.toLowerCase().includes(searchLower) ||
+      shipment.total_cost?.toString().includes(searchLower) ||
+      shipment.weight?.toString().includes(searchLower) ||
+      shipment.notes?.toLowerCase().includes(searchLower)
+    );
+  };
+
+  // Filter shipments based on search term and status filter
+  const filteredShipments = shipments.filter((shipment) => {
     const matchesStatus =
       statusFilter === "all" || shipment.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
+    return matchesSearchTerm(shipment) && matchesStatus;
   });
+
+  // Sort the filtered shipments
+  const sortedShipments = React.useMemo(() => {
+    if (!sortField) return filteredShipments;
+
+    return [...filteredShipments].sort((a, b) => {
+      const aValue = a[sortField as keyof ShipmentProps];
+      const bValue = b[sortField as keyof ShipmentProps];
+
+      if (aValue === bValue) return 0;
+
+      // Handle string comparison
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return sortDirection === "asc"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      // Handle numeric comparison
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+      }
+
+      // Default comparison (handles mixed types)
+      const comparison = String(aValue).localeCompare(String(bValue));
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [filteredShipments, sortField, sortDirection]);
+
+  // Get paginated data
+  const paginatedShipments = React.useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return sortedShipments.slice(startIndex, startIndex + pageSize);
+  }, [sortedShipments, currentPage, pageSize]);
+
+  // Function to handle sorting
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      // Toggle direction if same field
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // New field, set to ascending by default
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  // Render sort indicator
+  const renderSortIcon = (field: string) => {
+    if (sortField !== field) return null;
+
+    return sortDirection === "asc" ? (
+      <ChevronUp className="h-4 w-4 inline ml-1" />
+    ) : (
+      <ChevronDown className="h-4 w-4 inline ml-1" />
+    );
+  };
 
   // Function to get the appropriate badge color based on status
   const getStatusBadge = (status: any) => {
@@ -371,6 +512,18 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
     }
   };
 
+  // Function to get country name by ID
+  const getCountryName = (countryId: string) => {
+    return getCountryNameById(countryId, countries);
+  };
+
+  // Function to format route with country names
+  const formatRoute = (senderCountry: string, recipientCountry: string) => {
+    const senderName = getCountryName(senderCountry);
+    const recipientName = getCountryName(recipientCountry);
+    return `${senderName} → ${recipientName}`;
+  };
+
   return (
     <>
       <Card className="w-full">
@@ -391,25 +544,42 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="in-transit">In Transit</SelectItem>
-                <SelectItem value="delivered">Delivered</SelectItem>
-                <SelectItem value="processing">Processing</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
+                {availableStatuses.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {status}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(value) => setPageSize(Number(value))}
+            >
+              <SelectTrigger className="w-full sm:w-[100px]">
+                <SelectValue placeholder="Show" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Mobile/Tablet Card View */}
           <div className="block lg:hidden space-y-4">
-            {filteredShipments.length > 0 ? (
-              filteredShipments.map((shipment) => (
+            {paginatedShipments.length > 0 ? (
+              paginatedShipments.map((shipment) => (
                 <Card key={shipment.id} className="p-4">
                   <div className="flex justify-between items-start mb-2">
                     <div className="font-medium">
@@ -435,7 +605,10 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
                     <div className="grid grid-cols-2 gap-2">
                       <div className="text-muted-foreground">Route:</div>
                       <div>
-                        {shipment.sender_country} → {shipment.recipient_country}
+                        {formatRoute(
+                          shipment.sender_country,
+                          shipment.recipient_country
+                        )}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -522,20 +695,55 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Tracking #</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Sender</TableHead>
-                  <TableHead>Receiver</TableHead>
+                  <TableHead
+                    onClick={() => handleSort("tracking_number")}
+                    className="cursor-pointer hover:bg-gray-50"
+                  >
+                    Tracking # {renderSortIcon("tracking_number")}
+                  </TableHead>
+                  <TableHead
+                    onClick={() => handleSort("created_at")}
+                    className="cursor-pointer hover:bg-gray-50"
+                  >
+                    Date {renderSortIcon("created_at")}
+                  </TableHead>
+                  <TableHead
+                    onClick={() => handleSort("sender_name")}
+                    className="cursor-pointer hover:bg-gray-50"
+                  >
+                    Sender {renderSortIcon("sender_name")}
+                  </TableHead>
+                  <TableHead
+                    onClick={() => handleSort("recipient_name")}
+                    className="cursor-pointer hover:bg-gray-50"
+                  >
+                    Receiver {renderSortIcon("recipient_name")}
+                  </TableHead>
                   <TableHead>Route</TableHead>
-                  <TableHead>Weight</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead
+                    onClick={() => handleSort("weight")}
+                    className="cursor-pointer hover:bg-gray-50"
+                  >
+                    Weight {renderSortIcon("weight")}
+                  </TableHead>
+                  <TableHead
+                    onClick={() => handleSort("total_cost")}
+                    className="cursor-pointer hover:bg-gray-50"
+                  >
+                    Amount {renderSortIcon("total_cost")}
+                  </TableHead>
+                  <TableHead
+                    onClick={() => handleSort("status")}
+                    className="cursor-pointer hover:bg-gray-50"
+                  >
+                    Status {renderSortIcon("status")}
+                  </TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredShipments.length > 0 ? (
-                  filteredShipments.map((shipment) => (
+                {paginatedShipments.length > 0 ? (
+                  paginatedShipments.map((shipment) => (
                     <TableRow key={shipment.id}>
                       <TableCell className="font-medium">
                         {shipment.tracking_number}
@@ -546,7 +754,10 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
                       <TableCell>{shipment.sender_name}</TableCell>
                       <TableCell>{shipment.recipient_name}</TableCell>
                       <TableCell>
-                        {shipment.sender_country} → {shipment.recipient_country}
+                        {formatRoute(
+                          shipment.sender_country,
+                          shipment.recipient_country
+                        )}
                       </TableCell>
                       <TableCell>{shipment.weight} kg</TableCell>
                       <TableCell>{shipment.total_cost}</TableCell>
@@ -633,25 +844,78 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
           </div>
 
           {/* Pagination */}
-          <div className="flex justify-center sm:justify-end">
+          <div className="flex flex-col sm:flex-row justify-between items-center">
+            <div className="text-sm text-muted-foreground mb-4 sm:mb-0">
+              Showing{" "}
+              {paginatedShipments.length > 0
+                ? (currentPage - 1) * pageSize + 1
+                : 0}{" "}
+              to {Math.min(currentPage * pageSize, filteredShipments.length)} of{" "}
+              {filteredShipments.length} entries
+            </div>
+
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
-                  <PaginationPrevious href="#" />
+                  <PaginationPrevious
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(prev - 1, 1))
+                    }
+                    className={
+                      currentPage === 1
+                        ? "cursor-not-allowed opacity-50"
+                        : "cursor-pointer"
+                    }
+                  />
                 </PaginationItem>
+
+                {[...Array(totalPages)].map((_, index) => {
+                  const pageNumber = index + 1;
+                  // Show limited page numbers to avoid crowding
+                  if (
+                    pageNumber === 1 ||
+                    pageNumber === totalPages ||
+                    (pageNumber >= currentPage - 1 &&
+                      pageNumber <= currentPage + 1)
+                  ) {
+                    return (
+                      <PaginationItem key={pageNumber}>
+                        <PaginationLink
+                          onClick={() => setCurrentPage(pageNumber)}
+                          isActive={pageNumber === currentPage}
+                        >
+                          {pageNumber}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  }
+
+                  // Add ellipsis for skipped pages
+                  if (
+                    (pageNumber === currentPage - 2 && pageNumber > 1) ||
+                    (pageNumber === currentPage + 2 && pageNumber < totalPages)
+                  ) {
+                    return (
+                      <PaginationItem key={`ellipsis-${pageNumber}`}>
+                        <span className="px-4">...</span>
+                      </PaginationItem>
+                    );
+                  }
+
+                  return null;
+                })}
+
                 <PaginationItem>
-                  <PaginationLink href="#" isActive>
-                    1
-                  </PaginationLink>
-                </PaginationItem>
-                <PaginationItem className="hidden sm:block">
-                  <PaginationLink href="#">2</PaginationLink>
-                </PaginationItem>
-                <PaginationItem className="hidden sm:block">
-                  <PaginationLink href="#">3</PaginationLink>
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationNext href="#" />
+                  <PaginationNext
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                    }
+                    className={
+                      currentPage === totalPages
+                        ? "cursor-not-allowed opacity-50"
+                        : "cursor-pointer"
+                    }
+                  />
                 </PaginationItem>
               </PaginationContent>
             </Pagination>

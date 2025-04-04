@@ -33,10 +33,20 @@ export interface ShippingRate {
   regular: number;
 }
 
+export interface Currency {
+  id: number;
+  code: string;
+  name: string;
+  conversion_rate: number;
+}
+
 export interface Country {
   id: string;
   name: string;
   code: string;
+  country_type: "DEPARTURE" | "DESTINATION";
+  currency: Currency;
+  is_active: boolean;
 }
 
 export interface User {

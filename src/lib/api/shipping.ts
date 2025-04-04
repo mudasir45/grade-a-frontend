@@ -52,7 +52,7 @@ interface CalculateRateParams {
   width?: number;
   height?: number;
   service_type: string;
-  declared_value?: number;
+  declared_value?: string;
   insurance_required?: boolean;
   additional_charges?: Extras[];
   city?: string;

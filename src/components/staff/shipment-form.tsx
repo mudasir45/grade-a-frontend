@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ShippingAPI } from "@/lib/api/shipping";
 import { City } from "@/lib/types/index";
 import { Extras, type ShippingRate } from "@/lib/types/shipping";
-import { cn, convertCurrency } from "@/lib/utils";
+import { cn, convertCurrency, getCountryCurrencyCode } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -70,7 +70,7 @@ interface FormData {
   width: number;
   height: number;
   description: string;
-  declared_value: number;
+  declared_value: string;
   service_type: string;
   insurance_required: boolean;
   signature_required: boolean;
@@ -156,7 +156,7 @@ export function ShipmentForm({
     width: 0,
     height: 0,
     description: "",
-    declared_value: 0,
+    declared_value: "0",
     service_type: defaultServiceType || "",
     insurance_required: false,
     signature_required: false,
@@ -221,9 +221,7 @@ export function ShipmentForm({
         length: parseFloat(initialData.length?.toString() || "0"),
         width: parseFloat(initialData.width?.toString() || "0"),
         height: parseFloat(initialData.height?.toString() || "0"),
-        declared_value: parseFloat(
-          initialData.declared_value?.toString() || "0"
-        ),
+        declared_value: initialData.declared_value?.toString() || "0",
         calculation_type: calculation_type,
         delivery_rm: parseFloat(initialData.delivery_rm?.toString() || "0"),
         total_rm: parseFloat(initialData.total_rm?.toString() || "0"),
@@ -406,7 +404,7 @@ export function ShipmentForm({
           height:
             formData.calculation_type === "dimensions" ? formData.height : 0,
           service_type: formData.service_type,
-          declared_value: formData.declared_value || 0,
+          declared_value: formData.declared_value || "0",
           insurance_required: formData.insurance_required || false,
           additional_charges: formData.additional_charges.map((charge) => ({
             id: charge.id || "",
@@ -1391,16 +1389,24 @@ export function ShipmentForm({
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="declared_value">Declared Value (USD)</Label>
+                  <Label htmlFor="declared_value">
+                    Declared Value (
+                    {getCountryCurrencyCode(
+                      formData.sender_country,
+                      departureCountries
+                    )}
+                    )
+                  </Label>
                   <Input
-                    type="number"
-                    min={0}
-                    step={0.01}
+                    type="text"
                     value={formData.declared_value}
                     onChange={(e) =>
                       handleFieldChange(
                         "declared_value",
-                        parseFloat(e.target.value)
+                        `${e.target.value} ${getCountryCurrencyCode(
+                          formData.sender_country,
+                          departureCountries
+                        )}`
                       )
                     }
                   />
@@ -1678,65 +1684,6 @@ export function ShipmentForm({
             )}
 
             <div className="flex flex-col sm:flex-row gap-4 sm:justify-end mt-2">
-              {/* {mode === "edit" && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    console.log("Current form data:", formData);
-                    console.log(
-                      "City value:",
-                      formData.city,
-                      "type:",
-                      typeof formData.city
-                    );
-                    console.log(
-                      "Service type value:",
-                      formData.service_type,
-                      "type:",
-                      typeof formData.service_type
-                    );
-                    console.log(
-                      "Additional charges:",
-                      formData.additional_charges
-                    );
-
-                    // Show city matching info
-                    if (cities.length) {
-                      const cityMatch = cities.find(
-                        (c) => String(c.id) === String(formData.city)
-                      );
-                      console.log("City match:", cityMatch);
-                      console.log(
-                        "Available cities:",
-                        cities.map((c) => ({ id: c.id, name: c.name }))
-                      );
-                    }
-
-                    // Show service type matching info
-                    if (serviceTypes.length) {
-                      const serviceMatch = serviceTypes.find(
-                        (s) => String(s.id) === String(formData.service_type)
-                      );
-                      console.log("Service type match:", serviceMatch);
-                      console.log(
-                        "Available service types:",
-                        serviceTypes.map((s) => ({ id: s.id, name: s.name }))
-                      );
-                    }
-
-                    // Show additional charges info
-                    if (formData.additional_charges?.length) {
-                      console.log("Additional charges details:");
-                      formData.additional_charges.forEach((charge, i) => {
-                        console.log(`Charge ${i + 1}:`, charge);
-                      });
-                    }
-                  }}
-                >
-                  Debug Data
-                </Button>
-              )} */}
               <Button
                 type="submit"
                 disabled={isSubmitting}

@@ -1,12 +1,5 @@
-import { useEffect, useState } from 'react';
-
-interface Country {
-  id: string;
-  name: string;
-  code: string;
-  country_type: 'DEPARTURE' | 'DESTINATION';
-  is_active: boolean;
-}
+import { useEffect, useState } from "react";
+import { Country } from "@/lib/types/index";
 
 interface ServiceType {
   id: string;
@@ -45,20 +38,32 @@ const useShippingData = () => {
   const fetchData = async () => {
     try {
       // Fetch all data in parallel
-      const [departureResponse, destinationResponse, serviceTypesResponse, zonesResponse] = 
-        await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/shipping-rates/countries?country_type=DEPARTURE`),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/shipping-rates/countries?country_type=DESTINATION`),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/shipping-rates/service-types/`),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/shipping-rates/shipping-zones/`)
-        ]);
+      const [
+        departureResponse,
+        destinationResponse,
+        serviceTypesResponse,
+        zonesResponse,
+      ] = await Promise.all([
+        fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/shipping-rates/countries?country_type=DEPARTURE`
+        ),
+        fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/shipping-rates/countries?country_type=DESTINATION`
+        ),
+        fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/shipping-rates/service-types/`
+        ),
+        fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/shipping-rates/shipping-zones/`
+        ),
+      ]);
 
-      const [departureData, destinationData, serviceTypesData, zonesData] = 
+      const [departureData, destinationData, serviceTypesData, zonesData] =
         await Promise.all([
           departureResponse.json(),
           destinationResponse.json(),
           serviceTypesResponse.json(),
-          zonesResponse.json()
+          zonesResponse.json(),
         ]);
 
       setShippingData({
@@ -70,10 +75,10 @@ const useShippingData = () => {
         error: null,
       });
     } catch (error) {
-      setShippingData(prev => ({
+      setShippingData((prev) => ({
         ...prev,
         isLoading: false,
-        error: error instanceof Error ? error : new Error('An error occurred'),
+        error: error instanceof Error ? error : new Error("An error occurred"),
       }));
     }
   };
@@ -83,7 +88,7 @@ const useShippingData = () => {
   }, []);
 
   const refetch = () => {
-    setShippingData(prev => ({ ...prev, isLoading: true, error: null }));
+    setShippingData((prev) => ({ ...prev, isLoading: true, error: null }));
     fetchData();
   };
 
