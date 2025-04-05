@@ -46,6 +46,7 @@ import { fetchCountries, getCountryNameById } from "@/lib/utils";
 import {
   ChevronDown,
   ChevronUp,
+  CreditCard,
   Eye,
   MessageSquare,
   MoreHorizontal,
@@ -155,6 +156,7 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
   const token = localStorage.getItem("auth_token");
   const router = useRouter();
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+  const [paymentStatusDialogOpen, setPaymentStatusDialogOpen] = useState(false);
 
   // Fetch countries data
   useEffect(() => {
@@ -349,6 +351,26 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
     }
   };
 
+  // Function to get the appropriate badge color for payment status
+  const getPaymentStatusBadge = (status: string) => {
+    switch (status) {
+      case "PAID":
+        return <Badge className="bg-green-500">{status}</Badge>;
+      case "PENDING":
+        return <Badge className="bg-yellow-500">{status}</Badge>;
+      case "COD_PENDING":
+        return <Badge className="bg-blue-500">COD PENDING</Badge>;
+      case "COD_PAID":
+        return <Badge className="bg-green-500">COD PAID</Badge>;
+      case "FAILED":
+        return <Badge className="bg-red-500">{status}</Badge>;
+      case "REFUNDED":
+        return <Badge className="bg-purple-500">{status}</Badge>;
+      default:
+        return <Badge className="bg-gray-500">{status}</Badge>;
+    }
+  };
+
   // Function to handle edit click
   const handleEditClick = (shipment: any) => {
     console.log("selected shipment", shipment);
@@ -530,6 +552,57 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
     return `${senderName} → ${recipientName}`;
   };
 
+  // Function to handle update payment status click
+  const handleUpdatePaymentStatusClick = (shipment: ShipmentProps) => {
+    setSelectedShipment(shipment);
+    setPaymentStatusDialogOpen(true);
+  };
+
+  // Function to update payment status
+  const handlePaymentStatusUpdate = async (newStatus: string) => {
+    if (!selectedShipment) return;
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/shipments/staff-shipment/${selectedShipment.id}/`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ payment_status: newStatus }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update payment status");
+      }
+
+      toast({
+        title: "Success",
+        description: "Payment status updated successfully",
+      });
+
+      // Refresh the shipments list
+      await getStaffShipments();
+
+      // Close the dialog
+      setPaymentStatusDialogOpen(false);
+    } catch (error) {
+      console.error("Error updating payment status:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to update payment status",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       <Card className="w-full">
@@ -621,6 +694,14 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
                       <div className="text-muted-foreground">Amount:</div>
                       <div>{shipment.total_cost}</div>
                     </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="text-muted-foreground">
+                        Payment Status:
+                      </div>
+                      <div>
+                        {getPaymentStatusBadge(shipment.payment_status)}
+                      </div>
+                    </div>
                   </div>
                   <div className="flex justify-end mt-4">
                     <DropdownMenu>
@@ -684,6 +765,15 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
                           <MessageSquare className="h-4 w-4" />
                           Generate Message
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="flex items-center gap-2"
+                          onClick={() =>
+                            handleUpdatePaymentStatusClick(shipment)
+                          }
+                        >
+                          <CreditCard className="h-4 w-4" />
+                          Update Payment Status
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -744,6 +834,12 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
                   >
                     Status {renderSortIcon("status")}
                   </TableHead>
+                  <TableHead
+                    onClick={() => handleSort("payment_status")}
+                    className="cursor-pointer hover:bg-gray-50"
+                  >
+                    Payment Status {renderSortIcon("payment_status")}
+                  </TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -768,6 +864,9 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
                       <TableCell>{shipment.weight} kg</TableCell>
                       <TableCell>{shipment.total_cost}</TableCell>
                       <TableCell>{getStatusBadge(shipment.status)}</TableCell>
+                      <TableCell>
+                        {getPaymentStatusBadge(shipment.payment_status)}
+                      </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -832,6 +931,15 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
                             >
                               <MessageSquare className="h-4 w-4" />
                               Generate Message
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="flex items-center gap-2"
+                              onClick={() =>
+                                handleUpdatePaymentStatusClick(shipment)
+                              }
+                            >
+                              <CreditCard className="h-4 w-4" />
+                              Update Payment Status
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -1005,6 +1113,127 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
         shipmentId={selectedShipment?.id || ""}
         userId={selectedShipment?.user_id}
       />
+
+      {/* Add the Dialog for updating payment status */}
+      <Dialog
+        open={paymentStatusDialogOpen}
+        onOpenChange={setPaymentStatusDialogOpen}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">
+              Update Payment Status
+            </DialogTitle>
+            <DialogDescription>
+              Change the payment status for shipment #
+              {selectedShipment?.tracking_number}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="grid gap-2">
+              <div className="mb-4">
+                <span className="text-sm font-medium">Current Status: </span>
+                <span className="ml-2">
+                  {selectedShipment?.payment_status &&
+                    getPaymentStatusBadge(selectedShipment.payment_status)}
+                </span>
+              </div>
+
+              <div className="mb-2 font-medium">Regular Payment</div>
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                <Button
+                  variant={
+                    selectedShipment?.payment_status === "PENDING"
+                      ? "default"
+                      : "outline"
+                  }
+                  className="w-full justify-start"
+                  onClick={() => handlePaymentStatusUpdate("PENDING")}
+                >
+                  <CreditCard className="mr-2 h-4 w-4 text-yellow-500" />
+                  <span>PENDING</span>
+                </Button>
+                <Button
+                  variant={
+                    selectedShipment?.payment_status === "PAID"
+                      ? "default"
+                      : "outline"
+                  }
+                  className="w-full justify-start"
+                  onClick={() => handlePaymentStatusUpdate("PAID")}
+                >
+                  <CreditCard className="mr-2 h-4 w-4 text-green-500" />
+                  <span>PAID</span>
+                </Button>
+              </div>
+
+              <div className="mb-2 font-medium">Cash on Delivery</div>
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                <Button
+                  variant={
+                    selectedShipment?.payment_status === "COD_PENDING"
+                      ? "default"
+                      : "outline"
+                  }
+                  className="w-full justify-start"
+                  onClick={() => handlePaymentStatusUpdate("COD_PENDING")}
+                >
+                  <CreditCard className="mr-2 h-4 w-4 text-blue-500" />
+                  <span>COD PENDING</span>
+                </Button>
+                <Button
+                  variant={
+                    selectedShipment?.payment_status === "COD_PAID"
+                      ? "default"
+                      : "outline"
+                  }
+                  className="w-full justify-start"
+                  onClick={() => handlePaymentStatusUpdate("COD_PAID")}
+                >
+                  <CreditCard className="mr-2 h-4 w-4 text-green-500" />
+                  <span>COD PAID</span>
+                </Button>
+              </div>
+
+              <div className="mb-2 font-medium">Issues & Refunds</div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant={
+                    selectedShipment?.payment_status === "FAILED"
+                      ? "default"
+                      : "outline"
+                  }
+                  className="w-full justify-start"
+                  onClick={() => handlePaymentStatusUpdate("FAILED")}
+                >
+                  <CreditCard className="mr-2 h-4 w-4 text-red-500" />
+                  <span>FAILED</span>
+                </Button>
+                <Button
+                  variant={
+                    selectedShipment?.payment_status === "REFUNDED"
+                      ? "default"
+                      : "outline"
+                  }
+                  className="w-full justify-start"
+                  onClick={() => handlePaymentStatusUpdate("REFUNDED")}
+                >
+                  <CreditCard className="mr-2 h-4 w-4 text-purple-500" />
+                  <span>REFUNDED</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setPaymentStatusDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
