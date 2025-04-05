@@ -446,9 +446,14 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
           },
         }
       );
-
+      const data = await response.json();
       if (!response.ok) {
-        throw new Error("Failed to delete shipment");
+        return toast({
+          title: "Error",
+          description: data.error,
+          variant: "destructive",
+        });
+        // throw new Error("Failed to delete shipment");
       }
 
       toast({
@@ -457,7 +462,8 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
       });
 
       setDeleteDialogOpen(false);
-      // You might want to refresh the shipments list here
+      // Refresh the shipments list after successful deletion
+      await getStaffShipments();
     } catch (error) {
       console.error("Error deleting shipment:", error);
       toast({
