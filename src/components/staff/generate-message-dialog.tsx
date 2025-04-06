@@ -1,9 +1,16 @@
 import { Button } from "@/components/ui/button";
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -16,8 +23,27 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { Copy } from "lucide-react";
+import { motion } from "framer-motion";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Copy,
+  HelpCircle,
+  Loader2,
+  Mail,
+  MessageSquare,
+  RefreshCw,
+  Share2,
+} from "lucide-react";
 import { useState } from "react";
 
 interface GenerateMessageDialogProps {
@@ -42,6 +68,35 @@ export function GenerateMessageDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [generatedMessage, setGeneratedMessage] = useState("");
   const [isMessageGenerated, setIsMessageGenerated] = useState(false);
+  const [activeTab, setActiveTab] = useState("options");
+
+  const messageTypeOptions = [
+    {
+      value: "confirmation",
+      label: "Order Confirmation",
+      description: "Confirm that the order has been received",
+    },
+    {
+      value: "notification",
+      label: "Shipping Notification",
+      description: "Notify that the package has been shipped",
+    },
+    {
+      value: "delivery",
+      label: "Delivery Update",
+      description: "Update about the delivery status or arrival",
+    },
+    {
+      value: "sender_notification",
+      label: "Sender Notification",
+      description: "Message specifically for the sender",
+    },
+    {
+      value: "custom",
+      label: "Custom Message",
+      description: "Create a fully customized message",
+    },
+  ];
 
   const handleGenerateMessage = async () => {
     setIsLoading(true);
@@ -82,9 +137,11 @@ export function GenerateMessageDialog({
       const data = await response.json();
       setGeneratedMessage(data.message);
       setIsMessageGenerated(true);
+      setActiveTab("message");
       toast({
         title: "Success",
         description: "Message generated successfully",
+        variant: "default",
       });
     } catch (error) {
       console.error("Error generating message:", error);
@@ -101,110 +158,297 @@ export function GenerateMessageDialog({
   const handleCopyMessage = () => {
     navigator.clipboard.writeText(generatedMessage);
     toast({
-      title: "Success",
+      title: "Copied!",
       description: "Message copied to clipboard",
     });
   };
 
+  const handleRegenerate = () => {
+    setActiveTab("options");
+    setIsMessageGenerated(false);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[650px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Generate Shipment Message</DialogTitle>
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <MessageSquare className="h-5 w-5 text-primary" />
+            Generate Shipment Message
+          </DialogTitle>
           <DialogDescription>
-            Select the type of message and options to generate.
+            Create customized messages for your shipment communications.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="messageType">Message Type</Label>
-            <Select value={messageType} onValueChange={setMessageType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select message type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="confirmation">Confirmation</SelectItem>
-                <SelectItem value="notification">Notification</SelectItem>
-                <SelectItem value="delivery">Delivery</SelectItem>
-                <SelectItem value="sender_notification">
-                  Sender Notification
-                </SelectItem>
-                <SelectItem value="custom">Custom</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
-          <div className="flex items-center justify-between">
-            <Label htmlFor="includeTracking">Include Tracking</Label>
-            <Switch
-              id="includeTracking"
-              checked={includeTracking}
-              onCheckedChange={setIncludeTracking}
-            />
-          </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid grid-cols-2 mb-4">
+            <TabsTrigger value="options" disabled={isLoading}>
+              Options
+            </TabsTrigger>
+            <TabsTrigger
+              value="message"
+              disabled={!isMessageGenerated || isLoading}
+            >
+              Message
+            </TabsTrigger>
+          </TabsList>
 
-          <div className="flex items-center justify-between">
-            <Label htmlFor="includeSenderDetails">Include Sender Details</Label>
-            <Switch
-              id="includeSenderDetails"
-              checked={includeSenderDetails}
-              onCheckedChange={setIncludeSenderDetails}
-            />
-          </div>
+          <TabsContent value="options" className="space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-md">Message Type</CardTitle>
+                <CardDescription>
+                  Select the type of message you want to generate
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4">
+                  <Select value={messageType} onValueChange={setMessageType}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select message type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {messageTypeOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          <div className="flex flex-col">
+                            <span>{option.label}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {option.description}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
 
-          {messageType === "sender_notification" && (
-            <div className="flex items-center justify-between">
-              <Label htmlFor="includeCredentials">Include Credentials</Label>
-              <Switch
-                id="includeCredentials"
-                checked={includeCredentials}
-                onCheckedChange={setIncludeCredentials}
-              />
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-md">Content Options</CardTitle>
+                <CardDescription>
+                  Customize what information to include in the message
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Label
+                        htmlFor="includeTracking"
+                        className="flex items-center gap-2"
+                      >
+                        Include Tracking Details
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Include tracking number and tracking link</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </Label>
+                    </div>
+                    <Switch
+                      id="includeTracking"
+                      checked={includeTracking}
+                      onCheckedChange={setIncludeTracking}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Label
+                        htmlFor="includeSenderDetails"
+                        className="flex items-center gap-2"
+                      >
+                        Include Sender Details
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Include sender's name, contact and address</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </Label>
+                    </div>
+                    <Switch
+                      id="includeSenderDetails"
+                      checked={includeSenderDetails}
+                      onCheckedChange={setIncludeSenderDetails}
+                    />
+                  </div>
+
+                  {messageType === "sender_notification" && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Label
+                          htmlFor="includeCredentials"
+                          className="flex items-center gap-2"
+                        >
+                          Include Account Credentials
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Include login details for tracking</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </Label>
+                      </div>
+                      <Switch
+                        id="includeCredentials"
+                        checked={includeCredentials}
+                        onCheckedChange={setIncludeCredentials}
+                      />
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-md">Additional Notes</CardTitle>
+                <CardDescription>
+                  Add any specific details or instructions
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  id="additionalNotes"
+                  placeholder="Enter any additional notes or special instructions..."
+                  value={additionalNotes}
+                  onChange={(e) => setAdditionalNotes(e.target.value)}
+                  className="min-h-[100px]"
+                />
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-end space-x-2 pt-2">
+              <Button variant="outline" onClick={onClose} disabled={isLoading}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleGenerateMessage}
+                disabled={isLoading}
+                className="flex items-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="h-4 w-4" />
+                    Generate Message
+                  </>
+                )}
+              </Button>
             </div>
-          )}
+          </TabsContent>
 
-          <div className="grid gap-2">
-            <Label htmlFor="additionalNotes">Additional Notes</Label>
-            <textarea
-              id="additionalNotes"
-              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              placeholder="Enter any additional notes..."
-              value={additionalNotes}
-              onChange={(e) => setAdditionalNotes(e.target.value)}
-            />
-          </div>
+          <TabsContent value="message" className="space-y-4">
+            {isMessageGenerated && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-md flex items-center gap-2">
+                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                        Generated Message
+                      </CardTitle>
+                      <div className="flex gap-2">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleRegenerate}
+                                className="flex items-center gap-1"
+                              >
+                                <RefreshCw className="h-4 w-4" />
+                                <span className="sr-only md:not-sr-only md:inline">
+                                  Edit
+                                </span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Edit message options</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
 
-          {isMessageGenerated && (
-            <div className="grid gap-2">
-              <div className="flex items-center justify-between">
-                <Label>Generated Message</Label>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyMessage}
-                  className="flex items-center gap-2"
-                >
-                  <Copy className="h-4 w-4" />
-                  Copy
-                </Button>
-              </div>
-              <textarea
-                className="flex min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                value={generatedMessage}
-                onChange={(e) => setGeneratedMessage(e.target.value)}
-                placeholder="Generated message will appear here..."
-              />
-            </div>
-          )}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
-          <Button onClick={handleGenerateMessage} disabled={isLoading}>
-            {isLoading ? "Generating..." : "Generate Message"}
-          </Button>
-        </DialogFooter>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleCopyMessage}
+                                className="flex items-center gap-1"
+                              >
+                                <Copy className="h-4 w-4" />
+                                <span className="sr-only md:not-sr-only md:inline">
+                                  Copy
+                                </span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Copy to clipboard</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </div>
+                    <CardDescription>
+                      Ready to copy or share with customers
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="relative">
+                      <Textarea
+                        className="min-h-[250px] p-4 font-mono text-base leading-relaxed tracking-wide whitespace-pre-wrap border-2 focus:border-primary bg-white dark:bg-zinc-950"
+                        value={generatedMessage}
+                        onChange={(e) => setGeneratedMessage(e.target.value)}
+                        placeholder="Generated message will appear here..."
+                      />
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-between border-t px-6 py-4">
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <AlertCircle className="h-4 w-4 mr-1" />
+                      You can edit this message before copying
+                    </div>
+                    <Button
+                      onClick={handleCopyMessage}
+                      className="flex items-center gap-2"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      Copy Message
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </motion.div>
+            )}
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

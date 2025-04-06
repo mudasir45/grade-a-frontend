@@ -38,14 +38,32 @@ export function UserNav() {
             </p>
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/buy4me">Buy4Me</Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/shipping">Shipping</Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
+        {user.user_type === "ADMIN" ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/staff">Dashboard</Link>
+            </DropdownMenuItem>
+          </>
+        ) : user.user_type === "DRIVER" ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/driver">Dashboard</Link>
+            </DropdownMenuItem>
+          </>
+        ) : (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/buy4me">Buy4Me</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/shipping">Shipping</Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem
           className="text-red-600 focus:text-red-600"
           onSelect={() => logout()}

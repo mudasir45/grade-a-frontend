@@ -480,6 +480,10 @@ export function ShipmentForm({
       // Format the data properly before sending
       const formattedData = {
         ...formData,
+        declared_value: `${formData.declared_value} ${getCountryCurrencyCode(
+          formData.sender_country,
+          departureCountries
+        )}`,
         additional_charges: Array.isArray(formData.additional_charges)
           ? formData.additional_charges.map((charge: Partial<Extras>) => ({
               id: charge.id || "",
@@ -641,6 +645,10 @@ export function ShipmentForm({
       // Format the data properly before updating
       const formattedData = {
         ...formData,
+        declared_value: `${formData.declared_value} ${getCountryCurrencyCode(
+          formData.sender_country,
+          departureCountries
+        )}`,
         additional_charges: Array.isArray(formData.additional_charges)
           ? formData.additional_charges.map((charge: Partial<Extras>) => ({
               id: charge.id || "",
@@ -1401,13 +1409,7 @@ export function ShipmentForm({
                     type="text"
                     value={formData.declared_value}
                     onChange={(e) =>
-                      handleFieldChange(
-                        "declared_value",
-                        `${e.target.value} ${getCountryCurrencyCode(
-                          formData.sender_country,
-                          departureCountries
-                        )}`
-                      )
+                      handleFieldChange("declared_value", e.target.value)
                     }
                   />
                 </div>

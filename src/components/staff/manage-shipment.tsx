@@ -105,6 +105,8 @@ export interface ShipmentProps {
   per_kg_rate: string;
   weight_charge: string;
   service_charge: string;
+  extras_charges: string;
+  delivery_charge: string;
   total_additional_charges: string;
   total_cost: string;
   notes: string;
