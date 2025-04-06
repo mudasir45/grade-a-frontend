@@ -13,10 +13,10 @@ import { useBuy4Me } from "@/hooks/use-buy4me";
 import { toast } from "@/hooks/use-toast";
 import { ShippingAPI } from "@/lib/api/shipping";
 
+import { useBulkPayment } from "@/hooks/use-driver";
 import { CheckCircle, Clock, HomeIcon, Loader2, XCircle } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { useBulkPayment } from "@/hooks/use-driver";
 
 interface PaymentStatus {
   status: "success" | "pending" | "failed" | "unpaid";
@@ -117,7 +117,6 @@ function PaymentConfirmationContent() {
         });
       } else if (paymentData.paymentType === "shipping") {
         await ShippingAPI.updateShipment(paymentData.metadata?.shipmentId!, {
-          ...paymentData.metadata.shipmentData,
           payment_status: "PAID",
         });
 
@@ -192,7 +191,7 @@ function PaymentConfirmationContent() {
             break;
 
           case "3":
-            handlePaymentSuccess();
+            // handlePaymentSuccess();
             setError("Payment failed");
             break;
 

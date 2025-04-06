@@ -24,26 +24,16 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { Download, Eye, Filter, Loader2, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { TrackingDialog } from "./tracking-dialog";
-
-// interface Shipment {
-//   id: string;
-//   tracking_number: string;
-//   status: string;
-//   payment_status: string;
-//   sender_country: string;
-//   recipient_country: string;
-//   total_cost: string;
-//   created_at: string;
-//   current_location: string;
-// }
+import { getStatusBadge, ShipmentProps } from "../staff/manage-shipment";
+import ShipmentDetailsDialog from "../ui/shipment-details";
 
 export function ShipmentHistory() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
-  const [shipments, setShipments] = useState<NewShipmentResponse[]>([]);
+  const [shipments, setShipments] = useState<ShipmentProps[]>([]);
   const [selectedShipment, setSelectedShipment] =
-    useState<NewShipmentResponse | null>(null);
+    useState<ShipmentProps | null>(null);
   const [trackingDialog, setTrackingDialog] = useState<{
     open: boolean;
     trackingNumber: string;
@@ -256,7 +246,7 @@ export function ShipmentHistory() {
                         }}
                       >
                         <Eye className="h-4 w-4 mr-2" />
-                        Track
+                        View Details
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -273,11 +263,14 @@ export function ShipmentHistory() {
           </div>
         </CardContent>
       </Card>
-      <TrackingDialog
-        open={trackingDialog.open}
-        shipment={selectedShipment}
-        trackingNumber={trackingDialog.trackingNumber}
-        onClose={() => setTrackingDialog({ open: false, trackingNumber: "" })}
+
+      <ShipmentDetailsDialog
+        viewDialogOpen={trackingDialog.open}
+        setViewDialogOpen={() =>
+          setTrackingDialog({ open: false, trackingNumber: "" })
+        }
+        selectedShipment={selectedShipment}
+        getStatusBadge={getStatusBadge}
       />
     </div>
   );

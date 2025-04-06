@@ -14,6 +14,7 @@ interface PaymentFormProps {
   shippingAddress?: string;
   paymentType: "buy4me" | "shipping";
   metadata?: Record<string, any>;
+  currency?: "MYR" | "NGN";
 }
 
 const PaymentForm: React.FC<PaymentFormProps> = ({
@@ -22,6 +23,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   shippingAddress,
   paymentType,
   metadata,
+  currency = "MYR",
 }) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -49,6 +51,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         shippingAddress,
         paymentType,
         metadata,
+        currency,
       });
       const paymentData = {
         amount,
@@ -56,6 +59,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         shippingAddress,
         paymentType,
         metadata,
+        currency,
       };
       localStorage.setItem("paymentData", JSON.stringify(paymentData));
 
@@ -72,6 +76,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
           amount,
           paymentType,
           metadata,
+          currency,
         }),
       });
 
@@ -132,7 +137,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
           {error && <p className="text-red-500">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Processing..." : `Pay ${amount} MYR`}
+            {loading ? "Processing..." : `Pay ${amount} ${currency}`}
           </Button>
         </form>
       </CardContent>

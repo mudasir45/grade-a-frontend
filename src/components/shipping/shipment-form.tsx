@@ -27,7 +27,19 @@ import type {
   ShippingRate,
 } from "@/lib/types/shipping";
 import { cn } from "@/lib/utils";
-import { ArrowRight, Clock, Loader2 } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  CheckSquare,
+  Clock,
+  DollarSign,
+  FileText,
+  Loader2,
+  MapPin,
+  Shield,
+  Truck,
+  Weight,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import PaymentForm from "../payment/payment-gateway";
@@ -85,6 +97,7 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
   const [paymentMethod, setPaymentMethod] = useState<"ONLINE" | "COD">(
     "ONLINE"
   );
+  const [paymentCurrency, setPaymentCurrency] = useState<"MYR" | "NGN">("MYR");
 
   useEffect(() => {
     const getExtras = async () => {
@@ -413,7 +426,7 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
           width: parseFloat(formData.width),
           height: parseFloat(formData.height),
           service_type: formData.service_type,
-          declared_value: parseFloat(formData.declared_value),
+          declared_value: formData.declared_value,
           city: formData.city.id,
           calculation_type: "weight",
           additional_charges: formData.extras.map((extra) => ({
@@ -446,15 +459,7 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields correctly.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    // Check if shipping rate exists before proceeding
     if (!shippingRate) {
       toast({
         title: "Missing Rate",
@@ -464,10 +469,31 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
       return;
     }
 
-    if (!formData.city.id) {
+    // Check if selected shipment exists (should always be the case here)
+    if (!selectedShipment) {
       toast({
-        title: "Missing City",
-        description: "Please select a city for delivery.",
+        title: "Error",
+        description: "No shipment selected for payment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for form errors
+    if (fieldErrors.length > 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please correct the errors in the form.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for pending changes
+    if (hasChanges) {
+      toast({
+        title: "Unsaved Changes",
+        description: "Please save your changes before proceeding with payment.",
         variant: "destructive",
       });
       return;
@@ -475,74 +501,33 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
 
     try {
       setLoading(true);
-      const shipmentData: ShipmentRequest = {
-        sender_name: formData.sender_name,
-        sender_email: formData.sender_email,
-        sender_phone: formData.sender_phone,
-        sender_address: formData.sender_address,
-        sender_country: formData.sender_country,
-        recipient_name: formData.recipient_name,
-        recipient_email: formData.recipient_email,
-        recipient_phone: formData.recipient_phone,
-        recipient_address: formData.recipient_address,
-        recipient_country: formData.recipient_country,
-        package_type: formData.package_type,
-        weight: parseFloat(formData.weight),
-        length: parseFloat(formData.length),
-        width: parseFloat(formData.width),
-        height: parseFloat(formData.height),
-        description: formData.description,
-        declared_value: parseFloat(formData.declared_value),
-        service_type: formData.service_type,
-        city: formData.city.id,
-        additional_charges: formData.extras.map((extra) => ({
-          name: extra.name,
-          type: extra.charge_type,
-          value: parseFloat(extra.value.toString()),
-          amount: parseFloat(extra.value.toString()) * (extra.quantity || 1),
-          description: extra.name,
-        })),
-        payment_method: paymentMethod,
-        notes: formData.notes,
-      };
 
-      if (isUpdating && selectedShipment) {
-        await ShippingAPI.updateShipment(selectedShipment.id, shipmentData);
+      // For online payments, proceed to payment gateway
+      if (paymentMethod === "ONLINE") {
+        // For BizaPay, use MYR currency
+        setPaymentCurrency("MYR");
+        setShowPayment(true);
+      } else if (paymentMethod === "COD") {
+        // COD payments are handled by the COD button, but add fallback logic
+        await ShippingAPI.updateShipment(selectedShipment.id, {
+          payment_status: "COD_PENDING",
+          payment_method: "COD",
+        });
         toast({
           title: "Success",
-          description: "Shipment updated successfully",
+          description: "Shipment updated to COD successfully",
         });
-      } else {
-        if (paymentMethod === "COD") {
-          await ShippingAPI.updateShipment(selectedShipment!.id, {
-            ...shipmentData,
-            payment_method: "COD",
-            payment_status: "COD_PENDING",
-          });
-          toast({
-            title: "Success",
-            description: "Shipment created successfully with COD",
-          });
-        } else {
-          await ShippingAPI.createShipment(shipmentData);
-          toast({
-            title: "Success",
-            description: "Shipment created successfully",
-          });
-          setShowPayment(true);
-        }
+        // Reset form and refresh data
+        resetForm();
+        fetchShipments();
+        onSuccess();
       }
-
-      // Refresh the shipments list
-      fetchShipments();
-      setIsUpdating(false);
-      onSuccess();
     } catch (error) {
-      console.error("Error submitting shipment:", error);
+      console.error("Error processing payment:", error);
       toast({
         title: "Error",
         description:
-          error instanceof Error ? error.message : "Failed to submit shipment",
+          error instanceof Error ? error.message : "Failed to process payment",
         variant: "destructive",
       });
     } finally {
@@ -550,40 +535,60 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
     }
   };
 
-  const validateForm = (): boolean => {
-    const requiredFields = [
-      "sender_name",
-      "sender_email",
-      "sender_phone",
-      "sender_address",
-      "sender_country",
-      "recipient_name",
-      "recipient_email",
-      "recipient_phone",
-      "recipient_address",
-      "recipient_country",
-      "package_type",
-      "weight",
-      "length",
-      "width",
-      "height",
-      "service_type",
-    ];
-
-    const newErrors = [];
-
-    for (const field of requiredFields) {
-      const value = formData[field as keyof NewShipmentResponse];
-      if (!value || (typeof value === "number" && value <= 0)) {
-        newErrors.push({
-          field,
-          message: `${field.replace(/_/g, " ")} is required`,
-        });
-      }
-    }
-
-    setFieldErrors(newErrors);
-    return newErrors.length === 0;
+  // Add a helper function to reset the form
+  const resetForm = () => {
+    setSelectedShipment(null);
+    setFormData({
+      id: "",
+      user: "",
+      cod_amount: "",
+      payment_method: "ONLINE",
+      payment_status: "PENDING",
+      payment_date: "",
+      transaction_id: "",
+      receipt: "",
+      sender_name: "",
+      sender_email: "",
+      sender_phone: "",
+      sender_address: "",
+      sender_country: "",
+      recipient_name: "",
+      recipient_email: "",
+      recipient_phone: "",
+      recipient_address: "",
+      recipient_country: "",
+      package_type: "",
+      weight: "0",
+      length: "0",
+      width: "0",
+      height: "0",
+      description: "",
+      declared_value: "0",
+      insurance_required: false,
+      signature_required: false,
+      tracking_number: "",
+      current_location: "",
+      estimated_delivery: null,
+      status: "PENDING",
+      base_rate: "0",
+      per_kg_rate: "0",
+      weight_charge: "0",
+      service_charge: "0",
+      total_additional_charges: "0",
+      total_cost: "0",
+      notes: "",
+      created_at: "",
+      updated_at: "",
+      staff: null,
+      service_type: "",
+      city: {
+        name: "",
+        postal_code: "",
+        delivery_charge: "0",
+      },
+      extras: [],
+      delivery_charge: "0",
+    });
   };
 
   // Update the payment continuation handler
@@ -602,7 +607,7 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
         width: parseFloat(restoredData.width),
         height: parseFloat(restoredData.height),
         service_type: restoredData.service_type,
-        declared_value: parseFloat(restoredData.declared_value),
+        declared_value: restoredData.declared_value,
         city: restoredData.city.id,
         calculation_type: "weight",
         additional_charges: restoredData.extras || [],
@@ -715,6 +720,12 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
     return country ? country.name : countryId;
   };
 
+  // Update the PayStack button click handler to use NGN
+  const handlePayStackClick = () => {
+    setPaymentCurrency("NGN");
+    setPaymentModalOpen(true);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -739,7 +750,14 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
   if (showPayment && shippingRate) {
     return (
       <PaymentForm
-        amount={shippingRate.cost_breakdown.total_cost.toString()}
+        amount={
+          paymentCurrency === "NGN"
+            ? Math.round(
+                Number(shippingRate.cost_breakdown.total_cost) * 345
+              ).toString()
+            : shippingRate.cost_breakdown.total_cost.toString()
+        }
+        currency={paymentCurrency}
         shippingAddress={formData.sender_address}
         paymentType="shipping"
         metadata={{
@@ -887,7 +905,7 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                         >
                           {selectedShipment?.id === shipment.id
                             ? "Cancel"
-                            : "Complete Payment"}
+                            : "Make Payment"}
                         </Button>
                       </div>
                     </div>
@@ -900,7 +918,14 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
       </Card>
 
       <PaymentModal
-        price={shippingRate?.cost_breakdown.total_cost || 0}
+        price={
+          paymentCurrency === "NGN"
+            ? Math.round(
+                Number(shippingRate?.cost_breakdown.total_cost || 0) * 345
+              )
+            : Number(shippingRate?.cost_breakdown.total_cost || 0)
+        }
+        currencyCode={paymentCurrency}
         isOpen={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
         metadata={{
@@ -1051,7 +1076,9 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
 
               {/* Insurance Section */}
               <div className="space-y-4">
-                <h3 className="font-medium">Insurance</h3>
+                <h3 className="font-medium">
+                  Do you need Insurance? (optional)
+                </h3>
                 <div className="grid gap-2">
                   {extras
                     .filter(
@@ -1216,76 +1243,299 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
 
               {/* Cost Breakdown */}
               {shippingRate && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">
+                <Card className="border-2 shadow-sm">
+                  <CardHeader className="bg-gray-50 border-b">
+                    <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                      <DollarSign className="h-5 w-5 text-primary" />
                       Shipping Cost Breakdown
                     </CardTitle>
+                    <CardDescription>
+                      Transparent breakdown of all charges associated with your
+                      shipment
+                    </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="grid gap-2">
-                      <div className="flex justify-between">
-                        <span>Base Rate:</span>
-                        <span>RM {shippingRate.rate_details.base_rate}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Weight Charge:</span>
-                        <span>
-                          RM {shippingRate.rate_details.weight_charge}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Service Charge:</span>
-                        <span>RM {shippingRate.rate_details.per_kg_rate}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>City Delivery Charges:</span>
-                        <span>
-                          RM {shippingRate.cost_breakdown.city_delivery_charge}
-                        </span>
-                      </div>
-                      {shippingRate.cost_breakdown.additional_charges.map(
-                        (charge) => (
-                          <div
-                            key={charge.name}
-                            className="flex justify-between"
-                          >
-                            <span>{charge.name}:</span>
-                            <span>RM {charge.amount}</span>
+                  <CardContent className="p-6">
+                    <div className="space-y-6">
+                      {/* Base Charges */}
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                          Base Shipping Charges
+                        </h4>
+                        <div className="space-y-2 rounded-lg border bg-gray-50/50 p-4">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              <Truck className="h-4 w-4 text-gray-500" />
+                              <span className="text-sm">Per KG Rate:</span>
+                            </div>
+                            <span className="font-medium">
+                              RM {shippingRate.rate_details.per_kg_rate}
+                            </span>
                           </div>
-                        )
-                      )}
-                      {shippingRate.cost_breakdown.extras?.map((charge) => (
-                        <div key={charge.name} className="flex justify-between">
-                          <span>{charge.name}:</span>
-                          <span>RM {charge.value}</span>
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              <Weight className="h-4 w-4 text-gray-500" />
+                              <span className="text-sm">
+                                Weight Charge ({shippingRate.weight.chargeable}{" "}
+                                kg × {shippingRate.rate_details.per_kg_rate}):
+                              </span>
+                            </div>
+                            <span className="font-medium">
+                              RM {shippingRate.rate_details.weight_charge}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              <MapPin className="h-4 w-4 text-gray-500" />
+                              <span className="text-sm">
+                                City Delivery Charge:
+                              </span>
+                            </div>
+                            <span className="font-medium">
+                              RM{" "}
+                              {shippingRate.cost_breakdown.city_delivery_charge}
+                            </span>
+                          </div>
                         </div>
-                      ))}
-                      <Separator />
-                      <div className="flex justify-between">
-                        <span>Subtotal:</span>
-                        <span>RM {shippingRate.cost_breakdown.total_cost}</span>
                       </div>
-                      <div className="flex justify-between text-orange-600">
-                        <span>COD Charge (5%):</span>
-                        <span>
-                          RM{" "}
-                          {(
-                            Number(shippingRate.cost_breakdown.total_cost) *
-                            0.05
-                          ).toFixed(2)}
-                        </span>
+
+                      {/* Additional Charges */}
+                      {shippingRate.cost_breakdown.additional_charges.length >
+                        0 && (
+                        <div>
+                          <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                            Mandatory Charges
+                          </h4>
+                          <div className="space-y-2 rounded-lg border bg-gray-50/50 p-4">
+                            {shippingRate.cost_breakdown.additional_charges.map(
+                              (charge) => (
+                                <div
+                                  key={charge.name}
+                                  className="flex justify-between items-center"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <FileText className="h-4 w-4 text-gray-500" />
+                                    <span className="text-sm">
+                                      {charge.name}:
+                                    </span>
+                                  </div>
+                                  <span className="font-medium">
+                                    RM {charge.amount}
+                                  </span>
+                                </div>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Extras */}
+                      {shippingRate.cost_breakdown.extras?.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                            Optional Services
+                          </h4>
+                          <div className="space-y-2 rounded-lg border bg-gray-50/50 p-4">
+                            {shippingRate.cost_breakdown.extras.map(
+                              (charge) => (
+                                <div
+                                  key={charge.name}
+                                  className="flex justify-between items-center"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    {charge.charge_type === "PERCENTAGE" ? (
+                                      <Shield className="h-4 w-4 text-blue-500" />
+                                    ) : (
+                                      <CheckSquare className="h-4 w-4 text-green-500" />
+                                    )}
+                                    <span className="text-sm">
+                                      {charge.name}:
+                                    </span>
+                                    {charge.charge_type === "PERCENTAGE" && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-blue-50 text-blue-700"
+                                      >
+                                        {charge.value}% of declared value
+                                      </Badge>
+                                    )}
+                                    {charge.quantity && charge.quantity > 1 && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs"
+                                      >
+                                        ×{charge.quantity}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <span className="font-medium">
+                                    RM{" "}
+                                    {(
+                                      Number(charge.value) *
+                                      (charge.quantity || 1)
+                                    ).toFixed(2)}
+                                  </span>
+                                </div>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Subtotal */}
+                      <div className="border-t pt-4">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold">Subtotal:</span>
+                          <span className="font-semibold">
+                            RM {shippingRate.cost_breakdown.total_cost}
+                          </span>
+                        </div>
                       </div>
-                      <Separator />
-                      <div className="flex justify-between font-bold">
-                        <span>Total (with COD):</span>
-                        <span>
-                          RM{" "}
-                          {(
-                            Number(shippingRate.cost_breakdown.total_cost) *
-                            1.05
-                          ).toFixed(2)}
-                        </span>
+
+                      {/* Payment Options */}
+                      <div className="space-y-4 mt-6">
+                        <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                          Payment Options
+                        </h4>
+
+                        {/* Online Payment Option */}
+                        <div
+                          className={`rounded-lg border p-4 ${
+                            paymentMethod === "ONLINE"
+                              ? "border-primary bg-primary/5"
+                              : "bg-white"
+                          } cursor-pointer`}
+                          onClick={() => setPaymentMethod("ONLINE")}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div
+                              className={`w-5 h-5 rounded-full ${
+                                paymentMethod === "ONLINE"
+                                  ? "bg-primary"
+                                  : "border border-gray-300"
+                              } flex items-center justify-center flex-shrink-0 mt-1`}
+                            >
+                              {paymentMethod === "ONLINE" && (
+                                <Check className="h-3 w-3 text-white" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex justify-between items-center mb-1">
+                                <h4 className="font-medium">Pay Online</h4>
+                                <Badge
+                                  variant="outline"
+                                  className="bg-green-50 text-green-600"
+                                >
+                                  Recommended
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-gray-600 mb-3">
+                                Pay the exact shipping cost using our secure
+                                payment gateway.
+                              </p>
+                              <div className="flex justify-between text-sm font-semibold">
+                                <span>Total:</span>
+                                <div className="flex flex-col items-end">
+                                  <span className="font-bold text-base">
+                                    RM {shippingRate.cost_breakdown.total_cost}
+                                  </span>
+                                  <span className="text-sm text-gray-500">
+                                    ≈ ₦{" "}
+                                    {(
+                                      Number(
+                                        shippingRate.cost_breakdown.total_cost
+                                      ) * 345
+                                    ).toLocaleString()}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* COD Option */}
+                        <div
+                          className={`rounded-lg border p-4 ${
+                            paymentMethod === "COD"
+                              ? "border-primary bg-primary/5"
+                              : "bg-white"
+                          } cursor-pointer`}
+                          onClick={() => setPaymentMethod("COD")}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div
+                              className={`w-5 h-5 rounded-full ${
+                                paymentMethod === "COD"
+                                  ? "bg-primary"
+                                  : "border border-gray-300"
+                              } flex items-center justify-center flex-shrink-0 mt-1`}
+                            >
+                              {paymentMethod === "COD" && (
+                                <Check className="h-3 w-3 text-white" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex justify-between items-center mb-1">
+                                <h4 className="font-medium">
+                                  Cash on Delivery (COD)
+                                </h4>
+                                <Badge
+                                  variant="outline"
+                                  className="bg-orange-50 text-orange-600"
+                                >
+                                  +5% fee
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-gray-600 mb-3">
+                                Pay when your package is delivered. A 5% service
+                                charge applies.
+                              </p>
+
+                              <div className="space-y-1 mb-3 text-sm bg-gray-50 p-3 rounded-md">
+                                <div className="flex justify-between">
+                                  <span>Base amount:</span>
+                                  <span>
+                                    RM {shippingRate.cost_breakdown.total_cost}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between text-orange-600">
+                                  <span>COD fee (5%):</span>
+                                  <span>
+                                    + RM{" "}
+                                    {(
+                                      Number(
+                                        shippingRate.cost_breakdown.total_cost
+                                      ) * 0.05
+                                    ).toFixed(2)}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex justify-between text-sm font-semibold">
+                                <span>Total with COD:</span>
+                                <div className="flex flex-col items-end">
+                                  <span className="font-bold text-base">
+                                    RM{" "}
+                                    {(
+                                      Number(
+                                        shippingRate.cost_breakdown.total_cost
+                                      ) * 1.05
+                                    ).toFixed(2)}
+                                  </span>
+                                  <span className="text-sm text-gray-500">
+                                    ≈ ₦{" "}
+                                    {(
+                                      Number(
+                                        shippingRate.cost_breakdown.total_cost
+                                      ) *
+                                      1.05 *
+                                      345
+                                    ).toLocaleString()}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -1322,7 +1572,8 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                       loading ||
                       !shippingRate ||
                       fieldErrors.length > 0 ||
-                      hasChanges
+                      hasChanges ||
+                      paymentMethod !== "ONLINE"
                     }
                     className="w-full sm:w-auto"
                   >
@@ -1333,19 +1584,20 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                       </span>
                     ) : (
                       <span className="flex items-center justify-center">
-                        Complete Payment (BizaPay)
+                        Complete Payment (BizaPay - MYR)
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </span>
                     )}
                   </Button>
                   <Button
-                    onClick={() => setPaymentModalOpen(true)}
+                    onClick={handlePayStackClick}
                     type="button"
                     disabled={
                       loading ||
                       !shippingRate ||
                       fieldErrors.length > 0 ||
-                      hasChanges
+                      hasChanges ||
+                      paymentMethod !== "ONLINE"
                     }
                     className="w-full sm:w-auto"
                   >
@@ -1356,7 +1608,7 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                       </span>
                     ) : (
                       <span className="flex items-center justify-center">
-                        Payment (Using PayStack)
+                        Payment (PayStack - NGN)
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </span>
                     )}
@@ -1375,58 +1627,7 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                           description: "Shipment updated to COD successfully",
                         });
                         // Reset form and refresh data
-                        setSelectedShipment(null);
-                        setFormData({
-                          id: "",
-                          user: "",
-                          cod_amount: "",
-                          payment_method: "ONLINE",
-                          payment_status: "PENDING",
-                          payment_date: "",
-                          transaction_id: "",
-                          receipt: "",
-                          sender_name: "",
-                          sender_email: "",
-                          sender_phone: "",
-                          sender_address: "",
-                          sender_country: "",
-                          recipient_name: "",
-                          recipient_email: "",
-                          recipient_phone: "",
-                          recipient_address: "",
-                          recipient_country: "",
-                          package_type: "",
-                          weight: "0",
-                          length: "0",
-                          width: "0",
-                          height: "0",
-                          description: "",
-                          declared_value: "0",
-                          insurance_required: false,
-                          signature_required: false,
-                          tracking_number: "",
-                          current_location: "",
-                          estimated_delivery: null,
-                          status: "PENDING",
-                          base_rate: "0",
-                          per_kg_rate: "0",
-                          weight_charge: "0",
-                          service_charge: "0",
-                          total_additional_charges: "0",
-                          total_cost: "0",
-                          notes: "",
-                          created_at: "",
-                          updated_at: "",
-                          staff: null,
-                          service_type: "",
-                          city: {
-                            name: "",
-                            postal_code: "",
-                            delivery_charge: "0",
-                          },
-                          extras: [],
-                          delivery_charge: "0",
-                        });
+                        resetForm();
                         fetchShipments();
                         onSuccess();
                       } catch (error) {
@@ -1445,7 +1646,8 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                       loading ||
                       !shippingRate ||
                       fieldErrors.length > 0 ||
-                      hasChanges
+                      hasChanges ||
+                      paymentMethod !== "COD"
                     }
                     className="w-full sm:w-auto"
                   >

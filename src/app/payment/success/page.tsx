@@ -274,7 +274,7 @@ function PaymentSuccessContent() {
               {isSuccess ? (
                 <>
                   Your payment of{" "}
-                  <span className="font-semibold">${amount}</span> has been
+                  <span className="font-semibold">₦{amount}</span> has been
                   processed successfully.
                 </>
               ) : (

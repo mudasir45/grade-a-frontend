@@ -3,10 +3,11 @@
 import { useState } from "react";
 
 interface PaymentModalProps {
-  price: number; // Price in NGN
+  price: number; // Price in NGN or other currency
   isOpen: boolean;
   onClose: () => void;
   metadata: Record<string, any>;
+  currencyCode?: "NGN" | "MYR"; // Add optional currency code parameter
 }
 
 export default function PaymentModal({
@@ -14,6 +15,7 @@ export default function PaymentModal({
   isOpen,
   onClose,
   metadata,
+  currencyCode = "NGN", // Default to NGN if not provided
 }: PaymentModalProps) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -73,7 +75,10 @@ export default function PaymentModal({
           </button>
         </div>
         <p className="mb-4 text-lg">
-          Price: <span className="font-bold">{price} NGN</span>
+          Price:{" "}
+          <span className="font-bold">
+            {price} {currencyCode}
+          </span>
         </p>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">

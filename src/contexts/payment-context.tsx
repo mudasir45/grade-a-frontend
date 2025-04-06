@@ -7,6 +7,7 @@ interface PaymentData {
   shippingAddress?: string;
   paymentType: "buy4me" | "shipping" | "driver";
   metadata?: Record<string, any>;
+  currency?: "MYR" | "NGN";
 }
 
 interface PaymentContextType {

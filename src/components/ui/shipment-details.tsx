@@ -5,11 +5,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import useShippingData from "@/hooks/use-shipping-data";
+import { convertCurrency } from "@/lib/utils";
 import {
   ArrowRight,
   Calendar,
   CreditCard,
+  CreditCardIcon,
   DollarSign,
+  Loader2,
   MapPin,
   Package2,
   Shield,
@@ -107,6 +110,8 @@ const ShipmentDetailsDialog: React.FC<ShipmentDetailsDialogProps> = ({
 
   const [cities, setCities] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<string>("details");
+  const [convertedAmount, setConvertedAmount] = useState<number | null>(null);
+  const [isConverting, setIsConverting] = useState(false);
 
   useEffect(() => {
     const fetchCities = async () => {
@@ -125,6 +130,36 @@ const ShipmentDetailsDialog: React.FC<ShipmentDetailsDialogProps> = ({
     };
     fetchCities();
   }, []);
+
+  // Convert total cost to Naira when selected shipment changes
+  useEffect(() => {
+    const fetchConvertedAmount = async () => {
+      if (!selectedShipment) return;
+
+      try {
+        setIsConverting(true);
+        // Parse the total cost - remove any non-numeric characters except decimal point
+        const totalCost = parseFloat(
+          selectedShipment.total_cost.toString().replace(/[^0-9.]/g, "")
+        );
+
+        if (isNaN(totalCost)) {
+          setConvertedAmount(null);
+          return;
+        }
+
+        const result = await convertCurrency(totalCost, "MYR", "NGN");
+        setConvertedAmount(result);
+      } catch (error) {
+        console.error("Error converting currency:", error);
+        setConvertedAmount(null);
+      } finally {
+        setIsConverting(false);
+      }
+    };
+
+    fetchConvertedAmount();
+  }, [selectedShipment]);
 
   // Helper functions to get names from IDs
   const getCountryName = (countryId: string, isDeparture: boolean) => {
@@ -175,9 +210,9 @@ const ShipmentDetailsDialog: React.FC<ShipmentDetailsDialogProps> = ({
         value: getStatusBadge(selectedShipment.status),
       },
       {
-        icon: <DollarSign className="h-4 w-4 text-primary" />,
+        icon: <CreditCard className="h-4 w-4 text-primary" />,
         label: "Total Cost",
-        value: selectedShipment.total_cost,
+        value: `MYR ${selectedShipment.total_cost}`,
       },
       {
         icon: <CreditCard className="h-4 w-4 text-primary" />,
@@ -478,7 +513,7 @@ const ShipmentDetailsDialog: React.FC<ShipmentDetailsDialogProps> = ({
             {/* Charges Breakdown */}
             <Section
               title="Charges Breakdown"
-              icon={<DollarSign className="h-5 w-5 text-emerald-500" />}
+              icon={<CreditCardIcon className="h-5 w-5 text-emerald-500" />}
             >
               <div className="space-y-4">
                 {/* Base Charges */}
@@ -549,19 +584,21 @@ const ShipmentDetailsDialog: React.FC<ShipmentDetailsDialogProps> = ({
                 {/* Summary */}
                 <div>
                   <h4 className="text-sm font-medium mb-2">Summary</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                    <InfoItem
-                      label="Per KG Rate"
-                      value={selectedShipment.per_kg_rate}
-                    />
-                    <InfoItem
-                      label="Weight Charge"
-                      value={selectedShipment.weight_charge}
-                    />
-                    <InfoItem
-                      label="City Delivery Charge"
-                      value={selectedShipment.delivery_charge}
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <InfoItem
+                        label="Per KG Rate"
+                        value={selectedShipment.per_kg_rate}
+                      />
+                      <InfoItem
+                        label="Weight Charge"
+                        value={selectedShipment.weight_charge}
+                      />
+                      <InfoItem
+                        label="City Delivery Charge"
+                        value={selectedShipment.delivery_charge}
+                      />
+                    </div>
 
                     <InfoItem
                       label="Extras Charges"
@@ -571,12 +608,34 @@ const ShipmentDetailsDialog: React.FC<ShipmentDetailsDialogProps> = ({
                       label="Regulation Charges"
                       value={selectedShipment.total_additional_charges}
                     />
-                    <div className="p-4 border-2 border-primary rounded-lg bg-primary/5">
-                      <div className="text-xs uppercase font-bold text-primary">
-                        Total Cost
+
+                    <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                      <div className="p-4 border-2 border-primary rounded-lg bg-primary/5">
+                        <div className="text-xs uppercase font-bold text-primary">
+                          Total Cost (MYR)
+                        </div>
+                        <div className="mt-1 text-lg font-bold text-gray-900">
+                          {selectedShipment.total_cost}
+                        </div>
                       </div>
-                      <div className="mt-1 text-lg font-bold text-gray-900">
-                        {selectedShipment.total_cost}
+
+                      <div className="p-4 border-2 border-amber-500 rounded-lg bg-amber-50">
+                        <div className="text-xs uppercase font-bold text-amber-600 flex items-center">
+                          <DollarSign className="h-3 w-3 mr-1" />
+                          Total Cost (NGN)
+                        </div>
+                        <div className="mt-1 text-lg font-bold text-gray-900">
+                          {isConverting ? (
+                            <div className="flex items-center">
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Converting...
+                            </div>
+                          ) : convertedAmount ? (
+                            `₦ ${convertedAmount.toLocaleString()}`
+                          ) : (
+                            "Unable to convert"
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

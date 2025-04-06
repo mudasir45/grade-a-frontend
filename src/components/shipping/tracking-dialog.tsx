@@ -154,14 +154,6 @@ export function TrackingDialog({
                   <p className="font-medium capitalize">
                     {shipment?.service_type}
                   </p>
-                  <p className="text-sm">
-                    Insurance:{" "}
-                    {shipment?.insurance_required ? "Required" : "Not Required"}
-                  </p>
-                  <p className="text-sm">
-                    Signature:{" "}
-                    {shipment?.signature_required ? "Required" : "Not Required"}
-                  </p>
                 </div>
               </div>
             </div>

@@ -119,6 +119,21 @@ export interface ShipmentProps {
   additional_charges: Extras[];
 }
 
+export const getStatusBadge = (status: any) => {
+  switch (status) {
+    case "DELIVERED":
+      return <Badge className="bg-green-500">{status}</Badge>;
+    case "PENDING":
+      return <Badge className="bg-yellow-500">{status}</Badge>;
+    case "PROCESSING":
+      return <Badge className="bg-blue-500">{status}</Badge>;
+    case "CANCELLED":
+      return <Badge className="bg-red-500">{status}</Badge>;
+    default:
+      return <Badge className="bg-gray-500">{status}</Badge>;
+  }
+};
+
 interface ManageShipmentProps {
   //   shipments: ShipmentProps[];
   user: any;
@@ -338,20 +353,6 @@ export function ManageShipment({ user, setTotal }: ManageShipmentProps) {
   };
 
   // Function to get the appropriate badge color based on status
-  const getStatusBadge = (status: any) => {
-    switch (status) {
-      case "DELIVERED":
-        return <Badge className="bg-green-500">{status}</Badge>;
-      case "PENDING":
-        return <Badge className="bg-yellow-500">{status}</Badge>;
-      case "PROCESSING":
-        return <Badge className="bg-blue-500">{status}</Badge>;
-      case "CANCELLED":
-        return <Badge className="bg-red-500">{status}</Badge>;
-      default:
-        return <Badge className="bg-gray-500">{status}</Badge>;
-    }
-  };
 
   // Function to get the appropriate badge color for payment status
   const getPaymentStatusBadge = (status: string) => {
