@@ -355,10 +355,10 @@ export function OrderSummary() {
                 )}
               </span>
             </div>
-            <div className="flex justify-between">
+            {/* <div className="flex justify-between">
               <span>Platform Fee</span>
               <span>{formatCurrency(apiTotalCost - totals.productsTotal)}</span>
-            </div>
+            </div> */}
             {selectedCity && (
               <div className="flex justify-between text-primary">
                 <span>City Delivery Charge</span>

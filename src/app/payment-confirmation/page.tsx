@@ -191,7 +191,7 @@ function PaymentConfirmationContent() {
             break;
 
           case "3":
-            // handlePaymentSuccess();
+            handlePaymentSuccess();
             setError("Payment failed");
             break;
 
