@@ -221,7 +221,8 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
       if (response && Array.isArray(response)) {
         const pendingShipments = response.filter(
           (shipment: NewShipmentResponse) =>
-            shipment.payment_status === "PENDING"
+            shipment.payment_status === "PENDING" ||
+            shipment.payment_status === "COD_PENDING"
         );
         console.log("Pending payment shipments:", pendingShipments);
         setPendingShipments(pendingShipments);
@@ -905,6 +906,8 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                         >
                           {selectedShipment?.id === shipment.id
                             ? "Cancel"
+                            : shipment.payment_status === "COD_PENDING"
+                            ? "Update Shipment"
                             : "Make Payment"}
                         </Button>
                       </div>
@@ -1368,11 +1371,14 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                                     )}
                                   </div>
                                   <span className="font-medium">
-                                    RM{" "}
+                                    {charge.charge_type === "PERCENTAGE"
+                                      ? " "
+                                      : `RM ${charge.value}`}
+                                    {/* RM{" "}
                                     {(
                                       Number(charge.value) *
                                       (charge.quantity || 1)
-                                    ).toFixed(2)}
+                                    ).toFixed(2)} */}
                                   </span>
                                 </div>
                               )
@@ -1541,29 +1547,37 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                   </CardContent>
                 </Card>
               )}
+              {hasChanges && (
+                <p className="text-sm text-green-700 font-semibold ">
+                  *When you update the shipment then please save the changes
+                  before proceeding to payment.
+                </p>
+              )}
             </CardContent>
             <CardFooter>
               <div className="flex flex-col sm:flex-row gap-4 w-full">
                 {hasChanges && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleUpdate}
-                    disabled={loading}
-                    className="w-full sm:w-auto"
-                  >
-                    {loading ? (
-                      <span className="flex items-center justify-center">
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Updating...
-                      </span>
-                    ) : (
-                      <span className="flex items-center justify-center">
-                        Save Changes
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </span>
-                    )}
-                  </Button>
+                  <>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleUpdate}
+                      disabled={loading}
+                      className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white"
+                    >
+                      {loading ? (
+                        <span className="flex items-center justify-center">
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Updating...
+                        </span>
+                      ) : (
+                        <span className="flex items-center justify-center">
+                          Save Changes
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </span>
+                      )}
+                    </Button>
+                  </>
                 )}
                 <div className="flex flex-col sm:flex-row gap-4 w-full">
                   <Button

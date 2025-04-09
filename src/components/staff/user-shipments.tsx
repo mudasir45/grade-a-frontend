@@ -313,7 +313,7 @@ export function UserShipments() {
   };
 
   return (
-    <Card className="w-full">
+    <Card className="w-full ">
       <CardHeader>
         <CardTitle className="text-2xl font-semibold">
           User Shipments History

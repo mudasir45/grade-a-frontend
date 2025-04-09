@@ -217,6 +217,8 @@ export type PaymentStatus =
   | "PENDING"
   | "COMPLETED"
   | "FAILED"
+  | "COD_PENDING"
+  | "COD_PAID"
   | "REFUNDED"
   | "CANCELLED";
 

@@ -11,7 +11,6 @@ import {
   Calendar,
   CreditCard,
   CreditCardIcon,
-  DollarSign,
   Loader2,
   MapPin,
   Package2,
@@ -615,13 +614,12 @@ const ShipmentDetailsDialog: React.FC<ShipmentDetailsDialogProps> = ({
                           Total Cost (MYR)
                         </div>
                         <div className="mt-1 text-lg font-bold text-gray-900">
-                          {selectedShipment.total_cost}
+                          RM {selectedShipment.total_cost}
                         </div>
                       </div>
 
                       <div className="p-4 border-2 border-amber-500 rounded-lg bg-amber-50">
                         <div className="text-xs uppercase font-bold text-amber-600 flex items-center">
-                          <DollarSign className="h-3 w-3 mr-1" />
                           Total Cost (NGN)
                         </div>
                         <div className="mt-1 text-lg font-bold text-gray-900">

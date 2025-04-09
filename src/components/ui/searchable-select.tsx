@@ -46,6 +46,45 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
     onChange(option ? option.value : "");
   };
 
+  // Custom styles to fix the red highlighting issue
+  const customStyles = {
+    control: (base: any) => ({
+      ...base,
+      background: "white",
+      borderColor: "#e2e8f0",
+      boxShadow: "none",
+      "&:hover": {
+        borderColor: "#cbd5e1",
+      },
+    }),
+    input: (base: any) => ({
+      ...base,
+      color: "#1f2937",
+      background: "transparent",
+      padding: "0",
+      margin: "0",
+      // Remove any red background
+      "& input": {
+        background: "transparent !important",
+        outline: "none !important",
+        boxShadow: "none !important",
+        border: "none !important",
+      },
+    }),
+    placeholder: (base: any) => ({
+      ...base,
+      color: "#9ca3af",
+    }),
+    option: (base: any, state: any) => ({
+      ...base,
+      backgroundColor: state.isFocused ? "#f1f5f9" : "white",
+      color: "#1f2937",
+      "&:hover": {
+        backgroundColor: "#f1f5f9",
+      },
+    }),
+  };
+
   return (
     <div className={className}>
       {label && (
@@ -57,6 +96,9 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
         onChange={handleChange}
         placeholder={placeholder}
         isClearable
+        styles={customStyles}
+        noOptionsMessage={() => "No options found"}
+        classNamePrefix="react-select"
       />
     </div>
   );

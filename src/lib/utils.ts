@@ -281,3 +281,10 @@ export async function fetchServiceTypes(): Promise<any[]> {
     return [];
   }
 }
+
+export const PercentageCharge = (
+  total_cost: number,
+  percentage_value: number
+) => {
+  return (total_cost * percentage_value) / 100;
+};

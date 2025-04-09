@@ -1,7 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Facebook,
   Instagram,
@@ -55,10 +53,10 @@ const footerLinks = {
 
 export function Footer() {
   return (
-    <footer className="bg-gray-950 text-gray-300 border-t border-gray-900">
+    <footer className="bg-gray-950 text-gray-300 border-t border-gray-900 mt-28">
       <div className="max-w-7xl mx-auto">
         {/* Top part with newsletter */}
-        <div className="py-12 px-6 lg:px-8 bg-gradient-to-r from-gray-900 to-gray-950 rounded-2xl mx-4 -mt-16 mb-10 shadow-xl relative z-10">
+        {/* <div className="py-12 px-6 lg:px-8 bg-gradient-to-r from-gray-900 to-gray-950 rounded-2xl mx-4 -mt-16 mb-10 shadow-xl relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div>
               <h3 className="text-xl font-bold text-white mb-2">
@@ -82,7 +80,7 @@ export function Footer() {
               </form>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Main footer content */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12 px-6 py-16">
