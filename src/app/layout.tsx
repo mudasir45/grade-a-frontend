@@ -30,12 +30,12 @@ export default function RootLayout({
               <Navbar />
               {children}
               <Footer />
+              <CallButton />
+              <WhatsAppButton />
             </AuthProvider>
           </Providers>
         </PaymentProvider>
       </body>
-      <CallButton />
-      <WhatsAppButton />
     </html>
   );
 }

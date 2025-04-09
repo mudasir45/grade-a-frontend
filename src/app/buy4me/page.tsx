@@ -24,7 +24,7 @@ interface Buy4meStats {
 }
 
 export default function Buy4MePage() {
-  const { user, getUser, loading } = useAuth();
+  const { user, getUser, loading, setIsOpen } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("browse");
   const [buy4meStats, setBuy4meStats] = useState<Buy4meStats | null>(null);
@@ -43,9 +43,10 @@ export default function Buy4MePage() {
             !(user?.user_type === "BUY4ME" || user?.user_type === "WALK_IN")
           ) {
             router.push("/");
+            setIsOpen(true);
             toast({
               title: "Unauthorized",
-              description: "You are not authorized to access this page",
+              description: "You are not authorized to access this page.",
             });
           }
         })

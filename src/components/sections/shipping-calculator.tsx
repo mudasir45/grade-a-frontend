@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import SearchableSelect from "@/components/ui/searchable-select";
 import {
   Select,
   SelectContent,
@@ -24,10 +23,12 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
+  ArrowRightCircle,
   Calculator,
+  CheckSquare,
+  ChevronsRight,
   Info,
   Loader2,
-  Package,
   Plane,
   Ship,
   Truck,
@@ -119,7 +120,7 @@ export function ShippingCalculator() {
 
       setResult({
         price: rate.cost_breakdown.total_cost,
-        currency: "MYR",
+        currency: rate.route.origin.currency,
       });
 
       toast({
@@ -167,8 +168,17 @@ export function ShippingCalculator() {
   }
 
   return (
-    <section className="py-24 bg-gray-50 text-gray-900" id="calculator">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+    <section
+      className="py-24 relative overflow-hidden bg-gradient-to-b from-gray-900 to-gray-800"
+      id="calculator"
+    >
+      {/* Decorative Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-1/2 h-1/2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 blur-3xl rounded-full"></div>
+        <div className="absolute bottom-0 right-1/4 w-1/2 h-1/2 bg-gradient-to-br from-red-500/10 to-orange-500/10 blur-3xl rounded-full"></div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
         <div className="max-w-3xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -177,10 +187,13 @@ export function ShippingCalculator() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-4xl font-bold tracking-tight text-gray-900 mb-4">
+            <span className="inline-block px-4 py-1 mb-4 text-sm font-medium rounded-full bg-white/10 text-white backdrop-blur-sm border border-white/20">
+              Quick Estimate
+            </span>
+            <h2 className="text-4xl font-bold tracking-tight text-white mb-4 mt-2">
               Shipping Rate Calculator
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-gray-300">
               Get instant shipping quotes for your international deliveries
             </p>
           </motion.div>
@@ -190,14 +203,20 @@ export function ShippingCalculator() {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
             viewport={{ once: true }}
+            className="relative"
           >
-            <Card className="backdrop-blur-sm bg-white/90">
-              <CardContent className="p-6">
-                <div className="grid gap-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        From Country
+            {/* Main calculator card */}
+            <Card className="backdrop-blur-md bg-white/90 border-0 shadow-2xl overflow-hidden">
+              <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-red-500"></div>
+
+              <CardContent className="p-8">
+                <div className="grid gap-8">
+                  {/* From/To Inputs */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium text-gray-700 flex items-center">
+                        Origin
+                        <span className="text-red-500 ml-1">*</span>
                       </label>
                       <Select
                         value={formData.fromCountry}
@@ -210,13 +229,18 @@ export function ShippingCalculator() {
                       >
                         <SelectTrigger
                           className={cn(
-                            "w-full",
-                            formErrors.fromCountry && "border-red-500"
+                            "w-full h-12 bg-gray-50 border transition-colors focus:ring-2 focus:ring-blue-500/20 text-gray-900",
+                            formErrors.fromCountry
+                              ? "border-red-300 focus:border-red-500"
+                              : "border-gray-200 focus:border-blue-500"
                           )}
                         >
-                          <SelectValue placeholder="Select origin" />
+                          <SelectValue
+                            placeholder="Select origin country"
+                            className="text-gray-900"
+                          />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="max-h-80">
                           {departureCountries.map((country) => (
                             <SelectItem key={country.id} value={country.id}>
                               <span className="flex items-center gap-2">
@@ -227,15 +251,24 @@ export function ShippingCalculator() {
                         </SelectContent>
                       </Select>
                       {formErrors.fromCountry && (
-                        <p className="text-sm text-red-500">
+                        <p className="text-sm text-red-500 flex items-center mt-1">
+                          <AlertCircle className="h-3 w-3 mr-1" />
                           {formErrors.fromCountry}
                         </p>
                       )}
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        To Country
+                    {/* Arrow between origin and destination */}
+                    <div className="absolute left-1/2 top-12 transform -translate-x-1/2 -translate-y-1/2 hidden md:block">
+                      <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                        <ChevronsRight className="h-5 w-5 text-gray-400" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium text-gray-700 flex items-center">
+                        Destination
+                        <span className="text-red-500 ml-1">*</span>
                       </label>
                       <Select
                         value={formData.toCountry}
@@ -245,13 +278,18 @@ export function ShippingCalculator() {
                       >
                         <SelectTrigger
                           className={cn(
-                            "w-full",
-                            formErrors.toCountry && "border-red-500"
+                            "w-full h-12 bg-gray-50 border transition-colors focus:ring-2 focus:ring-blue-500/20 text-gray-900",
+                            formErrors.toCountry
+                              ? "border-red-300 focus:border-red-500"
+                              : "border-gray-200 focus:border-blue-500"
                           )}
                         >
-                          <SelectValue placeholder="Select destination" />
+                          <SelectValue
+                            placeholder="Select destination country"
+                            className="text-gray-900"
+                          />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="max-h-80">
                           {destinationCountries.map((country) => (
                             <SelectItem key={country.id} value={country.id}>
                               <span className="flex items-center gap-2">
@@ -262,33 +300,36 @@ export function ShippingCalculator() {
                         </SelectContent>
                       </Select>
                       {formErrors.toCountry && (
-                        <p className="text-sm text-red-500">
+                        <p className="text-sm text-red-500 flex items-center mt-1">
+                          <AlertCircle className="h-3 w-3 mr-1" />
                           {formErrors.toCountry}
                         </p>
                       )}
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      Package Weight
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <Info className="h-4 w-4 text-gray-400" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Enter weight in kilograms (kg)</p>
-                            <p>Maximum weight: 1000 kg</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </label>
-                    <div className="relative">
+                  {/* Weight and Method */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium text-gray-700 flex items-center">
+                        Package Weight (kg)
+                        <span className="text-red-500 ml-1">*</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-3.5 w-3.5 text-gray-400 ml-1 cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="w-[180px] text-xs">
+                                Enter the weight of your package in kilograms
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </label>
                       <Input
                         type="number"
-                        min="0.1"
-                        step="0.1"
+                        placeholder="e.g. 5"
                         value={formData.weight}
                         onChange={(e) =>
                           setFormData((prev) => ({
@@ -296,85 +337,210 @@ export function ShippingCalculator() {
                             weight: e.target.value,
                           }))
                         }
-                        placeholder="Enter weight in kg"
-                        className={cn(formErrors.weight && "border-red-500")}
+                        className={cn(
+                          "h-12 bg-gray-50 border transition-colors focus:ring-2 focus:ring-blue-500/20 text-gray-900",
+                          formErrors.weight
+                            ? "border-red-300 focus:border-red-500"
+                            : "border-gray-200 focus:border-blue-500"
+                        )}
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
-                        kg
-                      </span>
+                      {formErrors.weight && (
+                        <p className="text-sm text-red-500 flex items-center mt-1">
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          {formErrors.weight}
+                        </p>
+                      )}
                     </div>
-                    {formErrors.weight && (
-                      <p className="text-sm text-red-500">
-                        {formErrors.weight}
-                      </p>
-                    )}
+
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium text-gray-700 flex items-center">
+                        Shipping Method
+                        <span className="text-red-500 ml-1">*</span>
+                      </label>
+                      <Select
+                        value={formData.method}
+                        onValueChange={(value) =>
+                          setFormData((prev) => ({ ...prev, method: value }))
+                        }
+                      >
+                        <SelectTrigger
+                          className={cn(
+                            "w-full h-12 bg-gray-50 border transition-colors focus:ring-2 focus:ring-blue-500/20 text-gray-900",
+                            formErrors.method
+                              ? "border-red-300 focus:border-red-500"
+                              : "border-gray-200 focus:border-blue-500"
+                          )}
+                        >
+                          <SelectValue
+                            placeholder="Select shipping method"
+                            className="text-gray-900"
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {serviceTypes.map((service) => (
+                            <SelectItem key={service.id} value={service.id}>
+                              <span className="flex items-center gap-2">
+                                {serviceIcons[
+                                  service.id as keyof typeof serviceIcons
+                                ] || null}
+                                <span>{service.name}</span>
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {formErrors.method && (
+                        <p className="text-sm text-red-500 flex items-center mt-1">
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          {formErrors.method}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">
-                      Shipping Method
-                    </label>
-                    <SearchableSelect
-                      options={serviceTypes.map((service) => ({
-                        value: service.id,
-                        label: service.name,
-                      }))}
-                      value={formData.method}
-                      onChange={(value) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          method: value,
-                        }))
-                      }
-                      placeholder="Select shipping method"
-                      className={cn(formErrors.method && "border-red-500")}
-                    />
-                    {formErrors.method && (
-                      <p className="text-sm text-red-500">
-                        {formErrors.method}
-                      </p>
-                    )}
+                  {/* Calculate Button */}
+                  <div className="mt-2">
+                    <Button
+                      onClick={handleCalculate}
+                      disabled={loading}
+                      className="w-full h-12 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium shadow-lg shadow-blue-500/20"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Calculating...
+                        </>
+                      ) : (
+                        <>
+                          <Calculator className="h-4 w-4 mr-2" />
+                          Calculate Shipping Rate
+                        </>
+                      )}
+                    </Button>
                   </div>
 
-                  <Button
-                    className="w-full border-2 border-gray-900"
-                    size="lg"
-                    onClick={handleCalculate}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Calculating...
-                      </>
-                    ) : (
-                      <>
-                        <Calculator className="mr-2 h-4 w-4" />
-                        Calculate Shipping Rate
-                      </>
-                    )}
-                  </Button>
-
+                  {/* Results Section */}
                   {result && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="rounded-lg bg-primary/5 p-6 text-center text-gray-900"
+                      transition={{ duration: 0.3 }}
+                      className="mt-4 p-6 rounded-xl bg-blue-50 border border-blue-100"
                     >
-                      <Package className="h-8 w-8 mx-auto mb-4 " />
-                      <h3 className="text-2xl font-bold  mb-2">
-                        Estimated Cost: {result.currency}{" "}
-                        {result.price.toFixed(2)}
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        * Final price may vary based on actual weight,
-                        dimensions, and special handling requirements
+                      <div className="flex items-center mb-3">
+                        <CheckSquare className="h-5 w-5 text-blue-500 mr-2" />
+                        <h3 className="text-lg font-bold text-blue-800">
+                          Estimated Shipping Cost
+                        </h3>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-4 rounded-lg shadow-sm">
+                        <div className="mb-3 sm:mb-0">
+                          <div className="text-sm text-gray-500 mb-1">
+                            Total Shipping Cost:
+                          </div>
+                          <div className="flex items-baseline">
+                            <span className="text-3xl font-bold text-gray-900">
+                              {result.price.toFixed(2)}
+                            </span>
+                            <span className="ml-1 text-gray-500">
+                              {result.currency}
+                            </span>
+                          </div>
+                        </div>
+
+                        <Button
+                          onClick={() => {
+                            window.location.href = `https://wa.me/+601136907583?text=${encodeURIComponent(
+                              `Hello, I would like to ship a package weighing ${
+                                formData.weight
+                              }kg from ${
+                                departureCountries.find(
+                                  (c) => c.id === formData.fromCountry
+                                )?.name
+                              } to ${
+                                destinationCountries.find(
+                                  (c) => c.id === formData.toCountry
+                                )?.name
+                              } using ${
+                                serviceTypes.find(
+                                  (s) => s.id === formData.method
+                                )?.name
+                              } service. The estimated cost is ${result.price.toFixed(
+                                2
+                              )} ${
+                                result.currency
+                              }. Can you help me with this shipment?`
+                            )}`;
+                          }}
+                          className="bg-green-500 hover:bg-green-600 text-white shadow-lg shadow-green-500/20"
+                        >
+                          <ArrowRightCircle className="h-4 w-4 mr-2" />
+                          Proceed with Shipping
+                        </Button>
+                      </div>
+
+                      <p className="text-xs text-gray-500 mt-4">
+                        * This is an estimated cost based on the information
+                        provided. Final shipping costs may vary based on actual
+                        weight, dimensions, and other factors.
                       </p>
                     </motion.div>
                   )}
                 </div>
               </CardContent>
             </Card>
+
+            {/* Features/Benefits Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/20">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 p-2 rounded-lg bg-blue-50 text-blue-500">
+                    <Truck className="h-5 w-5" />
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="font-medium text-gray-900">
+                      Real-Time Rates
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      Get accurate shipping rates based on current pricing
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/20">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 p-2 rounded-lg bg-purple-50 text-purple-500">
+                    <Ship className="h-5 w-5" />
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="font-medium text-gray-900">
+                      Multiple Options
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      Compare different shipping methods and services
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/20">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 p-2 rounded-lg bg-red-50 text-red-500">
+                    <Plane className="h-5 w-5" />
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="font-medium text-gray-900">
+                      Instant Estimates
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      Quick calculations to help you plan your shipping
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
       </div>

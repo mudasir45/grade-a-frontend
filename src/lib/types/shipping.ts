@@ -137,6 +137,7 @@ interface Location {
   id: string;
   name: string;
   code: string;
+  currency: string;
 }
 
 interface Zone {
