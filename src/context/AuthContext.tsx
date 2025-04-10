@@ -54,6 +54,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const getDynamicRates = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/shipping-rates/dynamic-rates/`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          },
+        }
+      );
+      const data = await response.json();
+      if (response.ok) {
+        return data;
+      }
+      return null;
+    } catch (error) {
+      console.error("Failed to get dynamic rates:", error);
+      throw new Error("Failed to get dynamic rates");
+    }
+  };
+
   const login = async (phone: string, password: string) => {
     try {
       const response = await fetch(
@@ -269,6 +290,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     updateUser,
     isStaffUser,
     isDriverUser,
+    getDynamicRates,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

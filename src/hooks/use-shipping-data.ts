@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { Country } from "@/lib/types/index";
+import { useEffect, useState } from "react";
 
 interface ServiceType {
   id: string;
@@ -23,6 +23,7 @@ interface ShippingData {
   shippingZones: ShippingZone[];
   isLoading: boolean;
   error: Error | null;
+  dataLoaded: boolean;
 }
 
 const useShippingData = () => {
@@ -33,9 +34,15 @@ const useShippingData = () => {
     shippingZones: [],
     isLoading: true,
     error: null,
+    dataLoaded: false,
   });
 
   const fetchData = async () => {
+    // Skip fetching if data is already loaded
+    if (shippingData.dataLoaded) {
+      return;
+    }
+
     try {
       // Fetch all data in parallel
       const [
@@ -67,12 +74,13 @@ const useShippingData = () => {
         ]);
 
       setShippingData({
-        departureCountries: departureData.results,
-        destinationCountries: destinationData.results,
-        serviceTypes: serviceTypesData.results,
-        shippingZones: zonesData.results,
+        departureCountries: departureData.results || [],
+        destinationCountries: destinationData.results || [],
+        serviceTypes: serviceTypesData.results || [],
+        shippingZones: zonesData.results || [],
         isLoading: false,
         error: null,
+        dataLoaded: true,
       });
     } catch (error) {
       setShippingData((prev) => ({
@@ -88,7 +96,12 @@ const useShippingData = () => {
   }, []);
 
   const refetch = () => {
-    setShippingData((prev) => ({ ...prev, isLoading: true, error: null }));
+    setShippingData((prev) => ({
+      ...prev,
+      isLoading: true,
+      error: null,
+      dataLoaded: false,
+    }));
     fetchData();
   };
 

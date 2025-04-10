@@ -83,6 +83,7 @@ export interface AuthContextType {
   updateUser: (user: User) => Promise<void>;
   isStaffUser: () => Promise<boolean>;
   isDriverUser: () => Promise<boolean>;
+  getDynamicRates: () => Promise<DynamicRates[] | null>;
 }
 
 export type Buy4MeRequestStatus =
@@ -161,4 +162,12 @@ export interface City {
   postal_code: string;
   delivery_charge: string;
   is_active?: boolean;
+}
+
+export interface DynamicRates {
+  id: string;
+  rate_type: string;
+  charge_type: string;
+  value: number;
+  is_active: boolean;
 }

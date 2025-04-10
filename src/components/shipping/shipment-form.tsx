@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/hooks/use-auth";
 import useShippingData from "@/hooks/use-shipping-data";
 import { useToast } from "@/hooks/use-toast";
 import { ShippingAPI } from "@/lib/api/shipping";
@@ -26,7 +27,7 @@ import type {
   ShipmentRequest,
   ShippingRate,
 } from "@/lib/types/shipping";
-import { cn } from "@/lib/utils";
+import { cn, convertCurrency } from "@/lib/utils";
 import {
   ArrowRight,
   Check,
@@ -86,6 +87,7 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
   const [showSuccess, setShowSuccess] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [cities, setCities] = useState<City[]>([]);
+  const [codFeePercentage, setCodFeePercentage] = useState<number>(5);
   const [extras, setExtras] = useState<Extras[]>([]);
   const [pendingShipments, setPendingShipments] = useState<
     NewShipmentResponse[]
@@ -98,25 +100,25 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
     "ONLINE"
   );
   const [paymentCurrency, setPaymentCurrency] = useState<"MYR" | "NGN">("MYR");
+  const { getDynamicRates } = useAuth();
+
+  // At the component level, add a state for converted amounts
+  const [nairaTotalAmount, setNairaTotalAmount] = useState<number | null>(null);
+  const [nairaCodTotalAmount, setNairaCodTotalAmount] = useState<number | null>(
+    null
+  );
 
   useEffect(() => {
     const getExtras = async () => {
       try {
         const extras = await ShippingAPI.getExtras();
-        // Add COD extra if it doesn't exist
-        const codExtra = {
-          id: "cod_charge",
-          name: "Cash on Delivery Charge",
-          charge_type: "PERCENTAGE",
-          value: "5",
-        };
-        setExtras([...extras, codExtra]);
+        setExtras(extras);
       } catch (error) {
         console.log("error while fetching extras");
       }
     };
     getExtras();
-  }, []);
+  }, [codFeePercentage]);
 
   const {
     departureCountries,
@@ -131,6 +133,30 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
   const [fieldErrors, setFieldErrors] = useState<
     { field: string; message: string }[]
   >([]);
+
+  useEffect(() => {
+    const fetchDynamicRates = async () => {
+      try {
+        const data = await getDynamicRates();
+        console.log("Dynamic rates:", data);
+        if (data && Array.isArray(data)) {
+          // Find COD fee in dynamic rates
+          const codRate = data.find(
+            (rate) =>
+              rate.rate_type === "COD_FEE" && rate.charge_type === "PERCENTAGE"
+          );
+
+          if (codRate && codRate.is_active) {
+            setCodFeePercentage(codRate.value);
+            console.log("COD fee percentage:", codRate.value);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching dynamic rates:", error);
+      }
+    };
+    fetchDynamicRates();
+  }, [getDynamicRates]);
 
   useEffect(() => {
     const fetchCities = async () => {
@@ -727,6 +753,69 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
     setPaymentModalOpen(true);
   };
 
+  // Add a function to handle COD button click
+  const handleCodButtonClick = async () => {
+    if (!selectedShipment) return;
+
+    try {
+      setLoading(true);
+      await ShippingAPI.updateShipment(selectedShipment.id, {
+        payment_status: "COD_PENDING",
+        payment_method: "COD",
+      });
+      toast({
+        title: "Success",
+        description: "Shipment updated to COD successfully",
+      });
+      // Reset form and refresh data
+      resetForm();
+      fetchShipments();
+      if (typeof onSuccess === "function") {
+        onSuccess();
+      }
+    } catch (error) {
+      console.error("Error updating shipment to COD:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update shipment to COD",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add a function to handle currency conversions
+  useEffect(() => {
+    const performCurrencyConversion = async () => {
+      if (shippingRate) {
+        try {
+          // Convert the regular amount to Naira
+          const regularAmount = Number(shippingRate.cost_breakdown.total_cost);
+          const convertedRegular = await convertCurrency(
+            regularAmount,
+            "MYR",
+            "NGN"
+          );
+          setNairaTotalAmount(convertedRegular);
+
+          // Convert the COD amount to Naira
+          const codAmount = regularAmount * (1 + codFeePercentage / 100);
+          const convertedCod = await convertCurrency(
+            Number(codAmount.toFixed(2)),
+            "MYR",
+            "NGN"
+          );
+          setNairaCodTotalAmount(convertedCod);
+        } catch (error) {
+          console.error("Currency conversion error:", error);
+        }
+      }
+    };
+
+    performCurrencyConversion();
+  }, [shippingRate, codFeePercentage]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -753,9 +842,7 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
       <PaymentForm
         amount={
           paymentCurrency === "NGN"
-            ? Math.round(
-                Number(shippingRate.cost_breakdown.total_cost) * 345
-              ).toString()
+            ? nairaTotalAmount?.toString() || "0"
             : shippingRate.cost_breakdown.total_cost.toString()
         }
         currency={paymentCurrency}
@@ -923,9 +1010,7 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
       <PaymentModal
         price={
           paymentCurrency === "NGN"
-            ? Math.round(
-                Number(shippingRate?.cost_breakdown.total_cost || 0) * 345
-              )
+            ? nairaTotalAmount || 0
             : Number(shippingRate?.cost_breakdown.total_cost || 0)
         }
         currencyCode={paymentCurrency}
@@ -1374,11 +1459,6 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                                     {charge.charge_type === "PERCENTAGE"
                                       ? " "
                                       : `RM ${charge.value}`}
-                                    {/* RM{" "}
-                                    {(
-                                      Number(charge.value) *
-                                      (charge.quantity || 1)
-                                    ).toFixed(2)} */}
                                   </span>
                                 </div>
                               )
@@ -1446,11 +1526,8 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                                   </span>
                                   <span className="text-sm text-gray-500">
                                     ≈ ₦{" "}
-                                    {(
-                                      Number(
-                                        shippingRate.cost_breakdown.total_cost
-                                      ) * 345
-                                    ).toLocaleString()}
+                                    {nairaTotalAmount?.toLocaleString() ||
+                                      "Calculating..."}
                                   </span>
                                 </div>
                               </div>
@@ -1488,12 +1565,12 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                                   variant="outline"
                                   className="bg-orange-50 text-orange-600"
                                 >
-                                  +5% fee
+                                  +{codFeePercentage}% fee
                                 </Badge>
                               </div>
                               <p className="text-sm text-gray-600 mb-3">
-                                Pay when your package is delivered. A 5% service
-                                charge applies.
+                                Pay when your package is delivered. A{" "}
+                                {codFeePercentage}% service charge applies.
                               </p>
 
                               <div className="space-y-1 mb-3 text-sm bg-gray-50 p-3 rounded-md">
@@ -1504,13 +1581,14 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                                   </span>
                                 </div>
                                 <div className="flex justify-between text-orange-600">
-                                  <span>COD fee (5%):</span>
+                                  <span>COD fee ({codFeePercentage}%):</span>
                                   <span>
                                     + RM{" "}
                                     {(
                                       Number(
                                         shippingRate.cost_breakdown.total_cost
-                                      ) * 0.05
+                                      ) *
+                                      (codFeePercentage / 100)
                                     ).toFixed(2)}
                                   </span>
                                 </div>
@@ -1524,18 +1602,14 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                                     {(
                                       Number(
                                         shippingRate.cost_breakdown.total_cost
-                                      ) * 1.05
+                                      ) *
+                                      (1 + codFeePercentage / 100)
                                     ).toFixed(2)}
                                   </span>
                                   <span className="text-sm text-gray-500">
                                     ≈ ₦{" "}
-                                    {(
-                                      Number(
-                                        shippingRate.cost_breakdown.total_cost
-                                      ) *
-                                      1.05 *
-                                      345
-                                    ).toLocaleString()}
+                                    {nairaCodTotalAmount?.toLocaleString() ||
+                                      "Calculating..."}
                                   </span>
                                 </div>
                               </div>
@@ -1628,33 +1702,7 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                     )}
                   </Button>
                   <Button
-                    onClick={async () => {
-                      if (!selectedShipment) return;
-                      try {
-                        setLoading(true);
-                        await ShippingAPI.updateShipment(selectedShipment.id, {
-                          payment_status: "COD_PENDING",
-                          payment_method: "COD",
-                        });
-                        toast({
-                          title: "Success",
-                          description: "Shipment updated to COD successfully",
-                        });
-                        // Reset form and refresh data
-                        resetForm();
-                        fetchShipments();
-                        onSuccess();
-                      } catch (error) {
-                        console.error("Error updating shipment to COD:", error);
-                        toast({
-                          title: "Error",
-                          description: "Failed to update shipment to COD",
-                          variant: "destructive",
-                        });
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
+                    onClick={handleCodButtonClick}
                     type="button"
                     disabled={
                       loading ||
@@ -1672,7 +1720,7 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                       </span>
                     ) : (
                       <span className="flex items-center justify-center">
-                        Pay with COD (5% extra)
+                        Pay with COD ({codFeePercentage}% extra)
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </span>
                     )}
