@@ -49,25 +49,6 @@ function PaymentSuccessContent() {
 
         setReturnPath("/driver");
         console.log("in the driver payment");
-        // Handle driver payment
-        // const response = await fetch(
-        //   `${process.env.NEXT_PUBLIC_API_URL}/accounts/driver/payments/`,
-        //   {
-        //     method: "POST",
-        //     headers: {
-        //       "Content-Type": "application/json",
-        //       Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-        //     },
-        //     body: JSON.stringify({
-        //       payment_id: verification?.data?.reference || reference,
-        //       amount: paymentData.amount,
-        //       driver: paymentData.driver_id,
-        //       payment_for: paymentData.payment_for,
-        //       [paymentData.payment_for.toLowerCase()]: paymentData.item_id,
-        //     }),
-        //   }
-        // );
-
         // Use the bulk payment API to process the payment
         await bulkPaymentMutation.mutateAsync({
           payment_for: paymentData.payment_for,
@@ -127,7 +108,7 @@ function PaymentSuccessContent() {
 
           await submitBuy4MeRequest(
             paymentData.shipping_address,
-            paymentData.city
+            paymentData.notes
           );
 
           toast({

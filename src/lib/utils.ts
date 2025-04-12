@@ -28,7 +28,7 @@ export function formatDate(dateString: string): string {
 export type Currency = {
   id: string;
   name: string;
-  cod: string;
+  code: string;
   conversion_rate: string;
 };
 

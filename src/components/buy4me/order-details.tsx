@@ -33,7 +33,6 @@ import {
   ExternalLink,
   FileText,
   Info,
-  Landmark,
   Loader2,
   MapPin,
   Package,
@@ -456,24 +455,25 @@ Shipping Address: ${order.shipping_address}
                               {formatCurrency(deliveryChargesTotal)}
                             </span>
                           </div>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                          Service Charges
+                        </h4>
+                        <div className="space-y-2">
                           <div className="flex items-center justify-between text-sm py-2 px-3 rounded-lg bg-muted/30">
                             <div className="flex items-center gap-2">
-                              <Landmark className="h-4 w-4 text-muted-foreground" />
-                              <span>City Delivery</span>
+                              <Truck className="h-4 w-4 text-muted-foreground" />
+                              <span>
+                                Service Fee ({order.service_fee_percentage}%)
+                              </span>
                             </div>
                             <span className="font-medium">
-                              {formatCurrency(
-                                parseFloat(order.city_delivery_charge)
-                              )}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between text-sm font-medium">
-                            <span>Delivery Subtotal</span>
-                            <span>
-                              {formatCurrency(
-                                deliveryChargesTotal +
-                                  parseFloat(order.city_delivery_charge)
-                              )}
+                              {formatCurrency(order.service_fee)}
                             </span>
                           </div>
                         </div>

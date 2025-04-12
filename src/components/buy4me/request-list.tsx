@@ -266,7 +266,11 @@ export function RequestList({ onCheckout }: RequestListProps) {
 
       <div className="flex items-center justify-between">
         <div className="text-lg font-semibold">
-          Total: {formatCurrency(parseFloat(totalCost))}
+          <span className="text-muted-foreground text-sm">
+            Total (including {activeRequest.service_fee_percentage}% service
+            fee):{" "}
+          </span>
+          {formatCurrency(parseFloat(totalCost))}
         </div>
         <Button onClick={onCheckout}>Proceed to Checkout</Button>
       </div>

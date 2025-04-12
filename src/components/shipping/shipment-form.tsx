@@ -108,6 +108,9 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
     null
   );
 
+  // Add a loading state for currency conversion
+  const [currencyLoading, setCurrencyLoading] = useState(false);
+
   useEffect(() => {
     const getExtras = async () => {
       try {
@@ -785,11 +788,12 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
     }
   };
 
-  // Add a function to handle currency conversions
+  // Update the currency conversion effect to be more comprehensive
   useEffect(() => {
     const performCurrencyConversion = async () => {
       if (shippingRate) {
         try {
+          setCurrencyLoading(true);
           // Convert the regular amount to Naira
           const regularAmount = Number(shippingRate.cost_breakdown.total_cost);
           const convertedRegular = await convertCurrency(
@@ -809,12 +813,20 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
           setNairaCodTotalAmount(convertedCod);
         } catch (error) {
           console.error("Currency conversion error:", error);
+          // Set fallback values in case of error
+          toast({
+            title: "Currency Conversion Error",
+            description: "Failed to convert currency. Using estimated values.",
+            variant: "destructive",
+          });
+        } finally {
+          setCurrencyLoading(false);
         }
       }
     };
 
     performCurrencyConversion();
-  }, [shippingRate, codFeePercentage]);
+  }, [shippingRate, codFeePercentage, paymentCurrency, toast]);
 
   if (isLoading) {
     return (
@@ -838,13 +850,15 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
   }
 
   if (showPayment && shippingRate) {
+    // Calculate the amount based on currency and conversion status
+    const paymentAmount =
+      paymentCurrency === "NGN"
+        ? nairaTotalAmount?.toString() || "0"
+        : shippingRate.cost_breakdown.total_cost.toString();
+
     return (
       <PaymentForm
-        amount={
-          paymentCurrency === "NGN"
-            ? nairaTotalAmount?.toString() || "0"
-            : shippingRate.cost_breakdown.total_cost.toString()
-        }
+        amount={paymentAmount}
         currency={paymentCurrency}
         shippingAddress={formData.sender_address}
         paymentType="shipping"
@@ -1010,7 +1024,9 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
       <PaymentModal
         price={
           paymentCurrency === "NGN"
-            ? nairaTotalAmount || 0
+            ? currencyLoading
+              ? 0 // Show zero while loading, modal will update once conversion is complete
+              : nairaTotalAmount || 0
             : Number(shippingRate?.cost_breakdown.total_cost || 0)
         }
         currencyCode={paymentCurrency}
@@ -1526,8 +1542,10 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                                   </span>
                                   <span className="text-sm text-gray-500">
                                     ≈ ₦{" "}
-                                    {nairaTotalAmount?.toLocaleString() ||
-                                      "Calculating..."}
+                                    {currencyLoading
+                                      ? "Converting..."
+                                      : nairaTotalAmount?.toLocaleString() ||
+                                        "N/A"}
                                   </span>
                                 </div>
                               </div>
@@ -1608,8 +1626,10 @@ export function ShipmentForm({ onSuccess }: { onSuccess: () => void }) {
                                   </span>
                                   <span className="text-sm text-gray-500">
                                     ≈ ₦{" "}
-                                    {nairaCodTotalAmount?.toLocaleString() ||
-                                      "Calculating..."}
+                                    {currencyLoading
+                                      ? "Converting..."
+                                      : nairaCodTotalAmount?.toLocaleString() ||
+                                        "N/A"}
                                   </span>
                                 </div>
                               </div>

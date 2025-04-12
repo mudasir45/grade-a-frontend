@@ -195,7 +195,7 @@ export function useBuy4Me() {
     };
   }, [activeRequest]);
 
-  const submitRequest = async (shippingAddress: string, cityId: string) => {
+  const submitRequest = async (shippingAddress: string, notes: string) => {
     try {
       const token = localStorage.getItem("auth_token");
 
@@ -224,7 +224,7 @@ export function useBuy4Me() {
           },
           body: JSON.stringify({
             shipping_address: shippingAddress,
-            city: cityId,
+            notes: notes,
             status: "SUBMITTED",
           }),
         }

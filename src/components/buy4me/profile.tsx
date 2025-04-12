@@ -227,7 +227,7 @@ export function Buy4MeProfile() {
                   {currencies.map((currency) => (
                     <SelectItem key={currency.id} value={currency.id}>
                       <span className="flex items-center gap-2">
-                        <span>{currency.name}</span>
+                        <span>{currency.code}</span>
                       </span>
                     </SelectItem>
                   ))}

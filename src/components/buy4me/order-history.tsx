@@ -31,7 +31,9 @@ interface Order {
   status: string;
   total_cost: string;
   created_at: string;
+  service_fee: string;
   shipping_address: string;
+  service_fee_percentage: string;
   items: Array<{
     product_name: string;
     quantity: number;
@@ -66,6 +68,8 @@ export function OrderHistory() {
         items_count: order.items.length,
         order_number: order.id,
         currency: order.items[0]?.currency || "USD",
+        service_fee: order.service_fee,
+        service_fee_percentage: order.service_fee_percentage,
       }));
 
       setOrders(formattedOrders);

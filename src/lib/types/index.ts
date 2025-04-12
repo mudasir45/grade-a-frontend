@@ -117,6 +117,8 @@ export interface Buy4MeRequest {
   total_cost: string;
   shipping_address: string;
   notes?: string;
+  service_fee: string;
+  service_fee_percentage: string;
   items: Buy4MeItem[];
   created_at: string;
   updated_at: string;
@@ -169,5 +171,14 @@ export interface DynamicRates {
   rate_type: string;
   charge_type: string;
   value: number;
+  is_active: boolean;
+}
+
+export interface SupportedStore {
+  id: number;
+  name: string;
+  description: string;
+  url: string;
+  logo: string;
   is_active: boolean;
 }
