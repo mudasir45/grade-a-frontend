@@ -195,7 +195,11 @@ export function useBuy4Me() {
     };
   }, [activeRequest]);
 
-  const submitRequest = async (shippingAddress: string, notes: string) => {
+  const submitRequest = async (
+    shippingAddress: string,
+    notes: string,
+    payment_status: string
+  ) => {
     try {
       const token = localStorage.getItem("auth_token");
 
@@ -226,6 +230,7 @@ export function useBuy4Me() {
             shipping_address: shippingAddress,
             notes: notes,
             status: "SUBMITTED",
+            payment_status: payment_status,
           }),
         }
       );

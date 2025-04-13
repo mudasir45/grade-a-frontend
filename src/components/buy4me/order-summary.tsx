@@ -130,15 +130,6 @@ export function OrderSummary() {
       return;
     }
 
-    if (!selectedCity) {
-      toast({
-        title: "Missing City",
-        description: "Please select a city for delivery.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setShowPayment(true);
   };
 

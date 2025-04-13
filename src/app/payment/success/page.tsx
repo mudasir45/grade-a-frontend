@@ -108,7 +108,8 @@ function PaymentSuccessContent() {
 
           await submitBuy4MeRequest(
             paymentData.shipping_address,
-            paymentData.notes
+            paymentData.notes,
+            "PAID"
           );
 
           toast({

@@ -256,11 +256,14 @@ export class ShippingAPI {
 
   static async updateShipmentStatus(id: string, status: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/shipments/${id}/status/`, {
-        method: "PATCH",
-        headers: this.getHeaders(),
-        body: JSON.stringify({ status }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/shipments/${id}/update-status/`,
+        {
+          method: "POST",
+          headers: this.getHeaders(),
+          body: JSON.stringify({ status }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to update shipment status");
@@ -271,6 +274,60 @@ export class ShippingAPI {
       throw error instanceof Error
         ? error
         : new Error("Failed to update shipment status");
+    }
+  }
+
+  static async updateShipmentStatusLocation(
+    id: string,
+    statusLocationId: number,
+    description?: string
+  ) {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/shipments/status-update/${id}/`,
+        {
+          method: "POST",
+          headers: this.getHeaders(),
+          body: JSON.stringify({
+            status_location_id: statusLocationId,
+            description: description || "",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || "Failed to update shipment status"
+        );
+      }
+
+      return response.json();
+    } catch (error) {
+      throw error instanceof Error
+        ? error
+        : new Error("Failed to update shipment status");
+    }
+  }
+
+  static async getShipmentStatusLocations(id: string) {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/shipments/status-update/${id}/`,
+        {
+          headers: this.getHeaders(),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch available status locations");
+      }
+
+      return response.json();
+    } catch (error) {
+      throw error instanceof Error
+        ? error
+        : new Error("Failed to fetch available status locations");
     }
   }
 

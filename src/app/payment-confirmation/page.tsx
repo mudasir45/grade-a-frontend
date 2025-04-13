@@ -109,7 +109,8 @@ function PaymentConfirmationContent() {
       } else if (paymentData.paymentType === "buy4me") {
         await submitBuy4MeRequest(
           paymentData.shippingAddress!,
-          paymentData.notes
+          paymentData.notes,
+          "PAID"
         );
         toast({
           title: "Request Submitted",

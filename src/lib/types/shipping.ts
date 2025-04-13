@@ -140,6 +140,15 @@ interface Location {
   currency: string;
 }
 
+export interface ShipmentStatusLocation {
+  id: number;
+  status_type: ShipmentStatus;
+  status_type_display: string;
+  location_name: string;
+  description: string;
+  display_order: number;
+}
+
 interface Zone {
   id: string;
   name: string;
