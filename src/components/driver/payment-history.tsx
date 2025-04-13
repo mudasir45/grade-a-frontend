@@ -102,7 +102,7 @@ export function DriverPaymentHistory() {
                   <TableRow key={payment.id}>
                     <TableCell className="font-medium">{payment.id}</TableCell>
                     <TableCell>{formatDate(payment.payment_date)}</TableCell>
-                    <TableCell>₦{payment.amount}</TableCell>
+                    <TableCell>RM {payment.amount}</TableCell>
                     <TableCell>
                       <Badge
                         variant={

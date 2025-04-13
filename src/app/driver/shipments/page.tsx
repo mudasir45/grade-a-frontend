@@ -88,8 +88,6 @@ export default function ShipmentsPage() {
     setSelectedShipment(shipmentId);
 
     try {
-      // In a real implementation, you would fetch the available status locations
-      // from the API based on the shipment ID
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/accounts/driver/shipments/${shipmentId}/update/`,
         {
@@ -100,7 +98,21 @@ export default function ShipmentsPage() {
       );
 
       const data = await response.json();
-      setAvailableStatusLocations(data.available_status_locations || []);
+
+      // Filter status locations to only show allowed statuses for drivers
+      const allowedStatuses = [
+        "OUT_FOR_DELIVERY",
+        "DELIVERED",
+        "CANCELLED",
+        "FAILED_DELIVERY",
+        "RETURNED",
+      ];
+      const filteredStatusLocations =
+        data.available_status_locations?.filter((location: any) =>
+          allowedStatuses.includes(location.status_type)
+        ) || [];
+
+      setAvailableStatusLocations(filteredStatusLocations);
       setIsDialogOpen(true);
     } catch (error) {
       toast.error("Failed to fetch status options");
@@ -121,8 +133,14 @@ export default function ShipmentsPage() {
         return <Badge className="bg-yellow-500">{status}</Badge>;
       case "PROCESSING":
         return <Badge className="bg-blue-500">{status}</Badge>;
+      case "OUT_FOR_DELIVERY":
+        return <Badge className="bg-indigo-500">{status}</Badge>;
       case "CANCELLED":
         return <Badge className="bg-red-500">{status}</Badge>;
+      case "FAILED_DELIVERY":
+        return <Badge className="bg-orange-500">{status}</Badge>;
+      case "RETURNED":
+        return <Badge className="bg-purple-500">{status}</Badge>;
       default:
         return <Badge className="bg-gray-500">{status}</Badge>;
     }
@@ -152,6 +170,9 @@ export default function ShipmentsPage() {
       "PICKED_UP",
       "IN_TRANSIT",
       "OUT_FOR_DELIVERY",
+      "CANCELLED",
+      "FAILED_DELIVERY",
+      "RETURNED",
     ].includes(s.status)
   );
 
@@ -180,10 +201,11 @@ export default function ShipmentsPage() {
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
             <SelectItem value="PENDING">Pending</SelectItem>
-            <SelectItem value="PICKED_UP">Picked Up</SelectItem>
-            <SelectItem value="IN_TRANSIT">In Transit</SelectItem>
             <SelectItem value="OUT_FOR_DELIVERY">Out for Delivery</SelectItem>
             <SelectItem value="DELIVERED">Delivered</SelectItem>
+            <SelectItem value="CANCELLED">Cancelled</SelectItem>
+            <SelectItem value="FAILED_DELIVERY">Failed Delivery</SelectItem>
+            <SelectItem value="RETURNED">Returned</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -253,39 +275,76 @@ export default function ShipmentsPage() {
           <DialogHeader>
             <DialogTitle>Update Shipment Status</DialogTitle>
             <DialogDescription>
-              Select a new status for this shipment
+              Select the current status of this delivery
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Select
-                value={selectedStatusLocation?.toString() || ""}
-                onValueChange={(value) =>
-                  setSelectedStatusLocation(Number(value))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableStatusLocations.map((location) => (
-                    <SelectItem
-                      key={location.id}
-                      value={location.id.toString()}
-                    >
-                      {location.status_type_display} - {location.location_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Textarea
-                placeholder="Add a description (optional)"
-                value={customDescription}
-                onChange={(e) => setCustomDescription(e.target.value)}
-              />
-            </div>
+            {availableStatusLocations.length === 0 ? (
+              <div className="text-center p-4 bg-muted rounded-md">
+                <p className="text-sm text-muted-foreground">
+                  No valid status options available for this shipment.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-2">
+                  <Select
+                    value={selectedStatusLocation?.toString() || ""}
+                    onValueChange={(value) =>
+                      setSelectedStatusLocation(Number(value))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableStatusLocations.map((location) => (
+                        <SelectItem
+                          key={location.id}
+                          value={location.id.toString()}
+                        >
+                          {location.status_type_display} -{" "}
+                          {location.location_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <div className="text-xs text-muted-foreground">
+                    <p className="mt-1">
+                      <strong>Important:</strong> Only update the status when
+                      you have completed the corresponding action.
+                    </p>
+                    <ul className="mt-2 pl-4 list-disc">
+                      <li>
+                        Use "Out for Delivery" when you start your delivery
+                        route
+                      </li>
+                      <li>
+                        Use "Delivered" only after successful delivery to the
+                        recipient
+                      </li>
+                      <li>
+                        Use "Failed Delivery" if you couldn't complete the
+                        delivery
+                      </li>
+                      <li>Use "Cancelled" only if instructed by management</li>
+                      <li>
+                        Use "Returned" when the package is being returned to the
+                        sender
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Textarea
+                    placeholder="Add details about the delivery (required for Failed Delivery)"
+                    value={customDescription}
+                    onChange={(e) => setCustomDescription(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
             <Button
@@ -302,7 +361,15 @@ export default function ShipmentsPage() {
             <Button
               onClick={handleStatusUpdate}
               disabled={
-                !selectedStatusLocation || updateStatusMutation.isPending
+                !selectedStatusLocation ||
+                updateStatusMutation.isPending ||
+                (selectedStatusLocation !== null &&
+                  availableStatusLocations.some(
+                    (loc) =>
+                      loc.id === selectedStatusLocation &&
+                      loc.status_type === "FAILED_DELIVERY" &&
+                      !customDescription.trim()
+                  ))
               }
             >
               {updateStatusMutation.isPending ? "Updating..." : "Update Status"}
@@ -340,106 +407,179 @@ function ShipmentCard({
   const getStatusColor = (status: string) => {
     switch (status) {
       case "PENDING":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 text-yellow-800 border-yellow-300";
       case "PICKED_UP":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 text-blue-800 border-blue-300";
       case "IN_TRANSIT":
-        return "bg-purple-100 text-purple-800";
+        return "bg-purple-100 text-purple-800 border-purple-300";
       case "OUT_FOR_DELIVERY":
-        return "bg-indigo-100 text-indigo-800";
+        return "bg-indigo-100 text-indigo-800 border-indigo-300";
       case "DELIVERED":
       case "COMPLETED":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-800 border-green-300";
+      case "CANCELLED":
+        return "bg-red-100 text-red-800 border-red-300";
+      case "FAILED_DELIVERY":
+        return "bg-orange-100 text-orange-800 border-orange-300";
+      case "RETURNED":
+        return "bg-purple-100 text-purple-800 border-purple-300";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 border-gray-300";
+    }
+  };
+
+  // Get icon based on status
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "PENDING":
+        return <Clock className="h-3 w-3" />;
+      case "PICKED_UP":
+        return <Package className="h-3 w-3" />;
+      case "IN_TRANSIT":
+        return <Package className="h-3 w-3" />;
+      case "OUT_FOR_DELIVERY":
+        return <MapPin className="h-3 w-3" />;
+      case "DELIVERED":
+      case "COMPLETED":
+        return <Package className="h-3 w-3" />;
+      case "CANCELLED":
+        return <Clock className="h-3 w-3" />;
+      case "FAILED_DELIVERY":
+        return <MapPin className="h-3 w-3" />;
+      case "RETURNED":
+        return <Package className="h-3 w-3" />;
+      default:
+        return <Clock className="h-3 w-3" />;
     }
   };
 
   return (
-    <Card>
+    <Card className="overflow-hidden transition-all duration-200 hover:shadow-md">
+      {/* Status indicator at the top */}
+      <div
+        className={`h-1 w-full ${
+          getStatusColor(shipment.status).split(" ")[0]
+        }`}
+      />
+
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="text-lg">
+            <CardTitle className="text-lg font-semibold tracking-tight flex items-center gap-1">
+              <Package className="h-4 w-4 text-primary" />
               {shipment.tracking_number}
             </CardTitle>
-            <CardDescription>{formatDate(shipment.created_at)}</CardDescription>
+            <CardDescription className="mt-1 text-xs">
+              Created: {formatDate(shipment.created_at)}
+            </CardDescription>
           </div>
-          <Badge className={getStatusColor(shipment.status)}>
-            {shipment.status.replace("_", " ")}
+          <Badge
+            className={`${getStatusColor(
+              shipment.status
+            )} flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md border`}
+          >
+            {getStatusIcon(shipment.status)}
+            {shipment.status.replace(/_/g, " ")}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex items-start gap-2">
-          <User className="h-4 w-4 text-muted-foreground mt-0.5" />
-          <div>
-            <p className="text-sm font-medium">{shipment.customer_name}</p>
-            <p className="text-xs text-muted-foreground">
-              {shipment.customer_phone}
-            </p>
+
+      <CardContent className="space-y-4 pb-2">
+        {/* Customer Information */}
+        <div className="p-3 bg-muted/40 rounded-lg">
+          <div className="flex items-start gap-2">
+            <User className="h-4 w-4 text-primary mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium">{shipment.customer_name}</p>
+              <p className="text-xs text-muted-foreground">
+                {shipment.customer_phone}
+              </p>
+            </div>
           </div>
         </div>
-        <div className="flex items-start gap-2">
-          <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-          <div>
-            <p className="text-xs font-medium">Pickup</p>
-            <p className="text-xs text-muted-foreground">
-              {shipment.sender_address}
-            </p>
+
+        {/* Address Information */}
+        <div className="space-y-3">
+          <div className="flex items-start gap-2">
+            <div className="mt-0.5 flex flex-col items-center">
+              <div className="h-4 w-4 rounded-full bg-blue-100 flex items-center justify-center">
+                <MapPin className="h-3 w-3 text-blue-600" />
+              </div>
+              <div className="h-8 w-px bg-gray-200"></div>
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-medium text-blue-700">From</p>
+              <p className="text-xs text-muted-foreground">
+                {shipment.sender_address}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-2">
+            <div className="mt-0.5 flex h-4 w-4 rounded-full bg-green-100 items-center justify-center">
+              <MapPin className="h-3 w-3 text-green-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-medium text-green-700">To</p>
+              <p className="text-xs text-muted-foreground">
+                {shipment.recipient_address}
+              </p>
+            </div>
           </div>
         </div>
-        <div className="flex items-start gap-2">
-          <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-          <div>
-            <p className="text-xs font-medium">Delivery</p>
-            <p className="text-xs text-muted-foreground">
-              {shipment.recipient_address}
-            </p>
+
+        {/* Additional Information */}
+        <div className="grid grid-cols-2 gap-3 pt-2">
+          <div className="flex items-center gap-2 bg-muted/30 p-2 rounded-md">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <p className="text-xs font-medium leading-none">Location</p>
+              <p className="text-xs text-muted-foreground mt-1 truncate">
+                {shipment.current_location || "Not updated"}
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-start gap-2">
-          <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
-          <div>
-            <p className="text-xs font-medium">Current Location</p>
-            <p className="text-xs text-muted-foreground">
-              {shipment.current_location || "Not updated"}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-start gap-2">
-          <DollarSign className="h-4 w-4 text-muted-foreground mt-0.5" />
-          <div>
-            <p className="text-xs font-medium">Amount</p>
-            <p className="text-xs text-muted-foreground">
-              {formatCurrency(shipment.total_cost)}
-            </p>
+
+          <div className="flex items-center gap-2 bg-muted/30 p-2 rounded-md">
+            <DollarSign className="h-4 w-4 text-emerald-500" />
+            <div>
+              <p className="text-xs font-medium leading-none">Amount</p>
+              <p className="text-xs font-semibold text-emerald-600 mt-1">
+                {formatCurrency(shipment.total_cost)}
+              </p>
+            </div>
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex gap-2">
-        {!isCompleted && (
+
+      <CardFooter className="flex gap-2 pt-2 border-t bg-muted/10">
+        {!isCompleted ? (
           <Button
-            className="w-full"
+            className="w-full flex items-center gap-1"
+            size="sm"
             onClick={() => onUpdateStatus(shipment.id)}
           >
+            <Clock className="h-3.5 w-3.5" />
             Update Status
           </Button>
-        )}
-        {isCompleted && (
+        ) : (
           <Button
-            className="w-full"
+            className="w-full flex items-center gap-1"
             variant="outline"
+            size="sm"
             onClick={() => onUpdateStatus(shipment.id)}
           >
-            View Status History
+            <Clock className="h-3.5 w-3.5" />
+            Status History
           </Button>
         )}
         <Button
-          className="w-full"
+          className="w-full flex items-center gap-1"
           variant={isCompleted ? "outline" : "secondary"}
+          size="sm"
           onClick={() => onViewDetails && onViewDetails(shipment)}
         >
+          <Package className="h-3.5 w-3.5" />
           View Details
         </Button>
       </CardFooter>
@@ -469,31 +609,81 @@ function ShipmentsSkeleton() {
             {Array(6)
               .fill(null)
               .map((_, i) => (
-                <Card key={i}>
+                <Card key={i} className="overflow-hidden">
+                  {/* Status indicator */}
+                  <div className="h-1 w-full bg-gray-200" />
+
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                       <div>
-                        <Skeleton className="h-5 w-32" />
-                        <Skeleton className="h-4 w-24 mt-1" />
+                        <div className="flex items-center gap-1">
+                          <Skeleton className="h-4 w-4" />
+                          <Skeleton className="h-5 w-32" />
+                        </div>
+                        <Skeleton className="h-3 w-24 mt-1" />
                       </div>
-                      <Skeleton className="h-6 w-24" />
+                      <Skeleton className="h-6 w-24 rounded-md" />
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    {Array(5)
-                      .fill(null)
-                      .map((_, j) => (
-                        <div key={j} className="flex items-start gap-2">
-                          <Skeleton className="h-4 w-4 mt-0.5" />
-                          <div className="flex-1">
-                            <Skeleton className="h-4 w-full" />
-                            <Skeleton className="h-3 w-full mt-1" />
-                          </div>
+
+                  <CardContent className="space-y-4 pb-2">
+                    {/* Customer Card */}
+                    <div className="p-3 bg-muted/40 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <Skeleton className="h-4 w-4 mt-0.5" />
+                        <div className="flex-1">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-24 mt-1" />
                         </div>
-                      ))}
+                      </div>
+                    </div>
+
+                    {/* Address Section */}
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-2">
+                        <div className="mt-0.5">
+                          <Skeleton className="h-4 w-4 rounded-full" />
+                        </div>
+                        <div className="flex-1">
+                          <Skeleton className="h-3 w-16" />
+                          <Skeleton className="h-3 w-full mt-1" />
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <div className="mt-0.5">
+                          <Skeleton className="h-4 w-4 rounded-full" />
+                        </div>
+                        <div className="flex-1">
+                          <Skeleton className="h-3 w-16" />
+                          <Skeleton className="h-3 w-full mt-1" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Info Grid */}
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <div className="flex items-center gap-2 bg-muted/30 p-2 rounded-md">
+                        <Skeleton className="h-4 w-4" />
+                        <div className="flex-1">
+                          <Skeleton className="h-3 w-16" />
+                          <Skeleton className="h-3 w-20 mt-1" />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 bg-muted/30 p-2 rounded-md">
+                        <Skeleton className="h-4 w-4" />
+                        <div className="flex-1">
+                          <Skeleton className="h-3 w-16" />
+                          <Skeleton className="h-3 w-12 mt-1" />
+                        </div>
+                      </div>
+                    </div>
                   </CardContent>
-                  <CardFooter>
-                    <Skeleton className="h-10 w-full" />
+
+                  <CardFooter className="flex gap-2 pt-2 border-t bg-muted/10">
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
                   </CardFooter>
                 </Card>
               ))}

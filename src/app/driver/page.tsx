@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDriverDashboard } from "@/hooks/use-driver";
 import { formatCurrency } from "@/lib/utils";
-import { DollarSign, Package, ShoppingBag, TrendingUp } from "lucide-react";
+import { DollarSign, Package, TrendingUp } from "lucide-react";
 
 export default function DriverDashboard() {
   const { data, isLoading, error } = useDriverDashboard();
@@ -102,26 +102,10 @@ export default function DriverDashboard() {
             <p className="text-xs text-muted-foreground">
               {pending_deliveries.shipments} total pending deliveries
             </p>
-            {/* <div className="mt-4 space-x-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handlePayment("paystack")}
-              >
-                Pay with PayStack
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handlePayment("bizapay")}
-              >
-                Pay with BizaPay
-              </Button>
-            </div> */}
           </CardContent>
         </Card>
 
-        <Card>
+        {/* <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Pending Buy4Me
@@ -135,24 +119,8 @@ export default function DriverDashboard() {
             <p className="text-xs text-muted-foreground">
               {pending_deliveries.buy4me} total pending deliveries
             </p>
-            {/* <div className="mt-4 space-x-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handlePayment("paystack")}
-              >
-                Pay with PayStack
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handlePayment("bizapay")}
-              >
-                Pay with BizaPay
-              </Button>
-            </div> */}
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
 
       <Tabs defaultValue="overview">

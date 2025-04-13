@@ -65,7 +65,7 @@ export function EarningsChart({ commissions }: EarningsChartProps) {
   const formatCompactCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "USD",
+      currency: "MYR",
       notation: "compact",
     }).format(value);
   };

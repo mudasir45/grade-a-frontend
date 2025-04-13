@@ -9,7 +9,6 @@ import {
   LogOut,
   Menu,
   Package,
-  ShoppingBag,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -27,11 +26,7 @@ const navItems = [
     href: "/driver/shipments",
     icon: Package,
   },
-  {
-    title: "Buy4Me",
-    href: "/driver/buy4me",
-    icon: ShoppingBag,
-  },
+
   {
     title: "Earnings",
     href: "/driver/earnings",

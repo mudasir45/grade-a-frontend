@@ -392,6 +392,16 @@ export function OrderSummary() {
               )}
             </Button>
           </CardFooter>
+          <div className="mt-4 p-4 bg-muted/50 rounded-lg border">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              <span className="font-medium text-foreground">
+                Important Notice:
+              </span>{" "}
+              The current payment covers only the product purchase. Shipping
+              costs will be calculated and billed separately once your order
+              arrives at our warehouse.
+            </p>
+          </div>
         </Card>
       </div>
     </>
