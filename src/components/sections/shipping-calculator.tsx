@@ -19,7 +19,7 @@ import {
 import useShippingData from "@/hooks/use-shipping-data";
 import { useToast } from "@/hooks/use-toast";
 import { ShippingAPI } from "@/lib/api/shipping";
-import { cn } from "@/lib/utils";
+import { cn, convertCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
@@ -33,7 +33,7 @@ import {
   Ship,
   Truck,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const serviceIcons = {
   economy: <Ship className="h-5 w-5" />,
@@ -59,9 +59,11 @@ export function ShippingCalculator() {
     method: "",
   });
   const [loading, setLoading] = useState(false);
+  const [convertedAmount, setConvertedAmount] = useState<number | null>(null);
   const [result, setResult] = useState<{
     price: number;
     currency: string;
+    destination_currency: string;
   } | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -93,6 +95,36 @@ export function ShippingCalculator() {
     return Object.keys(errors).length === 0;
   };
 
+  useEffect(() => {
+    const performCurrencyConversion = async () => {
+      if (result) {
+        try {
+          setLoading(true);
+          // Convert the regular amount to Naira
+          const regularAmount = Number(result.price);
+          const convertedRegular = await convertCurrency(
+            regularAmount,
+            result.currency,
+            result.destination_currency
+          );
+          setConvertedAmount(convertedRegular);
+        } catch (error) {
+          console.error("Currency conversion error:", error);
+          // Set fallback values in case of error
+          toast({
+            title: "Currency Conversion Error",
+            description: "Failed to convert currency. Using estimated values.",
+            variant: "destructive",
+          });
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    performCurrencyConversion();
+  }, [result, toast]);
+
   const handleCalculate = async () => {
     if (!validateForm()) {
       toast({
@@ -121,6 +153,7 @@ export function ShippingCalculator() {
       setResult({
         price: rate.cost_breakdown.total_cost,
         currency: rate.route.origin.currency,
+        destination_currency: rate.route.destination.currency,
       });
 
       toast({
@@ -434,50 +467,82 @@ export function ShippingCalculator() {
                         </h3>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-4 rounded-lg shadow-sm">
-                        <div className="mb-3 sm:mb-0">
-                          <div className="text-sm text-gray-500 mb-1">
-                            Total Shipping Cost:
-                          </div>
-                          <div className="flex items-baseline">
-                            <span className="text-3xl font-bold text-gray-900">
-                              {result.price.toFixed(2)}
-                            </span>
-                            <span className="ml-1 text-gray-500">
-                              {result.currency}
-                            </span>
-                          </div>
-                        </div>
-
-                        <Button
-                          onClick={() => {
-                            window.location.href = `https://wa.me/+601136907583?text=${encodeURIComponent(
-                              `Hello, I would like to ship a package weighing ${
-                                formData.weight
-                              }kg from ${
+                      <div className="bg-white p-4 rounded-lg shadow-sm">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Origin Country Cost */}
+                          <div className="space-y-2">
+                            <div className="flex items-center text-sm text-gray-500">
+                              <ChevronsRight className="h-4 w-4 mr-1" />
+                              {
                                 departureCountries.find(
                                   (c) => c.id === formData.fromCountry
                                 )?.name
-                              } to ${
+                              }
+                            </div>
+                            <div className="flex items-baseline">
+                              <span className="text-2xl font-bold text-gray-900">
+                                {result.price.toFixed(2)}
+                              </span>
+                              <span className="ml-1 text-gray-500">
+                                {result.currency}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Destination Country Cost */}
+                          <div className="space-y-2">
+                            <div className="flex items-center text-sm text-gray-500">
+                              <ChevronsRight className="h-4 w-4 mr-1" />
+                              {
                                 destinationCountries.find(
                                   (c) => c.id === formData.toCountry
                                 )?.name
-                              } using ${
-                                serviceTypes.find(
-                                  (s) => s.id === formData.method
-                                )?.name
-                              } service. The estimated cost is ${result.price.toFixed(
-                                2
-                              )} ${
-                                result.currency
-                              }. Can you help me with this shipment?`
-                            )}`;
-                          }}
-                          className="bg-green-500 hover:bg-green-600 text-white shadow-lg shadow-green-500/20"
-                        >
-                          <ArrowRightCircle className="h-4 w-4 mr-2" />
-                          Proceed with Shipping
-                        </Button>
+                              }
+                            </div>
+                            <div className="flex items-baseline">
+                              <span className="text-2xl font-bold text-gray-900">
+                                {convertedAmount?.toFixed(2)}
+                              </span>
+                              <span className="ml-1 text-gray-500">
+                                {result.destination_currency}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-6 flex justify-end">
+                          <Button
+                            onClick={() => {
+                              window.location.href = `https://wa.me/+601136907583?text=${encodeURIComponent(
+                                `Hello, I would like to ship a package weighing ${
+                                  formData.weight
+                                }kg from ${
+                                  departureCountries.find(
+                                    (c) => c.id === formData.fromCountry
+                                  )?.name
+                                } to ${
+                                  destinationCountries.find(
+                                    (c) => c.id === formData.toCountry
+                                  )?.name
+                                } using ${
+                                  serviceTypes.find(
+                                    (s) => s.id === formData.method
+                                  )?.name
+                                } service. The estimated cost is ${result.price.toFixed(
+                                  2
+                                )} ${
+                                  result.currency
+                                } (${convertedAmount?.toFixed(2)} ${
+                                  result.destination_currency
+                                }). Can you help me with this shipment?`
+                              )}`;
+                            }}
+                            className="bg-green-500 hover:bg-green-600 text-white shadow-lg shadow-green-500/20"
+                          >
+                            <ArrowRightCircle className="h-4 w-4 mr-2" />
+                            Proceed with Shipping
+                          </Button>
+                        </div>
                       </div>
 
                       <p className="text-xs text-gray-500 mt-4">
