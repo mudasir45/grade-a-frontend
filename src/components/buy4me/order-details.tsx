@@ -497,13 +497,15 @@ Shipping Address: ${order.shipping_address}
                       </div>
 
                       {/* Payment Information */}
-                      <div className="mt-6 bg-green-50 border border-green-100 rounded-lg p-3 flex items-start gap-2 text-sm">
-                        <Info className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
-                        <div className="text-green-700">
-                          <p className="font-medium">Payment completed</p>
-                          <p>Your payment has been processed successfully.</p>
+                      {order.status !== "DRAFT" && (
+                        <div className="mt-6 bg-green-50 border border-green-100 rounded-lg p-3 flex items-start gap-2 text-sm">
+                          <Info className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-green-700">
+                            <p className="font-medium">Payment completed</p>
+                            <p>Your payment has been processed successfully.</p>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </motion.div>

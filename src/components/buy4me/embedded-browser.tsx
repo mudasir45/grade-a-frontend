@@ -250,40 +250,48 @@ export function EmbeddedBrowser() {
       </div>
 
       {/* Supported Stores */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {supportedStores.map((store) => (
           <motion.a
             key={store.id}
             href={store.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="group block p-4 rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-all duration-200 hover:border-primary/50"
+            className="group block p-4 rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-all duration-200 hover:border-primary/50 h-full"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            <div className="flex items-center gap-3">
-              <div className="relative w-12 h-12 rounded-md bg-muted flex items-center justify-center overflow-hidden">
-                {store.logo ? (
-                  <Image
-                    src={store.logo}
-                    alt={store.name}
-                    width={48}
-                    height={48}
-                    className="object-contain p-1"
-                  />
-                ) : (
-                  <span className="text-xl font-semibold text-muted-foreground">
-                    {store.name.charAt(0)}
-                  </span>
-                )}
+            <div className="flex flex-col h-full">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="relative w-12 h-12 rounded-md bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {store.logo ? (
+                    <Image
+                      src={store.logo}
+                      alt={store.name}
+                      width={48}
+                      height={48}
+                      className="object-contain p-1"
+                    />
+                  ) : (
+                    <span className="text-xl font-semibold text-muted-foreground">
+                      {store.name.charAt(0)}
+                    </span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-sm md:text-base">
+                      {store.name}
+                    </h3>
+                    <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 ml-2" />
+                  </div>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold truncate">{store.name}</h3>
-                <p className="text-xs text-muted-foreground truncate">
+              <div className="mt-1 flex-grow">
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   {store.description}
                 </p>
               </div>
-              <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
             </div>
           </motion.a>
         ))}

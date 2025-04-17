@@ -897,7 +897,7 @@ export function ShipmentForm({
               options={
                 users?.map((user) => ({
                   value: String(user.id),
-                  label: user.phone_number,
+                  label: `${user.phone_number} - ${user.first_name} ${user.last_name}`,
                 })) || []
               }
               value={searchCustomerId}

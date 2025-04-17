@@ -113,7 +113,7 @@ export function HeroSection() {
           >
             <div className="flex flex-col items-center ">
               <span className="font-bold text-xl sm:text-2xl text-white">
-                5000+
+                50,000+
               </span>
               <span className="text-xs text-gray-400">Packages Shipped</span>
             </div>

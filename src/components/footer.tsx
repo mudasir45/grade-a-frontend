@@ -132,15 +132,59 @@ export function Footer() {
                 <span>+234 902 020 2928 (Nigeria office)</span>
               </a>
 
-              <div className="flex items-center gap-3 text-gray-400 group">
-                <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-800">
+              <div className="flex items-start gap-3 text-gray-400 group">
+                <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-800 flex-shrink-0">
                   <MapPin className="h-5 w-5 text-red-500" />
                 </span>
-                <address className="not-italic text-sm">
-                  Shop 23, Victory plaza, beside Mobil filling station, ilepo
-                  oke odo bus stop, along abule egba/iyana paja express way,
-                  Lagos, Nigeria.
-                </address>
+                <div className="space-y-5">
+                  <div className="border-l-2 border-gray-800 pl-3 hover:border-red-500 transition-colors">
+                    <p className="font-medium text-white text-sm mb-1">
+                      Malaysia Office
+                    </p>
+                    <address className="not-italic text-sm leading-relaxed">
+                      Grade A Express, Bandar Hill Park, 32,
+                      <br />
+                      Jalan Hillpark 11/3, 42300 Puncak Alam,
+                      <br />
+                      Selangor
+                    </address>
+                  </div>
+
+                  <div className="border-l-2 border-gray-800 pl-3 hover:border-red-500 transition-colors">
+                    <p className="font-medium text-white text-sm mb-1">
+                      Lagos Office
+                    </p>
+                    <address className="not-italic text-sm leading-relaxed">
+                      Shop 23, Victory plaza, beside Mobil filling station,
+                      <br />
+                      ilepo oke odo bus stop, along abule egba/iyana paja
+                      <br />
+                      express way, Lagos, Nigeria.
+                    </address>
+                  </div>
+
+                  <div className="border-l-2 border-gray-800 pl-3 hover:border-red-500 transition-colors">
+                    <p className="font-medium text-white text-sm mb-1">
+                      Ibadan Office
+                    </p>
+                    <address className="not-italic text-sm leading-relaxed">
+                      Flat 2 Block 1, GRA in front of Lifeforte Intl School,
+                      <br />
+                      Awotan, Ibadan, Oyo State, Nigeria
+                    </address>
+                  </div>
+
+                  <div className="border-l-2 border-gray-800 pl-3 hover:border-red-500 transition-colors">
+                    <p className="font-medium text-white text-sm mb-1">
+                      Kano Office
+                    </p>
+                    <address className="not-italic text-sm leading-relaxed">
+                      Aminu Kano International Airport,
+                      <br />
+                      Kano, Nigeria
+                    </address>
+                  </div>
+                </div>
               </div>
             </div>
 
