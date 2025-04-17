@@ -72,7 +72,7 @@ export function Sidebar() {
         )}
       >
         <aside className="flex h-full w-72 flex-col overflow-y-auto border-r bg-white px-5 py-8">
-          <div className="mb-8 flex items-center">
+          <div className="mb-8 flex items-center mt-8">
             <h2 className="text-2xl font-bold">Driver Panel</h2>
           </div>
           <nav className="flex-1">

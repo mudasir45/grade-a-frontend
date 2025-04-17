@@ -169,7 +169,7 @@ export function CTASection() {
               transition={{ duration: 0.5, delay: 0.5 }}
               viewport={{ once: true }}
             >
-              <div className="flex items-center gap-6 pt-4 border-t border-gray-100">
+              <div className="flex flex-col md:flex-row gap-2 items-center lg:gap-6 pt-4 border-t border-gray-100">
                 <a
                   href="tel:+601136907583"
                   className="flex items-center gap-2 text-gray-900 font-medium hover:text-red-600 transition-colors"
