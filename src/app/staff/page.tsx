@@ -122,6 +122,7 @@ export default function StaffDashboard() {
             .then((data) => {
               setUsers(data.results);
               console.log(data.results);
+              console.log("walk in users count: ", data.count);
             });
         }
       })
