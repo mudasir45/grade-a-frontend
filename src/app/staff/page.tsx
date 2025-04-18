@@ -120,9 +120,9 @@ export default function StaffDashboard() {
               return response.json();
             })
             .then((data) => {
-              setUsers(data.results);
-              console.log(data.results);
-              console.log("walk in users count: ", data.count);
+              setUsers(data);
+              //   console.log(data.results);
+              //   console.log("walk in users count: ", data.count);
             });
         }
       })
